@@ -27,7 +27,7 @@ export class Hud {
   constructor() {
     this.el = {
       hud: $('#hud'), banner: $('#banner'), round: $('#round-label'), prompt: $('#prompt'), sub: $('#subprompt'),
-      players: $('#players'), actions: $('#actions'), tooltip: $('#tooltip'), toasts: $('#toasts'), views: $('#views'), realms: $('#view-realms'),
+      players: $('#players'), toolbar: $('#toolbar'), actions: $('#actions'), tooltip: $('#tooltip'), toasts: $('#toasts'), views: $('#views'), realms: $('#view-realms'),
       menu: $('#menu'), results: $('#results'), help: $('#help'), settings: $('#settings'), pass: $('#pass'),
       lobby: $('#lobby'), notice: $('#notice'),
       loading: $('#loading'), loadingFill: $('#loading-fill'), loadingText: $('#loading-text'), showResults: $('#show-results'),
@@ -37,6 +37,14 @@ export class Hud {
     document.querySelectorAll('[data-action]').forEach((b) => {
       b.addEventListener('click', (e) => { e.stopPropagation(); this.emit(b.dataset.action); });
     });
+    // Small screens fold the toolbar behind one button. It stays open for the on/off toggles
+    // and closes once a button opens something else, or on a tap anywhere outside it.
+    const bar = this.el.toolbar;
+    this.on('more', () => bar.classList.toggle('open'));
+    bar.querySelectorAll('[data-action]').forEach((b) => {
+      if (!['more', 'ambience', 'music', 'sound'].includes(b.dataset.action)) b.addEventListener('click', () => bar.classList.remove('open'));
+    });
+    document.addEventListener('pointerdown', (e) => { if (!bar.contains(e.target)) bar.classList.remove('open'); });
     document.querySelectorAll('.modal').forEach((m) => {
       m.addEventListener('click', (e) => { if (e.target === m || e.target.hasAttribute('data-close')) m.classList.add('hidden'); });
     });
@@ -132,6 +140,7 @@ export class Hud {
       const tip = `${whose[0].toUpperCase()}${whose.slice(1)} · ${i + 1}`;
       const c = document.createElement('div');
       c.className = 'player-card';
+      c.dataset.view = String(i);
       c.style.setProperty('--pc', p.color);
       c.title = `Look at ${whose} (${i + 1})`;
       c.innerHTML = `${shieldSVG(p.color, p.crest)}<div class="pinfo"><div class="pname">${esc(p.name)}</div>
@@ -155,7 +164,10 @@ export class Hud {
     const d = this.el.views;
     d.querySelector('[data-action="follow"]').classList.toggle('on', follow);
     d.querySelector('[data-action="follow"]').classList.toggle('nudge', held);
-    d.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', view != null && b.dataset.view === String(view)));
+    // the score cards stand in for the realm shields on small screens
+    for (const el of [d, this.el.players]) {
+      el.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', view != null && b.dataset.view === String(view)));
+    }
   }
 
   updatePlayer(p, score, crowns) {

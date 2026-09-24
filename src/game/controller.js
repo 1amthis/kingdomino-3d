@@ -51,6 +51,7 @@ export class Controller {
     this.link = null; // online session: remote seats' moves come from it, ours go out through it
     this.pointerNdc = new THREE.Vector2(9, 9);
     this.pointerPx = { x: 0, y: 0 };
+    this.touch = matchMedia('(pointer: coarse)').matches; // hints speak of taps rather than clicks and keys
     this.raycaster = new THREE.Raycaster();
     this.restPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -REST);
     // The camera is "held" once the player looks around on their own: the automatic camera then
@@ -407,7 +408,8 @@ export class Controller {
   holdCamera(on) {
     if (on && !this.camHeld && !this.holdHinted && this.settings.camera === 'auto' && !this.demo) {
       this.holdHinted = true;
-      this.hud.toast('Free camera &middot; press <kbd>F</kbd> to follow the game again', 3.2);
+      this.hud.toast(this.touch ? 'Free camera &middot; tap the crosshair to follow the game again'
+        : 'Free camera &middot; press <kbd>F</kbd> to follow the game again', 3.2);
     }
     this.camHeld = on;
     if (!on) this.viewName = null;
@@ -649,7 +651,7 @@ export class Controller {
     if (!this.demo) {
       this.hud.setActive(p);
       this.hud.prompt(local ? `${this.hud.who(p)}, place domino ${domino.id}` : `${this.hud.who(p)} is placing a domino…`,
-        local ? 'Click to place · R or right-click to rotate' : this.remoteNote(p));
+        !local ? this.remoteNote(p) : this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate');
     }
     await this.focusPlayer(flow, p, 'place');
     const valid = p.kingdom.validPlacements(domino);
@@ -1021,7 +1023,11 @@ export class Controller {
       if (down && !down.dragged && Math.hypot(e.clientX - down.x, e.clientY - down.y) >= 7) { down.dragged = true; this.takeCamera(); }
       this.onPointerMove(e);
     });
-    el.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, b: e.button, dragged: false }; this.onPointerMove(e); });
+    el.addEventListener('pointerdown', (e) => {
+      this.touch = e.pointerType === 'touch';
+      down = { x: e.clientX, y: e.clientY, b: e.button, dragged: false };
+      this.onPointerMove(e);
+    });
     el.addEventListener('pointerup', (e) => {
       if (!down) return;
       // a right click rotates the domino; a right drag pans the camera
