@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>Kingdomino 3D</title>
   <meta name="description" content="Kingdomino in 3D, against the AI or friends online." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -37,6 +37,10 @@
     <div id="players"></div>
 
     <div id="toolbar">
+      <!-- small screens fold the toolbar behind this button -->
+      <button class="icon-btn more-btn" data-action="more" title="Options" aria-label="Options">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
       <button class="icon-btn" data-action="ambience" title="Change the time of day (T)">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
       </button>
@@ -218,7 +222,16 @@
       <h3>Playing online</h3>
       <p>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
       <h3>Controls</h3>
-      <table class="keys">
+      <table class="keys touch-keys">
+        <tr><td><kbd>Tap</kbd></td><td>Pick a domino</td></tr>
+        <tr><td><kbd>Tap</kbd> <kbd>Tap</kbd></td><td>Show a spot, then tap it again to place the domino</td></tr>
+        <tr><td><kbd>Rotate</kbd> <kbd>Hints</kbd></td><td>The buttons under the table turn the domino and show the legal spots</td></tr>
+        <tr><td><kbd>Drag</kbd></td><td>Orbit the camera</td></tr>
+        <tr><td><kbd>Pinch</kbd> / two-finger drag</td><td>Zoom / slide the camera across the table</td></tr>
+        <tr><td>Tap a score</td><td>Look at that player&rsquo;s kingdom</td></tr>
+        <tr><td>Bottom-right buttons</td><td>Follow play again, or look at the whole table or the drafting board</td></tr>
+      </table>
+      <table class="keys mouse-keys">
         <tr><td><kbd>Click</kbd></td><td>Pick a domino / place it</td></tr>
         <tr><td><kbd>R</kbd> <kbd>Right-click</kbd> <kbd>Q</kbd>/<kbd>E</kbd></td><td>Rotate the domino</td></tr>
         <tr><td><kbd>G</kbd></td><td>Toggle legal-spot hints</td></tr>
