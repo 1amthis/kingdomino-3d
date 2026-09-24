@@ -328,20 +328,27 @@ export class Stage {
   }
 
   // Smooth camera flight; controls stay usable once the flight ends.
+  // The target glides straight while the camera swings round it (distance, height and bearing each
+  // eased, the short way round). A straight line to the far side of the table would pass over the
+  // target and flip the view half a turn in one frame.
   flyTo(position, target, duration = 1400, ease = Ease.inOutCubic) {
-    const p0 = this.camera.position.clone(), t0 = this.controls.target.clone();
-    const p1 = position.clone(), t1 = target.clone();
+    const t0 = this.controls.target.clone(), t1 = target.clone();
+    const s0 = new THREE.Spherical().setFromVector3(this.camera.position.clone().sub(t0));
+    const s1 = new THREE.Spherical().setFromVector3(position.clone().sub(t1));
+    const turn = THREE.MathUtils.euclideanModulo(s1.theta - s0.theta + Math.PI, Math.PI * 2) - Math.PI;
+    const rise = Math.min(4, this.camera.position.distanceTo(position) * 0.12);
+    const s = new THREE.Spherical();
     this.flying = true;
     const id = (this.flightId = (this.flightId || 0) + 1);
     return this.tweener.add({
       duration, ease, tag: 'camera',
       update: (t) => {
         if (id !== this.flightId) return;
-        this.camera.position.lerpVectors(p0, p1, t);
-        // a gentle rise in the middle of long moves keeps the table in view
-        const lift = Math.sin(Math.PI * t) * Math.min(4, p0.distanceTo(p1) * 0.12);
-        this.camera.position.y += lift;
         this.controls.target.lerpVectors(t0, t1, t);
+        s.set(s0.radius + (s1.radius - s0.radius) * t, s0.phi + (s1.phi - s0.phi) * t, s0.theta + turn * t);
+        this.camera.position.setFromSpherical(s).add(this.controls.target);
+        // a gentle rise in the middle of long moves keeps the table in view
+        this.camera.position.y += Math.sin(Math.PI * t) * rise;
       },
     }).then(() => { if (id === this.flightId) this.flying = false; });
   }
