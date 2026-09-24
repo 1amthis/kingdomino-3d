@@ -76,7 +76,8 @@ Set one or more seats to **Online friend** in the menu and press **Invite your f
 | <kbd>H</kbd> | Rules & controls |
 
 The camera dock on the right edge does the same with the mouse: follow play, the whole table, the drafting board,
-and one crest per player. Once you move the camera yourself (drag, zoom or a dock view) it stays where you put it while
+and one crest per player. Following play uses the same shots: the drafting board while dominoes are dealt and
+picked, and the kingdom of whoever is placing. Once you move the camera yourself (drag, zoom or a dock view) it stays where you put it while
 the others play; it only takes over again when it is your move, or when you press <kbd>F</kbd>.
 
 While placing, the ghost domino glows green or red, shows the points it would earn on that exact spot, and the
