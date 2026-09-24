@@ -335,12 +335,6 @@ export class Controller {
     return { pos, target };
   }
 
-  // Leaning over the drafting board from the player's side.
-  selectView(p) {
-    const B = this.boardCenter, d = p.seat.dir, f = this.far;
-    return { pos: B.clone().add(d.clone().multiplyScalar(6.8 * f)).add(new THREE.Vector3(0, 10.5 * f, 0)), target: B.clone().add(d.clone().multiplyScalar(0.9)) };
-  }
-
   // Looking down on one's own kingdom while building.
   placeView(p) {
     const K = p.seat.pos, d = p.seat.dir, f = this.far;
@@ -349,17 +343,6 @@ export class Controller {
     const [cx, cy] = [(r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2];
     const c = p.root.localToWorld(new THREE.Vector3(cx * 0.5, 0, cy * 0.5));
     return { pos: c.clone().add(d.clone().multiplyScalar(6.2 * f * big)).add(new THREE.Vector3(0, 11.5 * f * big, 0)), target: c.clone().sub(d.clone().multiplyScalar(0.9)) };
-  }
-
-  // Watching an opponent: stay on the viewer's side and look across the board at their realm.
-  watchView(p) {
-    const B = this.boardCenter, f = this.far;
-    const viewer = this.lastHuman || this.humans[0];
-    const V = viewer ? viewer.seat.pos : new THREE.Vector3(0, 0, 10);
-    const target = B.clone().lerp(p.seat.pos, 0.55);
-    const pos = B.clone().lerp(V, 0.5).add(new THREE.Vector3(0, 12.5 * f, 0));
-    if (viewer === p) return this.placeView(p);
-    return { pos, target };
   }
 
   overview() {
@@ -378,10 +361,10 @@ export class Controller {
     return { pos: c.clone().add(p.seat.dir.clone().multiplyScalar(r * 0.42)).add(new THREE.Vector3(0, r * 0.9, 0)), target: c };
   }
 
-  // Nearly straight down on the drafting board, from the viewer's side of the table.
-  draftView() {
+  // Nearly straight down on the drafting board, from a local lord's side of the table.
+  draftView(p = this.viewer) {
     const B = this.boardCenter, f = this.far;
-    const d = this.viewer ? this.viewer.seat.dir : new THREE.Vector3(0, 0, 1);
+    const d = p ? p.seat.dir : new THREE.Vector3(0, 0, 1);
     return { pos: B.clone().add(d.clone().multiplyScalar(3.6 * f)).add(new THREE.Vector3(0, 11 * f, 0)), target: B.clone().add(d.clone().multiplyScalar(0.2)) };
   }
 
@@ -456,12 +439,19 @@ export class Controller {
     this.holdCamera(true);
   }
 
+  // The drafting board as the viewer sees it; the key changes with the side of the table.
+  draftShot(p = this.viewer) { return { key: 'draft' + (p ? p.index : ''), view: () => this.draftView(p) }; }
+
+  // Following play frames the action the way the camera dock does: every pick on the drafting board
+  // (from the local lord's side), an opponent's placement on their own realm, and our own placement
+  // on the whole space we have left to build in.
   async focusPlayer(flow, p, phase) {
     let key, view;
     const local = this.isLocal(p);
-    if (!local) { key = 'watch' + p.index; view = () => this.watchView(p); }
-    else if (phase === 'select') { key = 'select' + p.index; view = () => this.selectView(p); }
-    else { key = 'place' + p.index + ':' + p.kingdom.placements.length; view = () => this.placeView(p); }
+    const n = p.kingdom.placements.length;
+    if (phase === 'select') ({ key, view } = this.draftShot(local ? p : this.viewer));
+    else if (local) { key = 'place' + p.index + ':' + n; view = () => this.placeView(p); }
+    else { key = 'realm' + p.index + ':' + n; view = () => this.realmView(p); }
     const fly = this.focus(flow, key, view, 1150, local);
     if (this.isLocal(p) && this.humans.length > 1 && this.lastHuman !== p && !this.demo) {
       this.lastHuman = p;
@@ -528,6 +518,9 @@ export class Controller {
     this.next = drawn.map((domino, index) => ({ domino, index, king: null, view: this.getView(domino) }));
     const mouth = this.chest.localToWorld(this.chest.userData.mouth.clone());
     if (!this.demo) this.hud.prompt('Drawing new dominoes');
+    // the camera heads for the board while the first tiles leave the chest
+    const { key, view } = this.draftShot();
+    const framing = this.focus(flow, key, view, 1150);
     const flights = this.next.map(async (slot, i) => {
       const g = slot.view.group;
       g.position.copy(mouth);
@@ -540,7 +533,7 @@ export class Controller {
       const dest = this.slotPos(1, i).add(new THREE.Vector3(0, 0.75, 0));
       await flow.w(this.tw.move(g, { position: dest, scale: 1, duration: 750, arc: 1.6, ease: Ease.inOutCubic }));
     });
-    await flow.w(Promise.all(flights));
+    await flow.w(Promise.all([...flights, framing]));
     await flow.w(this.tw.wait(200));
     const flips = this.next.map(async (slot, i) => {
       await flow.w(this.tw.wait(i * 190));
@@ -605,21 +598,25 @@ export class Controller {
       this.hud.prompt(local ? `${this.hud.who(p)}, choose your next domino` : `${this.hud.who(p)} is picking a domino…`,
         local ? 'Lower numbers play first next round · higher numbers usually have more crowns' : this.remoteNote(p));
     }
-    await this.focusPlayer(flow, p, 'select');
+    const framing = this.focusPlayer(flow, p, 'select');
     let slot;
     if (local) {
+      await framing;
       this.sfx('turnChime');
       slot = await flow.w(this.humanSelect(p, options));
       // looking around during one's own turn does not outlast it
       if (this.camHeld) this.holdCamera(false);
     } else {
-      const pick = await this.remoteMove(flow, p, 'select');
-      slot = options.find((s) => s.index === pick);
-      if (!slot) {
+      // an opponent makes up their mind while the camera finds the board
+      const decide = async () => {
+        const pick = await this.remoteMove(flow, p, 'select');
+        const remote = options.find((s) => s.index === pick);
+        if (remote) return remote;
         await flow.w(this.tw.wait(420 + this.rng.float(0, 380)));
         const others = this.players.filter((o) => o !== p);
-        slot = chooseSlot(p, others, options, this.lineN, this.opts, p.type, this.rng);
-      }
+        return chooseSlot(p, others, options, this.lineN, this.opts, p.type, this.rng);
+      };
+      [slot] = await Promise.all([decide(), framing]);
     }
     if (this.link) this.link.tell(p, 'select', slot.index);
     if (!local) {
@@ -653,23 +650,26 @@ export class Controller {
       this.hud.prompt(local ? `${this.hud.who(p)}, place domino ${domino.id}` : `${this.hud.who(p)} is placing a domino…`,
         !local ? this.remoteNote(p) : this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate');
     }
-    await this.focusPlayer(flow, p, 'place');
+    const framing = this.focusPlayer(flow, p, 'place');
     const valid = p.kingdom.validPlacements(domino);
     let choice;
     if (local) {
+      await framing;
       this.sfx('turnChime');
       choice = await flow.w(this.humanPlace(flow, p, slot, valid));
       if (this.camHeld) this.holdCamera(false);
       if (this.link) this.link.tell(p, 'place', choice);
     } else {
-      const move = await this.remoteMove(flow, p, 'place');
-      // A remote move must be legal here too: one of our valid spots, or a discard when nothing fits.
-      const legal = move === null ? !valid.length : !!move && valid.some((v) => v.x === move.x && v.y === move.y && v.rot === move.rot);
-      if (legal) choice = move && { x: move.x, y: move.y, rot: move.rot };
-      else {
+      // (deciding while the camera flies to their realm)
+      const decide = async () => {
+        const move = await this.remoteMove(flow, p, 'place');
+        // A remote move must be legal here too: one of our valid spots, or a discard when nothing fits.
+        const legal = move === null ? !valid.length : !!move && valid.some((v) => v.x === move.x && v.y === move.y && v.rot === move.rot);
+        if (legal) return move && { x: move.x, y: move.y, rot: move.rot };
         await flow.w(this.tw.wait(380 + this.rng.float(0, 300)));
-        choice = choosePlacement(p.kingdom, domino, this.opts, p.type, this.rng);
-      }
+        return choosePlacement(p.kingdom, domino, this.opts, p.type, this.rng);
+      };
+      [choice] = await Promise.all([decide(), framing]);
       if (this.link) this.link.tell(p, 'place', choice);
       if (choice) {
         const hover = this.placementTransform(p, choice, HOVER);
@@ -698,7 +698,8 @@ export class Controller {
         this.sfx('coin');
         for (const c of view.crowns) this.fx.sparkle(c.getWorldPosition(new THREE.Vector3()), { count: 14, spread: 0.15, up: 1.4, size: 0.1 });
       }
-      await flow.w(this.tw.wait(250));
+      // points read before the camera moves on to the board
+      await flow.w(this.tw.wait(gain > 0 ? 650 : 250));
     } else {
       p.kingdom.discard(domino);
       if (!this.demo) this.hud.toast(`${this.hud.who(p)} cannot place domino ${domino.id} &mdash; it is discarded.`);
