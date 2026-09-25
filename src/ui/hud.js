@@ -57,6 +57,48 @@ export class Hud {
         this.emit('setting', { key: seg.dataset.setting, value: b.dataset.v });
       }));
     });
+    this.watchKeyboard();
+  }
+
+  // A phone's keyboard covers half the screen, and the menu squeezed into what is left is
+  // unreadable. While a name is typed with the keyboard up, the root gets .typing and the open
+  // card keeps to the strip above the keyboard (--vv-top, --vv-h), showing only the names.
+  watchKeyboard() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const typing = () => !!document.activeElement?.matches('input[type=text]:not([readonly])');
+    // the viewport's height with no keyboard up, and the width it was measured at
+    let rest = 0, restW = 0;
+    const measure = () => {
+      // (turning the phone with the keyboard up: the layout height is the best guess left)
+      if (!typing() || window.innerWidth !== restW) { rest = Math.max(vv.height * vv.scale, root.clientHeight); restW = window.innerWidth; }
+    };
+    const layout = (reveal) => {
+      const was = root.classList.contains('typing');
+      const up = typing() && rest - vv.height * vv.scale > 120;
+      root.classList.toggle('typing', up);
+      root.classList.toggle('typing-tight', up && vv.height < 240);
+      if (!up) return;
+      root.style.setProperty('--vv-top', `${vv.offsetTop}px`);
+      root.style.setProperty('--vv-h', `${vv.height}px`);
+      // bring the field being edited into view in its card
+      const el = document.activeElement, card = el.closest('.menu-card');
+      if (!card || (was && !reveal)) return;
+      const r = el.getBoundingClientRect(), c = card.getBoundingClientRect();
+      if (r.top < c.top || r.bottom > c.bottom) card.scrollTop += (r.top + r.bottom - c.top - c.bottom) / 2;
+    };
+    measure();
+    vv.addEventListener('resize', () => { measure(); layout(false); });
+    vv.addEventListener('scroll', () => layout(false));
+    document.addEventListener('focusin', () => layout(true));
+    // (moving to the next field, its focusin follows at once; the late look is for browsers
+    // that still report the old field as focused during focusout)
+    document.addEventListener('focusout', () => { layout(false); setTimeout(() => layout(false)); });
+    // a tap beside the fields puts the keyboard away (iOS keeps it up otherwise)
+    document.addEventListener('pointerdown', (e) => {
+      if (root.classList.contains('typing') && !e.target.closest('input, select, button, label')) document.activeElement.blur();
+    });
   }
 
   on(name, fn) { (this.handlers[name] ||= []).push(fn); }
@@ -86,10 +128,11 @@ export class Hud {
     seats.forEach((s, i) => {
       const row = document.createElement('div');
       row.className = 'seat-row';
-      row.innerHTML = `${shieldSVG(s.color, i)}<input type="text" maxlength="18" value="${esc(s.name)}" spellcheck="false" />
+      row.innerHTML = `${shieldSVG(s.color, i)}<input type="text" maxlength="18" value="${esc(s.name)}" spellcheck="false" enterkeyhint="done" />
         <select class="seat-select">${kinds.map(([v, l]) => `<option value="${v}" ${v === s.type ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
       const input = row.querySelector('input'), sel = row.querySelector('select');
       input.addEventListener('input', () => { s.name = input.value; });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
       sel.addEventListener('change', () => { s.type = sel.value; refresh(); });
       rows.appendChild(row);
       s._row = row;
@@ -322,7 +365,7 @@ export class Hud {
   // ---------- online lobby ----------
   showLobby({ onBack, onBegin, onJoin }) {
     const name = $('#lobby-name');
-    const join = () => onJoin && onJoin(name.value);
+    const join = () => { name.blur(); if (onJoin) onJoin(name.value); };
     $('#lobby-back').onclick = () => onBack();
     $('#lobby-begin').onclick = () => onBegin && onBegin();
     $('#lobby-join-btn').onclick = join;
