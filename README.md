@@ -1,13 +1,59 @@
+<div align="center">
+
 # Kingdomino 3D
 
-**Kingdomino** in 3D with Three.js: procedural miniature dioramas on every tile, a candle-lit table, animated
-critters, a generative lute soundtrack and a full rules engine with AI opponents.
+**The Kingdomino board game on a candle-lit 3D table. Play it free in your browser, against the AI or with friends.**
 
-```bash
-npm install
-npm run dev        # http://localhost:5173
-npm run build      # static bundle in dist/
-```
+[![Play now, free in your browser](https://img.shields.io/badge/%E2%96%B6%20Play%20now-free%20in%20your%20browser-b3263a?style=for-the-badge)](https://1amthis.github.io/kingdomino-3d/)
+
+[![Deploy](https://github.com/1amthis/kingdomino-3d/actions/workflows/deploy.yml/badge.svg)](https://github.com/1amthis/kingdomino-3d/actions/workflows/deploy.yml)
+[![Three.js](https://img.shields.io/badge/Three.js-r186-000000?logo=threedotjs&logoColor=white)](https://threejs.org)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev)
+[![Online play](https://img.shields.io/badge/online%20play-peer--to--peer%2C%20no%20server-2f6f3e)](#playing-with-friends-online)
+
+<img src="docs/screenshots/gameplay.webp" width="100%" alt="A round of Kingdomino 3D: new dominoes are dealt face down and flip over on the drafting board, then each lord places theirs in their kingdom" />
+
+</div>
+
+Procedural miniature dioramas on every tile, a candle-lit table, animated critters, a generative lute soundtrack and a
+full rules engine with AI opponents, all running in the browser with no download and no sign-up.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/placing.jpg" alt="Placing a domino: the ghost glows green on a legal spot and shows +14 points" /></td>
+    <td width="50%"><img src="docs/screenshots/diorama.jpg" alt="Close-up of a kingdom: wheat fields, windmills, forests, grazing sheep and a castle" /></td>
+  </tr>
+  <tr>
+    <td><b>Place your domino.</b> The ghost glows green on a legal spot and shows the points it would earn there.</td>
+    <td><b>Every tile is a diorama.</b> Windmills turn, sheep graze, sailboats drift and crowns spin over the squares that score.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/night.jpg" alt="A kingdom at night with lit castle windows, lanterns and glowing crystals" /></td>
+    <td><img src="docs/screenshots/scoring.jpg" alt="Final scoring: a property outlined in light with its squares times crowns count" /></td>
+  </tr>
+  <tr>
+    <td><b>Day, golden hour and night.</b> After dark, windows, lanterns, crystals and fireflies light up.</td>
+    <td><b>The reckoning.</b> The camera visits each kingdom and counts every property, squares &times; crowns.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/menu.jpg" alt="The main menu over a live AI-vs-AI game" /></td>
+    <td><img src="docs/screenshots/results.jpg" alt="The final scores card with each property and bonus" /></td>
+  </tr>
+  <tr>
+    <td><b>2 to 4 players</b>, any mix of humans (same device or online) and AI at three levels. The menu plays a live AI game behind it.</td>
+    <td><b>Final scores</b> with every property, the Middle Kingdom and Harmony bonuses, and the official tie-breakers.</td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/phone-menu.jpg" width="28%" alt="The menu on a phone" />
+  &nbsp;
+  <img src="docs/screenshots/phone-select.jpg" width="28%" alt="Picking a domino on the drafting board on a phone" />
+  &nbsp;
+  <img src="docs/screenshots/phone-placing.jpg" width="28%" alt="Placing a domino on a phone" />
+  <br />
+  <sub>Made for phones too: tap to pick, tap twice to place, pinch to zoom.</sub>
+</p>
 
 ## What's on the table
 
@@ -50,9 +96,8 @@ Set one or more seats to **Online friend** in the menu and press **Invite your f
   (WebRTC via [PeerJS](https://peerjs.com); its free public server only introduces the browsers to each other).
   No server of your own is needed.
 - If a friend leaves mid-game, an AI finishes their kingdom. If the host leaves, the table closes for everyone.
-- On `localhost` the link only works on your own computer. To invite someone elsewhere, put the game online:
-  run `npm run build` and upload the `dist/` folder to any static host, e.g. drag it onto
-  [Netlify Drop](https://app.netlify.com/drop), or use GitHub Pages or Cloudflare Pages.
+- Invite links work from the hosted game at <https://1amthis.github.io/kingdomino-3d/>. On `localhost` a link only
+  works on your own computer; to host your own copy, see [Put it online](#put-it-online).
 - A very strict network (some corporate Wi-Fi) can block the direct connection even with PeerJS's relay.
   Home connections and phone hotspots are almost always fine.
 
@@ -83,6 +128,24 @@ the others play; it only takes over again when it is your move, or when you pres
 While placing, the ghost domino glows green or red, shows the points it would earn on that exact spot, and the
 glowing frame on your mat shrinks to show the 5×5 space you have left.
 
+## Run it locally
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # static bundle in dist/
+```
+
+## Put it online
+
+The game is a static site: `npm run build` and serve the `dist/` folder from anywhere (it uses relative paths, so a
+sub-folder works too).
+
+- **GitHub Pages**: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and publishes every push
+  to `main`. In a fork, turn it on once in *Settings → Pages → Source: GitHub Actions*, and change the
+  `https://1amthis.github.io/kingdomino-3d/` addresses in `index.html` and `public/sitemap.xml` to your own.
+- **Anywhere else**: drag `dist/` onto [Netlify Drop](https://app.netlify.com/drop), or use Cloudflare Pages.
+
 ## Code map
 
 ```
@@ -107,3 +170,8 @@ src/
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering
 (e.g. `kingdomino.stage.setAmbience('night')`).
+
+## Credits
+
+Kingdomino is a board game designed by Bruno Cathala and published by Blue Orange Games. This is an unofficial,
+non-commercial fan adaptation, not affiliated with or endorsed by them. If you enjoy it, buy the real box!
