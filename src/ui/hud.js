@@ -1,5 +1,6 @@
 // DOM overlay: menu, player cards, prompts, tooltips, results and modals.
 import { TERRAIN_INFO } from '../core/rules.js';
+import { Guide } from './guide.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -48,7 +49,8 @@ export class Hud {
     document.querySelectorAll('.modal').forEach((m) => {
       m.addEventListener('click', (e) => { if (e.target === m || e.target.hasAttribute('data-close')) m.classList.add('hidden'); });
     });
-    $('#menu-help').addEventListener('click', () => this.el.help.classList.remove('hidden'));
+    this.guide = new Guide(this.el.help);
+    $('#menu-help').addEventListener('click', () => this.guide.open());
     document.querySelectorAll('.seg[data-setting]').forEach((seg) => {
       seg.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
         this.setSeg(seg.dataset.setting, b.dataset.v);
