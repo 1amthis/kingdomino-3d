@@ -57,7 +57,11 @@ async function main() {
 
   // ---------- settings ----------
   const saved = store.get();
-  const settings = Object.assign({ quality: 'high', speed: '1', camera: 'auto', ambience: 'dusk', tilt: 'on', hints: 'on', music: true, sfx: true, name: '' }, saved);
+  // Quality follows the device until the player picks one: earlier versions saved the default too.
+  if (!saved.qualityPicked) delete saved.quality;
+  // phones and tablets run the full effects at 60fps but heat up doing it
+  const touch = matchMedia('(pointer: coarse)').matches;
+  const settings = Object.assign({ quality: touch ? 'medium' : 'high', speed: '1', camera: 'auto', ambience: 'dusk', tilt: 'on', hints: 'on', music: true, sfx: true, name: '' }, saved);
   const persist = () => store.set(settings);
   const apply = (key, value) => {
     settings[key] = value;
@@ -78,7 +82,7 @@ async function main() {
   sound.sfxOn = settings.sfx; sound.musicOn = settings.music;
   hud.setToggle('music', settings.music);
   hud.setToggle('sound', settings.sfx);
-  hud.on('setting', ({ key, value }) => apply(key, value));
+  hud.on('setting', ({ key, value }) => { if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
 
   document.addEventListener('pointerdown', () => sound.init(), { once: true });
   document.addEventListener('keydown', () => sound.init(), { once: true });
