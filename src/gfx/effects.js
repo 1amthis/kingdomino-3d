@@ -50,7 +50,7 @@ class PointPool {
     this.points.frustumCulled = false;
     this.points.renderOrder = 10;
     scene.add(this.points);
-    this.active = 0;
+    this.wasAlive = false;
   }
 
   emit(x, y, z, o) {
@@ -62,10 +62,13 @@ class PointPool {
     this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z;
   }
 
+  // Returns whether any particle is still flying.
   update(dt, t) {
+    let alive = false;
     for (let i = 0; i < this.max; i++) {
       const p = this.p[i];
       if (p.life <= 0) { this.alpha[i] = 0; continue; }
+      alive = true;
       p.life -= dt;
       const k = 1 - Math.max(0, p.life) / p.max;
       const drag = Math.exp(-p.drag * dt);
@@ -80,8 +83,13 @@ class PointPool {
       this.alpha[i] = Math.max(0, a);
       this.col[i * 3] = p.r; this.col[i * 3 + 1] = p.gg; this.col[i * 3 + 2] = p.b;
     }
-    const g = this.points.geometry.attributes;
-    g.position.needsUpdate = g.aColor.needsUpdate = g.aSize.needsUpdate = g.aAlpha.needsUpdate = true;
+    // an empty pool needs no upload, once its last particles have been hidden
+    if (alive || this.wasAlive) {
+      const g = this.points.geometry.attributes;
+      g.position.needsUpdate = g.aColor.needsUpdate = g.aSize.needsUpdate = g.aAlpha.needsUpdate = true;
+    }
+    this.wasAlive = alive;
+    return alive;
   }
 }
 
@@ -93,9 +101,8 @@ export class Effects {
     this.glowPool = new PointPool(scene, 2500, { additive: true, soft: 0.1 });
     this.setupConfetti(scene);
     stage.onFrame((t, dt) => {
-      this.dustPool.update(dt, t);
-      this.glowPool.update(dt, t);
-      this.updateConfetti(dt, t);
+      const dust = this.dustPool.update(dt, t), glow = this.glowPool.update(dt, t);
+      stage.particles = this.updateConfetti(dt, t) || dust || glow; // flying particles want the full frame rate
     });
     this.onResize();
     window.addEventListener('resize', () => this.onResize());
@@ -227,5 +234,6 @@ export class Effects {
     }
     if (any || this._confettiWasActive) this.confetti.instanceMatrix.needsUpdate = true;
     this._confettiWasActive = any;
+    return any;
   }
 }

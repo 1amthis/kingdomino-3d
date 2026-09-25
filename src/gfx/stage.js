@@ -78,6 +78,9 @@ export class Stage {
     this.frameCallbacks = new Set();
     this.time = 0;
     this.quality = 'high';
+    this.calm = false; // the menu: its demo game plays at the idle frame rate
+    this.touchedAt = -Infinity;
+    this.particles = false;
 
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false });
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -124,6 +127,9 @@ export class Stage {
     this.setupMotes();
 
     window.addEventListener('resize', () => this.resize());
+    // the player's hand keeps the full frame rate for a moment (hover, drags, taps on the buttons)
+    const touched = () => { this.touchedAt = performance.now(); };
+    for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) window.addEventListener(ev, touched, { passive: true });
     this.timer = new THREE.Timer();
     this.ambience = { ...AMBIENCE.day };
     this.ambienceName = 'day';
@@ -378,8 +384,21 @@ export class Stage {
     for (const fn of this.frameCallbacks) fn(t, dt);
     updateMaterials(t, this.ambience.night);
     this.shaft.material.uniforms.uTime.value = t;
-    this.controls.update();
+    this.cameraMoved = this.controls.update(dt); // dt keeps the auto-rotation speed at any frame rate
     this.clampTarget();
+  }
+
+  touched() { return performance.now() - this.touchedAt < 1000; }
+
+  // The game is moving pieces (a paused game keeps its tweens without playing them).
+  animating() { return this.tweener.speed > 0 && this.tweener.items.length > 0; }
+
+  // Something the eye follows is moving, so the next frame runs at the display's full rate.
+  // Candles, grazing sheep and drifting motes look fine at the idle rate.
+  busy() {
+    if (this.touched()) return true;
+    if (this.calm) return false;
+    return this.animating() || this.cameraMoved || this.particles;
   }
 
   render() {
@@ -417,11 +436,18 @@ export class Stage {
   }
 
   start() {
+    let last = -Infinity, wasBusy = false;
     const loop = (ts) => {
       requestAnimationFrame(loop);
+      // idle: about 30fps (every other frame on a 60Hz screen), which halves the GPU's work
+      const busy = this.busy();
+      if (!busy && ts - last < 26) return;
+      last = ts;
       this.timer.update(ts);
       const raw = this.timer.getDelta();
-      this.adaptResolution(raw);
+      // the gap after an idle frame would read as a slow GPU
+      if (busy && wasBusy) this.adaptResolution(raw);
+      wasBusy = busy;
       this.tick(Math.min(0.05, raw));
       this.render();
     };
