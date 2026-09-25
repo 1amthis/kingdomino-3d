@@ -743,8 +743,8 @@ export class Controller {
   }
 
   refreshScore(p, s = p.kingdom.score(this.opts)) {
-    if (this.demo) return;
-    this.hud.updatePlayer(p, s.total, s.crowns);
+    // the menu's demo keeps its plates live too; only its HUD cards (hidden) stay untouched
+    if (!this.demo) this.hud.updatePlayer(p, s.total, s.crowns);
     p.plate.element.querySelector('.pts').textContent = s.total;
   }
 
