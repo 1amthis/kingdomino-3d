@@ -198,7 +198,11 @@ export class Controller {
 
     for (const p of this.players) this.setupPlayer(p);
     this.kings = this.players.flatMap((p) => p.kings);
-    this.openingOrder = deal.shuffle(this.kings.slice());
+    // In a duel the opening picks snake (A, B, B, A) so neither lord gets the first two choices.
+    if (n === 2) {
+      const [a, b] = deal.shuffle(this.players.slice());
+      this.openingOrder = [a.kings[0], b.kings[0], b.kings[1], a.kings[1]];
+    } else this.openingOrder = deal.shuffle(this.kings.slice());
 
     if (!demo) {
       this.hud.setPlayers(this.players, this.humans);
@@ -780,6 +784,8 @@ export class Controller {
       this.sfx('error');
     }
     p.guides.mat.opacity = 0.95;
+    // the name plate floats over the castle, right where the first dominoes go
+    p.plate.element.classList.add('faded');
     this.updateHints();
     this.sfx('whoosh', 0.4);
     this.tw.move(view.group, { position: view.group.position.clone().setY(REST + 0.6), duration: 260, ease: Ease.outQuad }).then(() => { if (this.mode === m) m.following = true; });
@@ -791,6 +797,7 @@ export class Controller {
       this.hintMesh.count = 0;
       this.hud.setActions(null);
       p.guides.mat.opacity = 0.5;
+      p.plate.element.classList.remove('faded');
       view.setGlow(null, 0);
     });
   }

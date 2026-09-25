@@ -244,6 +244,9 @@ button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight
   border: 1px solid var(--pc); color: var(--ink); white-space: nowrap; box-shadow: 0 0 14px color-mix(in srgb, var(--pc) 40%, transparent); display: flex; gap: 8px; align-items: center;
   transition: transform 0.5s cubic-bezier(.2, .9, .3, 1.5), box-shadow 0.5s, background 0.5s; }
 .plate .pts { color: var(--gold-hi); }
+.plate-anchor { transition: opacity 0.3s; }
+/* stepped aside while its lord places a domino (the score stays on the player card) */
+.plate-anchor.faded { opacity: 0; }
 /* a realm's total at the reckoning */
 .plate.tally { transform: scale(1.45); background: rgba(30, 20, 8, 0.92); box-shadow: 0 0 0 1.5px var(--pc), 0 0 30px color-mix(in srgb, var(--pc) 75%, transparent); }
 .plate.tally .pts { color: #fff; text-shadow: 0 0 12px rgba(255, 210, 110, 0.9); }
