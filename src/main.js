@@ -113,7 +113,7 @@ async function main() {
 
   // keepDemo: coming back from the lobby, where the demo never stopped playing.
   function showMenu(keepDemo = false) {
-    inMenu = true;
+    inMenu = stage.calm = true;
     inGame = false;
     hud.hideHud();
     hud.hideResults();
@@ -127,7 +127,7 @@ async function main() {
 
   async function startReal(config) {
     lastConfig = config;
-    inMenu = false;
+    inMenu = stage.calm = false;
     inGame = true;
     stage.controls.autoRotate = false;
     stage.setViewShift(0, 1400);
@@ -213,7 +213,7 @@ async function main() {
   }
 
   function joinTable(code) {
-    inMenu = true;
+    inMenu = stage.calm = true;
     runDemo();
     hud.showLobby({
       onBack: () => { leaveOnline(); showMenu(true); },
