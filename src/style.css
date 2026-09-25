@@ -478,6 +478,9 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 @media (max-height: 500px) and (orientation: landscape) {
   .title-crown { display: none; }
   .title { font-size: 30px; }
+}
+/* ...wide enough for two columns (a keyboard can leave an upright phone short too, but it stays narrow) */
+@media (max-height: 500px) and (orientation: landscape) and (min-width: 540px) {
   #seat-rows { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
   /* the guide's pictures sit beside their text */
   .guide { width: min(780px, 100%); }
@@ -496,3 +499,11 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .seat-row { grid-template-columns: 22px minmax(0, 1fr) 108px; gap: 6px; }
   .seat-select { font-size: 11px; padding-right: 20px; }
 }
+
+/* ---------- typing a name with the on-screen keyboard up (see Hud.watchKeyboard) ----------
+   The card keeps to the strip above the keyboard and shows only the section being edited. */
+.typing .screen { top: var(--vv-top); bottom: auto; height: var(--vv-h); padding-top: calc(10px + var(--sat)); padding-bottom: 8px; }
+.typing .screen .menu-card { max-height: calc(var(--vv-h) - 18px - var(--sat)); padding-bottom: 12px; }
+.typing .screen :is(.title-wrap, .menu-footer, .menu-caption, .menu-section:not(:focus-within)) { display: none; }
+.typing .screen .menu-section { margin-top: 0; }
+.typing-tight .screen .menu-section h2 { display: none; }
