@@ -3,13 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual" />
-  <title>Kingdomino 3D</title>
-  <meta name="description" content="Kingdomino in 3D, against the AI or friends online." />
+  <title>Kingdomino 3D · Free online board game, vs AI or friends</title>
+  <meta name="description" content="Play Kingdomino in 3D, free in your browser: build a kingdom from 48 diorama dominoes against the AI or with friends online. No download, no sign-up." />
+  <link rel="canonical" href="https://1amthis.github.io/kingdomino-3d/" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="theme-color" content="#1c120c" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- Link previews (Slack, Discord, WhatsApp, X, LinkedIn…) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Kingdomino 3D" />
+  <meta property="og:title" content="Kingdomino 3D · Play free in your browser" />
+  <meta property="og:description" content="Build your kingdom from 48 hand-carved diorama dominoes on a candle-lit table. Play against the AI or invite friends with a link. No download, no sign-up." />
+  <meta property="og:url" content="https://1amthis.github.io/kingdomino-3d/" />
+  <meta property="og:image" content="https://1amthis.github.io/kingdomino-3d/og-image.jpg" />
+  <meta property="og:image:width" content="1280" />
+  <meta property="og:image:height" content="640" />
+  <meta property="og:image:alt" content="Kingdomino 3D: miniature diorama kingdoms on a wooden table at golden hour" />
+  <meta property="og:locale" content="en_GB" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Kingdomino 3D · Play free in your browser" />
+  <meta name="twitter:description" content="Build your kingdom from 48 hand-carved diorama dominoes. Play against the AI or invite friends with a link." />
+  <meta name="twitter:image" content="https://1amthis.github.io/kingdomino-3d/og-image.jpg" />
+  <meta name="twitter:image:alt" content="Kingdomino 3D: miniature diorama kingdoms on a wooden table at golden hour" />
+
+  <!-- Icons: browser tab, search results, phone home screen -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-96.png" type="image/png" sizes="96x96" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="apple-mobile-web-app-title" content="Kingdomino" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Kingdomino 3D",
+    "alternateName": "Kingdomino online",
+    "url": "https://1amthis.github.io/kingdomino-3d/",
+    "description": "A 3D browser adaptation of the Kingdomino tile-laying board game, with procedural diorama dominoes, AI opponents and peer-to-peer online play.",
+    "image": "https://1amthis.github.io/kingdomino-3d/og-image.jpg",
+    "genre": ["Board game", "Strategy", "Tile-laying"],
+    "gamePlatform": "Web browser",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Any (WebGL 2 browser)",
+    "playMode": ["SinglePlayer", "MultiPlayer"],
+    "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 2, "maxValue": 4 },
+    "inLanguage": "en",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "author": { "@type": "Person", "name": "1amthis", "url": "https://github.com/1amthis" }
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@500;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M6 48 L6 18 L20 32 L32 10 L44 32 L58 18 L58 48 Z' fill='%23f2c14e' stroke='%238a5a12' stroke-width='3'/%3E%3Crect x='6' y='48' width='52' height='8' fill='%23d9a23a'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/src/style.css" />
+  <noscript><style>.loading-bar, #loading-text { display: none; }</style></noscript>
 </head>
 <body>
   <div id="app"></div>
@@ -23,6 +74,10 @@
       <div class="loading-title">Kingdomino</div>
       <div class="loading-bar"><div id="loading-fill"></div></div>
       <div id="loading-text">Loading…</div>
+      <noscript>
+        <p class="noscript">Kingdomino 3D is a free browser version of the Kingdomino tile-laying board game: claim dominoes with your king, connect matching terrains and multiply each property by its crowns. Play against the AI or with up to three friends online.</p>
+        <p class="noscript"><b>It needs JavaScript and a WebGL 2 browser.</b></p>
+      </noscript>
     </div>
   </div>
 

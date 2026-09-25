@@ -67,6 +67,7 @@ button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight
 .loading-bar { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; border: 1px solid rgba(240, 199, 94, 0.35); }
 #loading-fill { height: 100%; width: 0; background: linear-gradient(90deg, #a8761c, #ffe7a0, #a8761c); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; transition: width 0.3s ease; }
 #loading-text { margin-top: 12px; font-style: italic; color: var(--ink-dim); }
+.noscript { margin: 0 0 12px; font-size: 17px; line-height: 1.45; color: var(--ink-dim); }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
 
