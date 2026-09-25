@@ -80,12 +80,14 @@ export class Stage {
     this.quality = 'high';
     this.calm = false; // the menu: its demo game plays at the idle frame rate
     this.touchedAt = -Infinity;
+    this.shadowAt = -Infinity;
     this.particles = false;
 
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false });
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     r.setSize(window.innerWidth, window.innerHeight);
     r.shadowMap.enabled = true;
+    r.shadowMap.autoUpdate = false; // see render()
     r.shadowMap.type = THREE.PCFShadowMap;
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 1.0;
@@ -250,6 +252,7 @@ export class Stage {
     r.setPixelRatio(pr);
     this.sun.shadow.mapSize.setScalar(q === 'low' ? 1024 : q === 'medium' ? 2048 : 4096);
     if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
+    this.shadowAt = -Infinity;
     this.bloom.enabled = q !== 'low';
     this.finish.uniforms.uTilt.value = q === 'low' ? 0 : this.tiltShift ? 1 : 0;
     this.resize();
@@ -402,6 +405,13 @@ export class Stage {
   }
 
   render() {
+    // The sun's shadow camera never moves, so the map follows the pieces rather than the view.
+    // Sheep, windmills and spinning crowns never stop, but 15 redraws a second is plenty for them.
+    const now = performance.now();
+    if (this.animating() || this.touched() || now - this.shadowAt > 60) {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.shadowAt = now;
+    }
     this.updateMotes(this.time);
     this.motes.material.uniforms.uTime.value = this.time;
     this.motes.material.uniforms.uScale.value = this.renderer.domElement.height;
