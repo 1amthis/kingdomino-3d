@@ -29,6 +29,21 @@ body { -webkit-font-smoothing: antialiased; user-select: none; }
 .hidden { display: none !important; }
 button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
+/* ---------- scrollbars: a slim gilded thumb instead of the system's grey bar ----------
+   Chromium ignores ::-webkit-scrollbar once scrollbar-color is set, so the standard
+   properties are kept for the browsers that lack the pseudo-elements (Firefox). */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+/* clear of the cards' rounded corners */
+::-webkit-scrollbar-track { margin: 14px; }
+::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 10px; background: linear-gradient(180deg, #f6d677, #a8761c) padding-box; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #fff0b8, #c8922d) padding-box; }
+::-webkit-scrollbar-button { display: none; }
+@supports not selector(::-webkit-scrollbar) {
+  :root { scrollbar-color: rgba(240, 199, 94, 0.65) transparent; }
+  .menu-card, .results-card, .modal-card, .guide-controls { scrollbar-width: thin; }
+}
+
 /* ---------- gilded frame helper ---------- */
 .gilded, .menu-card, .results-card, .modal-card, .pass-card, #banner, .player-card, #toolbar, #actions, #views {
   position: relative;
@@ -59,7 +74,7 @@ button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight
 .screen { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px;
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.55)); animation: fadeIn 0.6s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.menu-card { width: min(720px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; padding: 26px 34px 24px; animation: rise 0.8s cubic-bezier(.2, .9, .3, 1.2); }
+.menu-card { width: min(720px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: hidden auto; padding: 26px 34px 24px; animation: rise 0.8s cubic-bezier(.2, .9, .3, 1.2); }
 .menu-caption { position: absolute; right: 26px; bottom: 20px; font-style: italic; color: var(--ink-dim); font-size: 15px; text-shadow: 0 1px 3px #000; opacity: 0.85; pointer-events: none; }
 .menu-caption::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #e2463f; margin-right: 8px; box-shadow: 0 0 10px #ff4a3a; animation: live 1.6s ease-in-out infinite; vertical-align: 1px; }
 @keyframes live { 50% { opacity: 0.35; } }
@@ -245,7 +260,7 @@ body.photo #hud, body.photo .labels-layer { opacity: 0; pointer-events: none; tr
 .chest-count { font-family: var(--caps); font-size: 12px; letter-spacing: 1px; color: var(--ink); background: rgba(15, 10, 6, 0.7); border: 1px solid rgba(240, 199, 94, 0.5); padding: 2px 10px; border-radius: 12px; }
 
 /* ---------- results ---------- */
-.results-card { width: min(860px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; padding: 22px 28px; animation: rise 0.8s cubic-bezier(.2, .9, .3, 1.2); }
+.results-card { width: min(860px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: hidden auto; padding: 22px 28px; animation: rise 0.8s cubic-bezier(.2, .9, .3, 1.2); }
 .results-head { text-align: center; }
 .results-title { font-family: var(--deco); font-size: clamp(28px, 5vw, 42px); margin: 0; background: linear-gradient(180deg, #fff6d0, var(--gold) 45%, #9a6512 60%, #f5d47a); -webkit-background-clip: text; background-clip: text; color: transparent; }
 #winner-line { font-style: italic; font-size: 19px; color: var(--ink-dim); margin: 4px 0 14px; }
@@ -269,7 +284,6 @@ body.photo #hud, body.photo .labels-layer { opacity: 0; pointer-events: none; tr
 /* ---------- modals ---------- */
 .modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s ease; }
 .modal-card { width: min(560px, 100%); padding: 22px 28px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
-.modal-card.scroll { overflow: auto; }
 .modal-card h2 { font-family: var(--caps); color: var(--gold); margin: 0 0 12px; letter-spacing: 2px; }
 .modal-card h3 { font-family: var(--caps); font-size: 15px; color: var(--gold); margin: 16px 0 6px; letter-spacing: 1px; }
 .modal-card p, .modal-card li { font-size: 17px; line-height: 1.45; color: var(--ink); }
@@ -277,14 +291,87 @@ body.photo #hud, body.photo .labels-layer { opacity: 0; pointer-events: none; tr
 .close-btn { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(240, 199, 94, 0.4); background: transparent; color: var(--gold); font-size: 22px; cursor: pointer; line-height: 1; }
 .close-btn:hover { background: rgba(240, 199, 94, 0.12); }
 .setting { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(255, 220, 150, 0.08); font-size: 17px; flex-wrap: wrap; }
-.keys { border-collapse: collapse; width: 100%; font-size: 16px; }
-.keys td { padding: 5px 6px; border-bottom: 1px solid rgba(255, 220, 150, 0.07); }
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); column-gap: 22px; font-size: 15px; line-height: 1.3; }
+.keys > div { display: grid; grid-template-columns: 7.4em minmax(0, 1fr); gap: 10px; align-items: center; padding: 4px 2px; border-bottom: 1px solid rgba(255, 220, 150, 0.07); }
+.keys > div > :first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; color: var(--ink-dim); }
 .touch-keys { display: none; }
 @media (hover: none) and (pointer: coarse) {
-  .touch-keys { display: table; }
+  .touch-keys { display: grid; }
   .mouse-keys { display: none; }
 }
 kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius: 5px; border: 1px solid rgba(240, 199, 94, 0.5); background: rgba(0, 0, 0, 0.3); color: var(--gold-hi); }
+
+/* ---------- how to play: an illustrated tour ---------- */
+.guide { width: min(620px, 100%); overflow: hidden auto; }
+.guide-tabs { display: flex; gap: 6px; margin: 0 0 14px; }
+.guide-tab { flex: 1 1 auto; position: relative; min-width: 0; padding: 9px 2px 2px; border: 0; background: none; cursor: pointer; white-space: nowrap;
+  font-family: var(--caps); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-dim); transition: color 0.2s; }
+.guide-tab::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 3px; background: rgba(240, 199, 94, 0.16); transition: background 0.3s, box-shadow 0.3s; }
+.guide-tab:hover { color: var(--ink); }
+.guide-tab.seen::before { background: rgba(240, 199, 94, 0.45); }
+.guide-tab.on { color: var(--gold-hi); }
+.guide-tab.on::before { background: linear-gradient(90deg, #f6d677, #b98428); box-shadow: 0 0 8px rgba(240, 199, 94, 0.6); }
+/* every page shares one cell, so the card keeps its size from page to page */
+.guide-pages { position: relative; display: grid; touch-action: pan-y; }
+.guide-page { grid-area: 1 / 1; min-width: 0; visibility: hidden; opacity: 0; transform: translateX(14px); transition: opacity 0.3s, transform 0.3s, visibility 0s 0.3s; }
+.guide-page.before { transform: translateX(-14px); }
+.guide-page.on { visibility: visible; opacity: 1; transform: none; transition: opacity 0.3s, transform 0.3s; }
+/* the controls take the room of the pictures and scroll within it */
+.guide-controls { position: absolute; inset: 0; overflow: hidden auto; padding: 0 4px 24px 0;
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 26px), transparent); mask-image: linear-gradient(#000 calc(100% - 26px), transparent); }
+.guide-page h3 { margin-top: 0; }
+.guide-page p { margin: 4px 0 0; }
+.guide-controls .keys ~ h3 { margin-top: 16px; }
+.guide-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 18px; }
+.guide-nav > button { min-width: 128px; }
+.guide-nav .royal-btn { padding: 12px 26px; }
+.guide-count { font-family: var(--caps); font-size: 12px; letter-spacing: 2px; color: var(--ink-dim); }
+
+.guide-art { margin-bottom: 14px; padding: 6px; border-radius: 12px; border: 1px solid rgba(240, 199, 94, 0.16);
+  background: radial-gradient(ellipse at 50% 35%, rgba(255, 226, 160, 0.09), rgba(0, 0, 0, 0.3) 75%); }
+.guide-art svg { display: block; width: 100%; height: auto; max-height: min(250px, 34vh); margin: 0 auto; overflow: visible; }
+.guide-art text { font-family: var(--serif); font-size: 14px; fill: var(--ink); }
+.guide-art .cap { font-family: var(--caps); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; fill: var(--gold); }
+.guide-art .note { font-size: 15px; font-style: italic; fill: var(--ink-dim); }
+.guide-art .num { font-family: var(--caps); font-weight: 700; font-size: 12px; fill: #2a1804; }
+.guide-art .num.back { fill: #f3dcb4; }
+.guide-art .big { font-family: var(--caps); font-weight: 700; font-size: 19px; }
+.guide-art .gold { fill: var(--gold-hi); font-size: 22px; }
+.guide-art .new > rect:first-child { stroke: var(--gold-hi); stroke-width: 1.6; }
+/* the pictures' small animations run each time their page comes up */
+.guide-art .a-drop, .guide-art .a-pop, .guide-art .a-hop { transform-box: fill-box; transform-origin: center; }
+.guide-page.on .a-drop { animation: gDrop 0.6s cubic-bezier(.2, .9, .3, 1.3) 0.25s backwards; }
+.guide-page.on .a-pop { animation: gPop 0.45s cubic-bezier(.2, .9, .3, 1.6) 0.75s backwards; }
+.guide-page.on .a-hop { animation: gHop 0.7s cubic-bezier(.3, .8, .4, 1.2) 0.35s backwards; }
+.guide-page.on .a-claim { animation: gClaim 0.9s ease 0.85s backwards; }
+.guide-art .a-float { animation: gFloat 3.2s ease-in-out infinite; }
+.guide-art .a-pulse { animation: gPulse 1.8s ease-in-out infinite; }
+.guide-art .a-glow { animation: gPulse 2.4s ease-in-out infinite; }
+.guide-art .a-flow { stroke-dasharray: 5 4; animation: gFlow 0.9s linear infinite; }
+.guide-art .a-cycle { animation: gCycle 4.5s ease infinite; }
+@keyframes gDrop { from { opacity: 0; transform: translateY(-16px) scale(1.08); } }
+@keyframes gPop { from { opacity: 0; transform: scale(0.2); } }
+@keyframes gHop { 0% { opacity: 0; transform: translate(26px, -34px); } 60% { opacity: 1; transform: translate(0, 3px); } }
+@keyframes gClaim { 0%, 100% { filter: none; } 40% { filter: drop-shadow(0 0 6px rgba(255, 220, 120, 0.95)); } }
+@keyframes gFloat { 50% { transform: translateY(-5px); } }
+@keyframes gPulse { 50% { opacity: 0.35; } }
+@keyframes gFlow { to { stroke-dashoffset: -9; } }
+@keyframes gCycle { 0%, 28% { opacity: 1; } 36%, 92% { opacity: 0.2; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .guide-art * { animation: none !important; } }
+
+/* laptop-height windows: the menu tightens up so it fits without scrolling */
+@media (min-width: 761px) and (min-height: 501px) and (max-height: 760px) {
+  .menu-card { padding: 18px 30px; }
+  .title-crown svg { width: 48px; }
+  #menu .title { font-size: 46px; }
+  .menu-section { margin-top: 12px; }
+  .menu-section h2 { margin-bottom: 7px; }
+  .seat-row { padding: 5px 8px; margin-bottom: 5px; }
+  .seat-row input[type=text], .seat-select { padding-top: 6px; padding-bottom: 6px; }
+  .check { padding: 4px; }
+  .menu-footer { margin-top: 14px; }
+}
+@media (min-width: 761px) and (min-height: 501px) and (max-height: 620px) { #menu .title-crown { display: none; } }
 
 /* ---------- phones and small windows ----------
    The HUD shrinks to slim strips along the edges so the table stays in view: scores become small
@@ -366,6 +453,12 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .setting { font-size: 15px; padding: 8px 0; gap: 6px 10px; }
   .seg button { padding: 7px 9px; }
   .keys { font-size: 14px; }
+  .guide-tabs { gap: 4px; margin-bottom: 10px; }
+  .guide-tab { font-size: 10px; letter-spacing: 0.5px; }
+  .guide-art { margin-bottom: 10px; }
+  .guide-nav { margin-top: 12px; }
+  .guide-nav > button { min-width: 104px; }
+  .guide-nav .royal-btn { padding: 11px 18px; }
 }
 
 /* upright phone: the scores run along the top, the prompt just below them */
@@ -383,6 +476,11 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .title-crown { display: none; }
   .title { font-size: 30px; }
   #seat-rows { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
+  /* the guide's pictures sit beside their text */
+  .guide { width: min(780px, 100%); }
+  .guide-page:not(.guide-controls) { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
+  .guide-art { margin: 0; }
+  .guide-art svg { max-height: 46vh; }
 }
 
 @media (max-width: 760px) {
