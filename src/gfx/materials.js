@@ -41,7 +41,7 @@ export function createMaterials() {
 
   M.gold = new THREE.MeshStandardMaterial({ color: 0xffc445, metalness: 1, roughness: 0.3, emissive: 0x3a2400, emissiveIntensity: 0.25, envMapIntensity: 1.6 });
   M.goldDull = new THREE.MeshStandardMaterial({ color: 0xd9a23a, metalness: 0.9, roughness: 0.4 });
-  M.ruby = new THREE.MeshPhysicalMaterial({ color: 0xd4103a, roughness: 0.05, metalness: 0, transmission: 0.2, clearcoat: 1, emissive: 0x400010, emissiveIntensity: 0.6 });
+  M.ruby = new THREE.MeshPhysicalMaterial({ color: 0xd4103a, roughness: 0.05, metalness: 0, clearcoat: 1, emissive: 0x400010, emissiveIntensity: 0.6 });
   M.sapphire = new THREE.MeshPhysicalMaterial({ color: 0x1e5bff, roughness: 0.05, clearcoat: 1, emissive: 0x001040, emissiveIntensity: 0.5 });
 
   const waterNormal = makeWaterNormal(256, 3);
