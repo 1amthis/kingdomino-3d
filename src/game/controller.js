@@ -52,6 +52,7 @@ export class Controller {
     this.pointerNdc = new THREE.Vector2(9, 9);
     this.pointerPx = { x: 0, y: 0 };
     this.touch = matchMedia('(pointer: coarse)').matches; // hints speak of taps rather than clicks and keys
+    this.tipsShown = {}; // how often each turn tip has been shown since the page opened
     this.raycaster = new THREE.Raycaster();
     this.restPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -REST);
     // The camera is "held" once the player looks around on their own: the automatic camera then
@@ -508,7 +509,7 @@ export class Controller {
       for (const slot of this.current) {
         const king = slot.king;
         await this.placePhase(flow, king.player, slot);
-        if (this.next.length) await this.selectPhase(flow, king, slot);
+        if (this.next.length) await this.selectPhase(flow, king, true);
         else await this.sendKingHome(flow, king);
       }
       this.current = [];
@@ -595,15 +596,26 @@ export class Controller {
 
   remoteNote(p) { return p.remote && p.type === 'human' ? 'Playing online' : ''; }
 
-  async selectPhase(flow, king) {
+  // The one player at this screen reads "Your turn"; players sharing a screen are called by name.
+  yourTurn(p) {
+    return this.humans.length === 1 ? `<span class="who" style="color:${p.color}">Your turn</span> &middot; ` : `${this.hud.who(p)}, `;
+  }
+
+  // A tip under the prompt helps the first turns along, then steps aside.
+  tip(kind, text) { return (this.tipsShown[kind] = (this.tipsShown[kind] || 0) + 1) <= 2 ? text : ''; }
+
+  // placed: the king has just placed a domino this turn, so the pick follows on from it
+  async selectPhase(flow, king, placed = false) {
     const p = king.player;
     const options = this.next.filter((s) => !s.king);
     if (!options.length) return;
     const local = this.isLocal(p);
     if (!this.demo) {
       this.hud.setActive(p);
-      this.hud.prompt(local ? `${this.hud.who(p)}, choose your next domino` : `${this.hud.who(p)} is picking a domino…`,
-        local ? 'Lower numbers play first next round · higher numbers usually have more crowns' : this.remoteNote(p));
+      if (local) {
+        this.hud.prompt(placed ? 'Now pick your next domino' : `${this.yourTurn(p)}pick a domino`,
+          this.tip('select', 'Low numbers pick first next round · high numbers have more crowns'));
+      } else this.hud.prompt(`${this.hud.who(p)} is picking a domino…`, this.remoteNote(p));
     }
     await this.focusPlayer(flow, p, 'select');
     let slot;
@@ -650,8 +662,10 @@ export class Controller {
     const local = this.isLocal(p);
     if (!this.demo) {
       this.hud.setActive(p);
-      this.hud.prompt(local ? `${this.hud.who(p)}, place domino ${domino.id}` : `${this.hud.who(p)} is placing a domino…`,
-        !local ? this.remoteNote(p) : this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate');
+      if (local) {
+        this.hud.prompt(`${this.yourTurn(p)}place your domino`,
+          this.tip('place', this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate'));
+      } else this.hud.prompt(`${this.hud.who(p)} is placing a domino…`, this.remoteNote(p));
     }
     await this.focusPlayer(flow, p, 'place');
     const valid = p.kingdom.validPlacements(domino);
@@ -761,7 +775,7 @@ export class Controller {
     p.root.add(this.hintMesh);
     this.hud.setActions({ rotate: true, hint: true, hintOn: this.settings.hints, discard: valid.length === 0 });
     if (!valid.length) {
-      this.hud.prompt(`${this.hud.who(p)}, domino ${slot.domino.id} fits nowhere`, 'No legal placement exists &mdash; it must be discarded.');
+      this.hud.prompt('This domino fits nowhere', 'Discard it to carry on');
       this.sfx('error');
     }
     p.guides.mat.opacity = 0.95;

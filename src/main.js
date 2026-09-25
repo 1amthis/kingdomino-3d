@@ -269,7 +269,7 @@ async function main() {
   hud.on('music', () => { settings.music = !settings.music; sound.init(); sound.setMusic(settings.music); hud.setToggle('music', settings.music); persist(); });
   hud.on('sound', () => { settings.sfx = !settings.sfx; sound.init(); sound.setSfx(settings.sfx); hud.setToggle('sound', settings.sfx); persist(); });
   hud.on('settings', () => document.getElementById('settings').classList.remove('hidden'));
-  hud.on('help', () => document.getElementById('help').classList.remove('hidden'));
+  hud.on('help', () => hud.guide.open());
   hud.on('menu', async () => {
     // once the reckoning has begun there is nothing left to lose, so no question
     if (inGame && !ctl.finished) {
@@ -301,7 +301,7 @@ async function main() {
     else if (/^[1-4]$/.test(k)) showView(Number(k) - 1);
     else if (k === 't') cycleAmbience();
     else if (k === 'm') hud.emit('music');
-    else if (k === 'h') document.getElementById('help').classList.toggle('hidden');
+    else if (k === 'h') hud.guide.toggle();
     else if (k === 'p') { document.body.classList.toggle('photo'); hud.toast(document.body.classList.contains('photo') ? 'Photo mode &mdash; press P to bring the interface back' : 'Interface restored', 1.6); }
     else if (k === 'escape') document.querySelectorAll('.modal').forEach((m) => m.classList.add('hidden'));
   };

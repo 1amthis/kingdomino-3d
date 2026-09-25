@@ -207,45 +207,81 @@
 
   <!-- Help -->
   <div id="help" class="modal hidden">
-    <div class="modal-card scroll">
-      <button class="close-btn" data-close>&times;</button>
-      <h2>How to play</h2>
-      <p>Each player starts with a <b>castle</b>. Every round, dominoes are drawn from the chest, sorted by number and revealed. You claim one by placing your king on it &mdash; higher numbers usually have more crowns, but lower numbers let you choose <i>first</i> next round.</p>
-      <h3>Placing a domino</h3>
-      <ul>
-        <li>It must touch your castle, <b>or</b> match the terrain of at least one neighbouring square.</li>
-        <li>Your whole kingdom must fit in a <b>5&times;5</b> grid (7&times;7 in the Mighty Duel) &mdash; the glowing frame shows the space left.</li>
-        <li>If a domino cannot be placed anywhere, it is discarded.</li>
-      </ul>
-      <h3>Scoring</h3>
-      <p>Each <b>property</b> (connected squares of the same terrain) scores <b>squares &times; crowns</b>. A property with no crown scores nothing. Optional rules add +10 for a centred castle and +5 for a full kingdom with no discarded domino.</p>
-      <h3>Playing online</h3>
-      <p>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
-      <h3>Controls</h3>
-      <table class="keys touch-keys">
-        <tr><td><kbd>Tap</kbd></td><td>Pick a domino</td></tr>
-        <tr><td><kbd>Tap</kbd> <kbd>Tap</kbd></td><td>Show a spot, then tap it again to place the domino</td></tr>
-        <tr><td><kbd>Rotate</kbd> <kbd>Hints</kbd></td><td>The buttons under the table turn the domino and show the legal spots</td></tr>
-        <tr><td><kbd>Drag</kbd></td><td>Orbit the camera</td></tr>
-        <tr><td><kbd>Pinch</kbd> / two-finger drag</td><td>Zoom / slide the camera across the table</td></tr>
-        <tr><td>Tap a score</td><td>Look at that player&rsquo;s kingdom</td></tr>
-        <tr><td>Bottom-right buttons</td><td>Follow play again, or look at the whole table or the drafting board</td></tr>
-      </table>
-      <table class="keys mouse-keys">
-        <tr><td><kbd>Click</kbd></td><td>Pick a domino / place it</td></tr>
-        <tr><td><kbd>R</kbd> <kbd>Right-click</kbd> <kbd>Q</kbd>/<kbd>E</kbd></td><td>Rotate the domino</td></tr>
-        <tr><td><kbd>G</kbd></td><td>Toggle legal-spot hints</td></tr>
-        <tr><td><kbd>Drag</kbd> / <kbd>Wheel</kbd></td><td>Orbit / zoom towards the pointer</td></tr>
-        <tr><td><kbd>Right-drag</kbd> / <kbd>Shift</kbd>+<kbd>Drag</kbd></td><td>Slide the camera across the table</td></tr>
-        <tr><td><kbd>1</kbd>&ndash;<kbd>4</kbd> or click a player</td><td>Look at that player&rsquo;s kingdom</td></tr>
-        <tr><td><kbd>D</kbd> / <kbd>O</kbd></td><td>Look at the drafting board / the whole table</td></tr>
-        <tr><td><kbd>F</kbd></td><td>Follow play again (the camera stays where you put it until your next move)</td></tr>
-        <tr><td><kbd>C</kbd></td><td>Seat view &harr; overview</td></tr>
-        <tr><td><kbd>T</kbd></td><td>Cycle day, golden hour, night</td></tr>
-        <tr><td><kbd>M</kbd></td><td>Music on/off</td></tr>
-        <tr><td><kbd>P</kbd></td><td>Photo mode (hide the interface)</td></tr>
-        <tr><td><kbd>Arrows</kbd> <kbd>Enter</kbd></td><td>Move and drop the domino with the keyboard</td></tr>
-      </table>
+    <div class="modal-card guide" role="dialog" aria-labelledby="help-title">
+      <button class="close-btn" data-close aria-label="Close">&times;</button>
+      <h2 id="help-title">How to play</h2>
+      <div class="guide-tabs" role="tablist"></div>
+      <div class="guide-pages">
+        <section class="guide-page" data-tab="Goal">
+          <div class="guide-art" data-art="goal"></div>
+          <div class="guide-text">
+            <h3>Build the richest kingdom</h3>
+            <p>Everyone starts with a <b>castle</b>. Each round you claim one domino and add it to your kingdom. When the dominoes run out, the kingdom with the most points wins.</p>
+          </div>
+        </section>
+        <section class="guide-page" data-tab="Pick">
+          <div class="guide-art" data-art="pick"></div>
+          <div class="guide-text">
+            <h3>Claim a domino with your king</h3>
+            <p>New dominoes are laid out in number order. Put your king on the one you want. A <b>low number</b> lets you choose sooner next round; <b>high numbers</b> usually carry more crowns.</p>
+          </div>
+        </section>
+        <section class="guide-page" data-tab="Place">
+          <div class="guide-art" data-art="place"></div>
+          <div class="guide-text">
+            <h3>Connect it</h3>
+            <p>A new domino must touch your <b>castle</b>, or touch a square of the <b>same terrain</b>. One matching side is enough.</p>
+          </div>
+        </section>
+        <section class="guide-page" data-tab="5&times;5">
+          <div class="guide-art" data-art="fit"></div>
+          <div class="guide-text">
+            <h3>Stay within 5 &times; 5</h3>
+            <p>Your kingdom must fit in a <b>5&times;5</b> square (7&times;7 in the Mighty Duel); the glowing frame shows the room left. A domino that fits nowhere is <b>discarded</b>.</p>
+          </div>
+        </section>
+        <section class="guide-page" data-tab="Score">
+          <div class="guide-art" data-art="score"></div>
+          <div class="guide-text">
+            <h3>Crowns multiply</h3>
+            <p>A <b>property</b> is a group of touching squares of one terrain. It scores <b>squares &times; crowns</b>, so without a crown it scores nothing. Optional rules add +10 for a centred castle and +5 for a full kingdom with no discard.</p>
+          </div>
+        </section>
+        <section class="guide-page guide-controls" data-tab="Controls">
+          <h3>Controls</h3>
+          <div class="keys touch-keys">
+            <div><span><kbd>Tap</kbd></span><span>Pick a domino</span></div>
+            <div><span><kbd>Tap</kbd> <kbd>Tap</kbd></span><span>Show a spot, tap again to place</span></div>
+            <div><span><kbd>Rotate</kbd> <kbd>Hints</kbd></span><span>Turn the domino, show the legal spots</span></div>
+            <div><span><kbd>Drag</kbd></span><span>Orbit the camera</span></div>
+            <div><span><kbd>Pinch</kbd> <kbd>Two fingers</kbd></span><span>Zoom, slide the camera</span></div>
+            <div><span>Tap a score</span><span>Look at that player&rsquo;s kingdom</span></div>
+            <div><span>Bottom-right buttons</span><span>Follow play, or see the whole table or the draft</span></div>
+          </div>
+          <div class="keys mouse-keys">
+            <div><span><kbd>Click</kbd></span><span>Pick or place a domino</span></div>
+            <div><span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>Rotate (or right-click)</span></div>
+            <div><span><kbd>G</kbd></span><span>Legal-spot hints</span></div>
+            <div><span><kbd>Drag</kbd> <kbd>Wheel</kbd></span><span>Orbit, zoom</span></div>
+            <div><span><kbd>Right-drag</kbd></span><span>Slide the camera (or Shift+drag)</span></div>
+            <div><span><kbd>1</kbd>&ndash;<kbd>4</kbd></span><span>Look at a kingdom</span></div>
+            <div><span><kbd>D</kbd> <kbd>O</kbd></span><span>Draft, whole table</span></div>
+            <div><span><kbd>F</kbd></span><span>Follow play again</span></div>
+            <div><span><kbd>C</kbd></span><span>Seat view &harr; overview</span></div>
+            <div><span><kbd>T</kbd></span><span>Time of day</span></div>
+            <div><span><kbd>M</kbd></span><span>Music on/off</span></div>
+            <div><span><kbd>P</kbd></span><span>Photo mode</span></div>
+            <div><span><kbd>Arrows</kbd> <kbd>Enter</kbd></span><span>Move, drop the domino</span></div>
+          </div>
+          <h3>Playing online</h3>
+          <p>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
+        </section>
+      </div>
+      <div class="guide-nav">
+        <button class="ghost-btn" data-guide="prev">Back</button>
+        <span class="guide-count"></span>
+        <button class="royal-btn" data-guide="next"><span>Next</span></button>
+      </div>
     </div>
   </div>
 
