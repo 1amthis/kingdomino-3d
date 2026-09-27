@@ -18,6 +18,29 @@ const CHARGES = [
 const AI_TAGS = { easy: 'Easy', normal: 'Normal', hard: 'Hard', expert: 'Expert' };
 const tagFor = (p) => (p.type === 'human' ? (p.remote ? 'Online' : 'Human') : AI_TAGS[p.type]);
 
+// Who sits in a seat, for the menu's seat picker: the computer's levels carry strength pips.
+const ICONS = {
+  human: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.8-4 3.6-6 7.2-6s6.4 2 7.2 6"/></svg>',
+  remote: '<svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>',
+  ai: '<svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="11" rx="3"/><path d="M12 7V4M9 12h.01M15 12h.01M9.5 15h5"/></svg>',
+  off: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M6.8 17.2 17.2 6.8"/></svg>',
+};
+const SEAT_KINDS = [
+  { v: 'human', name: 'Human', icon: 'human' }, { v: 'remote', name: 'Online friend', icon: 'remote' },
+  { v: 'easy', name: 'Easy', ai: 1 }, { v: 'normal', name: 'Normal', ai: 2 }, { v: 'hard', name: 'Hard', ai: 3 }, { v: 'expert', name: 'Expert', ai: 4 },
+  { v: 'off', name: 'Empty seat', icon: 'off' },
+];
+const pips = (n) => `<span class="pips">${[1, 2, 3, 4].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+const seatFace = (k) => `<span class="sp-ico">${ICONS[k.icon || 'ai']}</span><span class="sp-name">${k.name}</span>${k.ai ? pips(k.ai) : ''}`;
+
+// The coach's line under its switch, for each setting and when fair play turns it off.
+const COACH_NOTES = {
+  off: 'The Expert can grade your moves',
+  trainer: 'Grades each move once you make it',
+  study: 'Also shows the values while you decide',
+  locked: 'Off while several people play, for fair play',
+};
+
 export function shieldSVG(color, idx = 0) {
   return `<svg class="shield" viewBox="0 0 64 72"><defs><linearGradient id="sg${idx}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#b8841f"/><stop offset="1" stop-color="#f3cf6a"/></linearGradient></defs>
     <path d="M6 6 H58 V34 C58 52 44 62 32 68 C20 62 6 52 6 34 Z" fill="${color}" stroke="url(#sg${idx})" stroke-width="4"/>
@@ -105,9 +128,10 @@ export class Hud {
   emit(name, arg) { (this.handlers[name] || []).forEach((f) => f(arg)); }
 
   setSeg(key, value) {
-    const seg = document.querySelector(`.seg[data-setting="${key}"]`);
-    if (!seg) return;
-    seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(value)));
+    if (key === 'coach') { this.setCoach({ value }); return; }
+    document.querySelectorAll(`.seg[data-setting="${key}"]`).forEach((seg) => {
+      seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(value)));
+    });
   }
 
   loading(p, text) {
@@ -124,19 +148,22 @@ export class Hud {
   showMenu(seats, onStart) {
     const rows = $('#seat-rows');
     rows.innerHTML = '';
-    const kinds = [['human', 'Human'], ['remote', 'Online friend'], ['easy', 'AI · Easy'], ['normal', 'AI · Normal'], ['hard', 'AI · Hard'], ['expert', 'AI · Expert'], ['off', 'Empty seat']];
     seats.forEach((s, i) => {
       const row = document.createElement('div');
       row.className = 'seat-row';
       row.innerHTML = `${shieldSVG(s.color, i)}<input type="text" maxlength="18" value="${esc(s.name)}" spellcheck="false" enterkeyhint="done" />
-        <select class="seat-select">${kinds.map(([v, l]) => `<option value="${v}" ${v === s.type ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-      const input = row.querySelector('input'), sel = row.querySelector('select');
+        <button type="button" class="seat-pick" aria-haspopup="listbox" aria-label="Who plays this seat"></button>`;
+      const input = row.querySelector('input'), pick = row.querySelector('.seat-pick');
       input.addEventListener('input', () => { s.name = input.value; });
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
-      sel.addEventListener('change', () => { s.type = sel.value; refresh(); });
+      pick.addEventListener('click', () => this.pickSeat(pick, s.type, (type) => { s.type = type; face(s); refresh(); }));
       rows.appendChild(row);
       s._row = row;
     });
+    const face = (s) => {
+      s._row.querySelector('.seat-pick').innerHTML = `${seatFace(SEAT_KINDS.find((k) => k.v === s.type))}<svg class="sp-chev" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5"/></svg>`;
+    };
+    seats.forEach(face);
     const duelWrap = $('#opt-duel-wrap');
     const refresh = () => {
       const active = seats.filter((s) => s.type !== 'off').length;
@@ -150,6 +177,8 @@ export class Hud {
       $('#start-btn').disabled = active < 2;
       $('#start-btn').style.opacity = active < 2 ? 0.5 : 1;
       $('#start-btn span').textContent = online ? 'Invite your friends' : 'Start game';
+      // the coach only helps someone playing alone against the computer
+      this.setCoach({ locked: seats.filter((s) => s.type === 'human' || s.type === 'remote').length > 1 });
     };
     refresh();
     this.el.menu.classList.remove('hidden');
@@ -169,7 +198,81 @@ export class Hud {
     btn.addEventListener('click', handler);
   }
 
-  hideMenu() { this.el.menu.classList.add('hidden'); }
+  hideMenu() {
+    if (this.closeSeatMenu) this.closeSeatMenu();
+    this.el.menu.classList.add('hidden');
+  }
+
+  // The seat picker: a list in the menu's own style, opened under (or above) the seat's button.
+  // Arrow keys move through it, Escape or a tap elsewhere closes it; the same button toggles it.
+  pickSeat(button, current, onPick) {
+    const again = this.seatMenuFor === button;
+    if (this.closeSeatMenu) this.closeSeatMenu();
+    if (again) return;
+    let menu = $('#seat-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'seat-menu';
+      menu.setAttribute('role', 'listbox');
+      document.body.appendChild(menu);
+    }
+    menu.innerHTML = SEAT_KINDS.map((k) => `${k.v === 'easy' ? '<div class="sm-head">Computer</div>' : k.v === 'off' ? '<div class="sm-sep"></div>' : ''}
+      <button type="button" role="option" data-v="${k.v}" aria-selected="${k.v === current}" class="${k.v === current ? 'on' : ''}">${seatFace(k)}</button>`).join('');
+    menu.className = 'seat-menu';
+    const r = button.getBoundingClientRect(), w = Math.max(r.width, 210), h = menu.offsetHeight;
+    menu.style.width = `${w}px`;
+    menu.style.left = `${Math.min(window.innerWidth - w - 8, Math.max(8, r.right - w))}px`;
+    menu.style.top = `${r.bottom + 6 + h <= window.innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - h)}px`;
+    button.classList.add('open');
+    button.setAttribute('aria-expanded', 'true');
+    const opts = [...menu.querySelectorAll('[role=option]')], card = button.closest('.menu-card');
+    const close = (focus = false) => {
+      menu.classList.add('hidden');
+      button.classList.remove('open');
+      button.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', outside, true);
+      window.removeEventListener('keydown', keys, true);
+      window.removeEventListener('resize', dismiss);
+      if (card) card.removeEventListener('scroll', dismiss);
+      this.closeSeatMenu = this.seatMenuFor = null;
+      if (focus) button.focus();
+    };
+    const dismiss = () => close();
+    const outside = (e) => { if (!menu.contains(e.target) && !button.contains(e.target)) close(); };
+    const keys = (e) => {
+      const i = opts.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); opts[(i + 1) % opts.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); opts[i <= 0 ? opts.length - 1 : i - 1].focus(); }
+      else if (e.key === 'Tab') close();
+    };
+    opts.forEach((b) => b.addEventListener('click', () => { close(true); onPick(b.dataset.v); }));
+    document.addEventListener('pointerdown', outside, true);
+    window.addEventListener('keydown', keys, true);
+    window.addEventListener('resize', dismiss);
+    if (card) card.addEventListener('scroll', dismiss);
+    this.closeSeatMenu = dismiss;
+    this.seatMenuFor = button;
+    (opts.find((b) => b.dataset.v === current) || opts[0]).focus({ preventScroll: true });
+  }
+
+  // The coach's switches, in the menu and in the settings: the player's choice, unless fair play
+  // locks it off (more than one person at the table), which leaves the choice for next time.
+  setCoach({ value = this.coachValue || 'off', locked = !!this.coachLocked } = {}) {
+    this.coachValue = value;
+    this.coachLocked = locked;
+    document.querySelectorAll('.seg[data-setting="coach"]').forEach((seg) => {
+      seg.classList.toggle('locked', locked);
+      seg.querySelectorAll('button').forEach((b) => {
+        b.classList.toggle('on', b.dataset.v === (locked ? 'off' : value));
+        b.disabled = locked;
+      });
+    });
+    document.querySelectorAll('.coach-note').forEach((n) => {
+      n.textContent = COACH_NOTES[locked ? 'locked' : value];
+      n.classList.toggle('locked', locked);
+    });
+  }
 
   // ---------- in game ----------
   showHud() { this.el.hud.classList.remove('hidden'); }
@@ -262,6 +365,13 @@ export class Hud {
     q('hint').classList.toggle('on', !!state.hintOn);
     q('discard').classList.toggle('hidden', !state.discard);
     q('advice').classList.toggle('hidden', !state.advice);
+  }
+
+  // The advice button's light: 'thinking' while the coach analyses, 'ready' once it can answer at
+  // once, 'shown' when its advice is on the table.
+  setAdvice(state) {
+    const b = this.el.actions.querySelector('[data-action="advice"]');
+    for (const s of ['thinking', 'ready', 'shown']) b.classList.toggle(s, s === state);
   }
 
   setToggle(action, on) {

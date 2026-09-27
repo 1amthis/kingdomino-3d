@@ -26,6 +26,10 @@ export const CANCEL = Symbol('cancel');
 const heuristicLevel = (type) => (type === 'expert' ? 'hard' : type);
 
 const ADVICE = 0x6fe3ff; // the glow of the domino the coach recommends
+// legal-spot hint squares: their usual gold, and study mode's tint for the best grade through a square
+const HINT = new THREE.Color(1.4, 1.15, 0.6);
+const GRADE_TINT = { Best: 0x7fe08e, Excellent: 0xb4e36f, Good: 0xe6d86a, Inaccuracy: 0xf2b35a, Mistake: 0xf5854c, Blunder: 0xff6258 };
+const tint = Object.fromEntries(Object.entries(GRADE_TINT).map(([g, c]) => [g, new THREE.Color(c).multiplyScalar(1.5)]));
 
 const quatY = (a) => new THREE.Quaternion().setFromAxisAngle(UP, a);
 const quatFaceDown = (a) => quatY(a).multiply(new THREE.Quaternion().setFromAxisAngle(XAXIS, Math.PI));
@@ -121,7 +125,7 @@ export class Controller {
     x.fillStyle = 'rgba(255,255,255,0.18)';
     x.beginPath(); x.roundRect(22, 22, 84, 84, 10); x.fill();
     const tex = new THREE.CanvasTexture(c);
-    const hintMat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.4, 1.15, 0.6), transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending });
+    const hintMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending });
     this.hintMat = hintMat;
     const hintGeo = new THREE.PlaneGeometry(0.9, 0.9);
     hintGeo.rotateX(-Math.PI / 2);
@@ -184,6 +188,9 @@ export class Controller {
     const seats = this.computeSeats(n, size);
     this.players = config.seats.map((s, i) => ({ ...s, index: i, kingdom: new Kingdom(size), seat: seats[i], kings: [], views: [] }));
     this.humans = this.players.filter((p) => this.isLocal(p));
+    // fair play: with more than one person at the table (here or online), nobody gets the coach
+    this.coach.locked = !demo && this.players.filter((p) => p.type === 'human').length > 1;
+    if (!demo) this.hud.setCoach({ locked: this.coach.locked });
     this.lastHuman = null;
     this.camKey = null;
 
@@ -643,7 +650,7 @@ export class Controller {
       await framing;
       this.sfx('turnChime');
       slot = await flow.w(this.humanSelect(p, options, coach));
-      this.coach.judge(coach, slot.index);
+      this.coach.judge(coach, slot.index, this.slotPos(1, slot.index).add(new THREE.Vector3(0, 0.6, 0)));
       // looking around during one's own turn does not outlast it
       if (this.camHeld) this.holdCamera(false);
     } else {
@@ -681,13 +688,11 @@ export class Controller {
       this.mode = { type: 'select', player: p, options, hovered: null, advised: null, coach, resolve, reject };
     });
     const m = this.mode;
-    if (coach) {
-      this.hud.setActions({ advice: true });
-      // study mode's notes on the hovered domino fill in once the analysis arrives
-      coach.ready.then(() => { if (this.mode === m && m.hovered) this.slotTip(m, m.hovered); });
-    }
+    m.labels = new Map(); // the coach's labels beside the draft dominoes
+    if (coach) this.hud.setActions({ advice: true });
     return promise.finally(() => {
       options.forEach((s) => { s.view.setGlow(null, 0); s.view.group.position.y = REST; });
+      for (const l of m.labels.values()) l.removeFromParent();
       this.mode = null;
       this.hud.setActions(null);
       this.hud.tooltip(null);
@@ -706,22 +711,84 @@ export class Controller {
     this.hud.tooltip(this.hud.dominoTooltip(slot.domino, turn + this.coach.slotNote(m, slot)), x, y);
   }
 
+  // The coach's labels beside the draft dominoes (on the side facing the middle of the board).
+  updateSlotLabels(m) {
+    for (const slot of m.options) {
+      const html = this.coach.slotLabel(m, slot);
+      let l = m.labels.get(slot);
+      if (!html) { if (l) { l.removeFromParent(); m.labels.delete(slot); } continue; }
+      if (!l) {
+        l = label('', 'slot-value');
+        l.position.copy(this.slotPos(1, slot.index)).add(new THREE.Vector3(-1.32, 0.1, 0));
+        this.world.add(l);
+        m.labels.set(slot, l);
+      }
+      l.element.innerHTML = html;
+    }
+  }
+
+  // The analysis for the decision in progress has arrived: the advice button is ready, and study
+  // mode's values show on the table.
+  coachReady(m) {
+    this.hud.setAdvice('ready');
+    if (m.type === 'select') {
+      this.updateSlotLabels(m);
+      if (m.hovered) this.slotTip(m, m.hovered);
+    } else {
+      m.previewKey = null;
+      this.updateHints();
+    }
+  }
+
   // The coach's recommendation on the table: the draft domino glows blue, or the ghost domino moves
   // to the Expert's spot (a click, or a tap on it, takes the advice).
   showAdvice(m, move) {
+    this.hud.setAdvice('shown');
     if (m.type === 'select') {
       const prev = m.advised;
       m.advised = m.options.find((s) => s.index === move) || null;
       if (prev && prev !== m.hovered) this.restGlow(m, prev);
       if (m.advised && m.advised !== m.hovered) this.restGlow(m, m.advised);
+      this.updateSlotLabels(m);
+      this.sfx('hover');
     } else if (move) {
       const [dx, dy] = DIRS[move.rot];
       m.rot = move.rot;
       m.cell = { x: move.x, y: move.y };
       m.local = new THREE.Vector3(move.x + dx / 2, 0, move.y + dy / 2);
-      m.touchKey = `${move.x},${move.y},${move.rot}`;
+      m.touchKey = m.advisedKey = `${move.x},${move.y},${move.rot}`;
+      m.previewKey = null;
       this.updateHints();
+      this.sfx('rotate');
     }
+  }
+
+  // The coach's flashes last about as long whatever the game speed, so they can be read.
+  coachTime(ms) { return ms * Math.max(1, this.tw.speed); }
+
+  // After a poor pick: the domino the Expert wanted glows blue for a moment.
+  async flashSlot(slot) {
+    if (!slot || slot.king) return;
+    slot.view.setGlow(ADVICE, 0.9);
+    await this.tw.wait(this.coachTime(2000));
+    const m = this.mode;
+    if (m && m.type === 'select' && m.options.includes(slot)) this.restGlow(m, slot);
+    else if (!slot.king) slot.view.setGlow(null, 0);
+  }
+
+  // After a poor placement: the Expert's spot shows on the kingdom for a moment, then fades.
+  flashSpot(p, move) {
+    const mat = this.hintMat.clone();
+    mat.color.set(ADVICE).multiplyScalar(1.6);
+    const marks = footprint(move.x, move.y, move.rot).map(([x, y]) => {
+      const mk = new THREE.Mesh(this.hintMesh.geometry, mat);
+      mk.position.set(x, (p.kingdom.has(x, y) ? REST : SURFACE) + 0.012, y);
+      mk.renderOrder = 4;
+      p.root.add(mk);
+      return mk;
+    });
+    this.tw.add({ duration: this.coachTime(2400), update: (t) => { mat.opacity = 0.9 * (t < 0.6 ? 1 : (1 - t) / 0.4); } })
+      .then(() => { marks.forEach((mk) => mk.removeFromParent()); mat.dispose(); });
   }
 
   async placePhase(flow, p, slot) {
@@ -743,7 +810,8 @@ export class Controller {
       await framing;
       this.sfx('turnChime');
       choice = await flow.w(this.humanPlace(flow, p, slot, valid, coach));
-      this.coach.judge(coach, choice);
+      // (the grade shows once the domino has landed)
+      this.coach.judge(coach, choice, choice && this.placementTransform(p, choice, 0).pos.add(new THREE.Vector3(0, 0.4, 0)), 1300);
       if (this.camHeld) this.holdCamera(false);
       if (this.link) this.link.tell(p, 'place', choice);
     } else {
@@ -850,8 +918,6 @@ export class Controller {
       };
     });
     const m = this.mode;
-    // study mode's note on the ghost fills in once the analysis arrives
-    if (coach) coach.ready.then(() => { if (this.mode === m) m.previewKey = null; });
     this.footMarkers.forEach((mk) => p.root.add(mk));
     p.root.add(this.hintMesh);
     this.placeActions();
@@ -905,15 +971,19 @@ export class Controller {
     if (!this.settings.hints) { this.hintMesh.count = 0; return; }
     const cells = new Set();
     for (const v of m.valid) if (v.rot === m.rot) footprint(v.x, v.y, v.rot).forEach(([x, y]) => cells.add(`${x},${y}`));
+    // in study mode each square takes the colour of the best grade that goes through it
+    const grades = this.coach.spotGrades(m);
     const mtx = new THREE.Matrix4();
     let i = 0;
     for (const c of cells) {
       const [x, y] = c.split(',').map(Number);
       mtx.makeTranslation(x, SURFACE + 0.006, y);
-      this.hintMesh.setMatrixAt(i++, mtx);
+      this.hintMesh.setMatrixAt(i, mtx);
+      this.hintMesh.setColorAt(i++, (grades && tint[grades.get(c)]) || HINT);
     }
     this.hintMesh.count = i;
     this.hintMesh.instanceMatrix.needsUpdate = true;
+    if (this.hintMesh.instanceColor) this.hintMesh.instanceColor.needsUpdate = true;
   }
 
   rotate(dir = 1) {
