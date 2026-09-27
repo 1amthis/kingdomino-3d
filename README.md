@@ -107,16 +107,18 @@ full rules engine with AI opponents, all running in the browser with no download
 
 ### The coach
 
-Turn it on in **Settings → Coach**. While you decide, the Expert quietly analyses your position in a worker of its
-own, trying every legal move.
+Pick it in the main menu (or in Settings during a game). While you decide, the Expert quietly analyses your position
+in a worker of its own, trying every legal move. For fair play the coach locks itself off whenever more than one
+person is at the table, on the same screen or online.
 
-- **Trainer**: once you move, you get a grade from **Best** through Excellent, Good, Inaccuracy and Mistake to
+- **Trainer**: once you move, a badge pops up on it, from **Best** through Excellent, Good, Inaccuracy and Mistake to
   **Blunder**, by the points of expected final lead the move gives up against the Expert's choice (0.3, 1, 2.5, 5 and 9
-  points). **Advice** (<kbd>A</kbd>) shows the Expert's move: its pick glows blue, or the ghost domino moves to its spot.
-  The results card sums up your game: points lost per decision, and how many of each grade.
-- **Study**: all of that, and the values show while you decide. Hovering a draft domino shows its grade, expected lead
-  and win rate, and a small map of your kingdom with the most points it could score right now and where the Expert
-  would lay it. The ghost domino shows what each spot gives up against the best one.
+  points). After a poor move, the Expert's choice flashes blue on the table. **Advice** (<kbd>A</kbd>) shows the
+  Expert's move: its pick glows blue, or the ghost domino moves to its spot; a light on the button shows when the coach
+  is ready. The results card sums up your game: points lost per move and how your grades split.
+- **Study**: all of that, and the values show while you decide. Every draft domino carries a pill with what it gives
+  up against the best pick; the legal squares on your mat are tinted from green to red; the ghost domino shows what its
+  spot gives up. Hovering a draft domino maps where it would score most right now and where the Expert would lay it.
 
 ## Playing with friends online
 

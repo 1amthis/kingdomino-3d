@@ -172,6 +172,13 @@
         <label class="check"><input type="checkbox" id="opt-harmony" checked /><span class="box"></span><span><b>Harmony</b> &mdash; +5 for a full kingdom with no discarded domino</span></label>
         <label class="check" id="opt-duel-wrap"><input type="checkbox" id="opt-duel" /><span class="box"></span><span><b>The Mighty Duel</b> &mdash; 2 players, all 48 dominoes, 7&times;7 kingdoms</span></label>
       </div>
+      <div class="menu-section">
+        <h2>Coach</h2>
+        <div class="coach-opt">
+          <div class="seg" data-setting="coach"><button data-v="off">Off</button><button data-v="trainer">Trainer</button><button data-v="study">Study</button></div>
+          <span class="coach-note"></span>
+        </div>
+      </div>
       <div class="menu-footer">
         <button class="ghost-btn" id="menu-help">How to play</button>
         <button class="royal-btn" id="start-btn"><span>Start game</span></button>
@@ -336,7 +343,7 @@
             <div><span><kbd>Arrows</kbd> <kbd>Enter</kbd></span><span>Move, drop the domino</span></div>
           </div>
           <h3>The coach</h3>
-          <p>Turn it on in <b>Settings</b>. <b>Trainer</b> grades each of your moves once you make it, from Best to Blunder, by the points of final lead it gives up against the Expert&rsquo;s choice, and sums up your game on the results card. <b>Study</b> also shows the values while you decide. <b>Advice</b> shows the Expert&rsquo;s move.</p>
+          <p>Pick it in the main menu. <b>Trainer</b> grades each of your moves, from Best to Blunder, by the points of final lead it gives up against the Expert&rsquo;s choice. <b>Study</b> also shows the values while you decide. <b>Advice</b> shows the Expert&rsquo;s move. For fair play it stays off when more than one person plays.</p>
           <h3>Playing online</h3>
           <p>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
         </section>
@@ -366,7 +373,7 @@
         <div class="seg" data-setting="tilt"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
       <div class="setting"><span>Hints for legal spots</span>
         <div class="seg" data-setting="hints"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
-      <div class="setting"><span>Coach<small>Trainer grades each of your moves once you make it; Study also shows the values while you decide</small></span>
+      <div class="setting"><span>Coach<small class="coach-note"></small></span>
         <div class="seg" data-setting="coach"><button data-v="off">Off</button><button data-v="trainer">Trainer</button><button data-v="study">Study</button></div></div>
     </div>
   </div>
