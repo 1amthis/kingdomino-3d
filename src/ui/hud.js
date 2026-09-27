@@ -15,7 +15,7 @@ const CHARGES = [
   '<path d="M32 16 C27 22 27 28 32 32 C37 28 37 22 32 16 Z M32 32 C26 30 20 32 21 38 C24 35 28 35 31 36 Z M32 32 C38 30 44 32 43 38 C40 35 36 35 33 36 Z M26 40 L38 40 L38 43 L26 43 Z M31 32 L33 32 L33 48 L31 48 Z" fill="#fff4c8"/>',
 ];
 
-const AI_TAGS = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+const AI_TAGS = { easy: 'Easy', normal: 'Normal', hard: 'Hard', expert: 'Expert' };
 const tagFor = (p) => (p.type === 'human' ? (p.remote ? 'Online' : 'Human') : AI_TAGS[p.type]);
 
 export function shieldSVG(color, idx = 0) {
@@ -124,7 +124,7 @@ export class Hud {
   showMenu(seats, onStart) {
     const rows = $('#seat-rows');
     rows.innerHTML = '';
-    const kinds = [['human', 'Human'], ['remote', 'Online friend'], ['easy', 'AI · Easy'], ['normal', 'AI · Normal'], ['hard', 'AI · Hard'], ['off', 'Empty seat']];
+    const kinds = [['human', 'Human'], ['remote', 'Online friend'], ['easy', 'AI · Easy'], ['normal', 'AI · Normal'], ['hard', 'AI · Hard'], ['expert', 'AI · Expert'], ['off', 'Empty seat']];
     seats.forEach((s, i) => {
       const row = document.createElement('div');
       row.className = 'seat-row';

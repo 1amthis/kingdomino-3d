@@ -9,7 +9,7 @@ const PREFIX = 'kingdomino3d-';
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 const PEER_OPTS = { debug: 1 };
 const CONNECT_OPTS = { reliable: true, serialization: 'json' };
-const TYPES = ['human', 'easy', 'normal', 'hard'];
+const TYPES = ['human', 'easy', 'normal', 'hard', 'expert'];
 
 // PeerJS only downloads once someone actually opens or joins a table.
 const loadPeer = () => import('peerjs').then((m) => m.Peer || m.default);
