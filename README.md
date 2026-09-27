@@ -105,6 +105,19 @@ full rules engine with AI opponents, all running in the browser with no download
   `npm run bench` replays these (`--games`, `--players`, `--vs easy|normal|hard`, `--sims`, `--middle`, `--harmony`,
   `--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
 
+### The coach
+
+Turn it on in **Settings → Coach**. While you decide, the Expert quietly analyses your position in a worker of its
+own, trying every legal move.
+
+- **Trainer**: once you move, you get a grade from **Best** through Excellent, Good, Inaccuracy and Mistake to
+  **Blunder**, by the points of expected final lead the move gives up against the Expert's choice (0.3, 1, 2.5, 5 and 9
+  points). **Advice** (<kbd>A</kbd>) shows the Expert's move: its pick glows blue, or the ghost domino moves to its spot.
+  The results card sums up your game: points lost per decision, and how many of each grade.
+- **Study**: all of that, and the values show while you decide. Hovering a draft domino shows its grade, expected lead
+  and win rate, and a small map of your kingdom with the most points it could score right now and where the Expert
+  would lay it. The ghost domino shows what each spot gives up against the best one.
+
 ## Playing with friends online
 
 Set one or more seats to **Online friend** in the menu and press **Invite your friends**. You get a link like
@@ -128,6 +141,7 @@ Set one or more seats to **Online friend** in the menu and press **Invite your f
 | <kbd>R</kbd>, right-click, <kbd>Q</kbd>/<kbd>E</kbd> | Rotate the domino |
 | Arrows + <kbd>Enter</kbd> | Move and drop the domino with the keyboard |
 | <kbd>G</kbd> | Toggle legal-spot hints |
+| <kbd>A</kbd> | Advice: the Expert's move (with the coach on) |
 | Drag / wheel | Orbit / zoom towards the pointer |
 | Right-drag, <kbd>Shift</kbd>+drag | Slide the camera across the table |
 | <kbd>1</kbd>–<kbd>4</kbd>, or click a player's card | Look at that player's kingdom |
@@ -172,9 +186,11 @@ sub-folder works too).
 src/
   core/rules.js      tiles, Kingdom (placement rules, properties, scoring), ranking
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
+  core/coach.js      the coach's grades: points given up against the Expert's move, a game's tally
   core/rng.js        seeded PRNG so every tile's diorama is stable
   core/search/       the Expert AI: engine.js (typed-array kingdoms for fast playouts), mcts.js (the tree search),
-                     state.js (table ⇄ search state), worker.js + expert.js (the Web Worker and its main-thread client)
+                     state.js (table ⇄ search state), worker.js + expert.js (the Web Workers, one for the Expert's
+                     moves and one for the coach's analyses, and their main-thread client)
   gfx/stage.js       renderer, lights, ambience presets, post-processing, camera flights
   gfx/terrain.js     procedural diorama recipes for the six terrains
   gfx/geo.js         vertex-coloured geometry batching (one draw call per material per tile)
@@ -188,11 +204,13 @@ src/
   ui/hud.js          menu, lobby, player cards, prompts, tooltips, results
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
   game/controller.js game flow, animation choreography, camera direction, input
+  game/coach.js      the coach at the table: analyses, grades, advice, study notes, the results verdict
 scripts/
   headless.js        the game flow without the 3D, for benchmarks and tests
   bench.js           Expert against a heuristic level on paired deals
 tests/
   search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
+  coach.test.js      the analysis covers every move soundly; grades follow from it
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering

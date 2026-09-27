@@ -5,6 +5,7 @@ import { DOMINOES, Kingdom, DIRS, footprint, kingsPerPlayer, lineSize, deckSize,
 import { choosePlacement, chooseSlot } from '../core/ai.js';
 import { askExpert } from '../core/search/expert.js';
 import { describeTable } from '../core/search/state.js';
+import { Coach } from './coach.js';
 import { Rng } from '../core/rng.js';
 import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
@@ -23,6 +24,8 @@ export const CANCEL = Symbol('cancel');
 
 // The expert searches; when it cannot, it plays like Hard.
 const heuristicLevel = (type) => (type === 'expert' ? 'hard' : type);
+
+const ADVICE = 0x6fe3ff; // the glow of the domino the coach recommends
 
 const quatY = (a) => new THREE.Quaternion().setFromAxisAngle(UP, a);
 const quatFaceDown = (a) => quatY(a).multiply(new THREE.Quaternion().setFromAxisAngle(XAXIS, Math.PI));
@@ -47,7 +50,8 @@ export class Controller {
     this.activeViews = new Set();
     this.world = new THREE.Group();
     stage.scene.add(this.world);
-    this.settings = { speed: 1, camera: 'auto', hints: true };
+    this.settings = { speed: 1, camera: 'auto', hints: true, coach: 'off' };
+    this.coach = new Coach(this);
     this.players = [];
     this.kings = [];
     this.mode = null;
@@ -164,6 +168,7 @@ export class Controller {
   async startGame(config, { demo = false, link = null } = {}) {
     this.clearGame();
     const flow = this.flow = new Flow();
+    this.coach.reset();
     this.demo = demo;
     this.link = demo ? null : link;
     this.config = config;
@@ -596,12 +601,16 @@ export class Controller {
     return v === LEFT ? undefined : v;
   }
 
-  // The expert's move from the search worker ('open', 'pick' or 'place' for this king), or undefined
-  // when the worker is unavailable and the heuristic should decide.
-  expertMove(phase, king) {
-    const table = describeTable({ players: this.players, current: this.current, next: this.next,
+  // The table as the search sees it, for this king's decision ('open', 'pick' or 'place').
+  tableFor(phase, king) {
+    return describeTable({ players: this.players, current: this.current, next: this.next,
       deckLeft: this.deck.length, opening: this.openingOrder, opts: this.opts }, phase, king);
-    return askExpert(table).catch(() => undefined);
+  }
+
+  // The expert's move from the search worker, or undefined when the worker is unavailable and the
+  // heuristic should decide.
+  expertMove(phase, king) {
+    return askExpert(this.tableFor(phase, king)).catch(() => undefined);
   }
 
   remoteNote(p) { return p.remote && p.type === 'human' ? 'Playing online' : ''; }
@@ -630,9 +639,11 @@ export class Controller {
     const framing = this.focusPlayer(flow, p, 'select');
     let slot;
     if (local) {
+      const coach = this.coach.begin(p, placed ? 'pick' : 'open', king, options.length);
       await framing;
       this.sfx('turnChime');
-      slot = await flow.w(this.humanSelect(p, options));
+      slot = await flow.w(this.humanSelect(p, options, coach));
+      this.coach.judge(coach, slot.index);
       // looking around during one's own turn does not outlast it
       if (this.camHeld) this.holdCamera(false);
     } else {
@@ -664,16 +675,53 @@ export class Controller {
     slot.view.setGlow(null, 0);
   }
 
-  humanSelect(p, options) {
-    return new Promise((resolve, reject) => {
+  humanSelect(p, options, coach = null) {
+    const promise = new Promise((resolve, reject) => {
       options.forEach((s) => s.view.setGlow(0xffd36a, 0.35));
-      this.mode = { type: 'select', player: p, options, hovered: null, resolve, reject };
-    }).finally(() => {
+      this.mode = { type: 'select', player: p, options, hovered: null, advised: null, coach, resolve, reject };
+    });
+    const m = this.mode;
+    if (coach) {
+      this.hud.setActions({ advice: true });
+      // study mode's notes on the hovered domino fill in once the analysis arrives
+      coach.ready.then(() => { if (this.mode === m && m.hovered) this.slotTip(m, m.hovered); });
+    }
+    return promise.finally(() => {
       options.forEach((s) => { s.view.setGlow(null, 0); s.view.group.position.y = REST; });
       this.mode = null;
+      this.hud.setActions(null);
       this.hud.tooltip(null);
       this.stage.renderer.domElement.style.cursor = '';
     });
+  }
+
+  // A draft domino at rest: gold while it can be picked, blue once the coach has recommended it.
+  restGlow(m, slot) {
+    if (slot === m.advised) slot.view.setGlow(ADVICE, 0.9);
+    else slot.view.setGlow(0xffd36a, 0.35);
+  }
+
+  slotTip(m, slot, x = this.pointerPx.x, y = this.pointerPx.y) {
+    const turn = `<div class="tt-row" style="margin-top:6px;font-style:italic;color:#cbbd9c">Slot ${slot.index + 1} of ${this.lineN} &middot; ${slot.index === 0 ? 'you pick first next round' : slot.index === this.lineN - 1 ? 'you pick last next round' : 'middle of the turn order'}</div>`;
+    this.hud.tooltip(this.hud.dominoTooltip(slot.domino, turn + this.coach.slotNote(m, slot)), x, y);
+  }
+
+  // The coach's recommendation on the table: the draft domino glows blue, or the ghost domino moves
+  // to the Expert's spot (a click, or a tap on it, takes the advice).
+  showAdvice(m, move) {
+    if (m.type === 'select') {
+      const prev = m.advised;
+      m.advised = m.options.find((s) => s.index === move) || null;
+      if (prev && prev !== m.hovered) this.restGlow(m, prev);
+      if (m.advised && m.advised !== m.hovered) this.restGlow(m, m.advised);
+    } else if (move) {
+      const [dx, dy] = DIRS[move.rot];
+      m.rot = move.rot;
+      m.cell = { x: move.x, y: move.y };
+      m.local = new THREE.Vector3(move.x + dx / 2, 0, move.y + dy / 2);
+      m.touchKey = `${move.x},${move.y},${move.rot}`;
+      this.updateHints();
+    }
   }
 
   async placePhase(flow, p, slot) {
@@ -691,9 +739,11 @@ export class Controller {
     const valid = p.kingdom.validPlacements(domino);
     let choice;
     if (local) {
+      const coach = this.coach.begin(p, 'place', slot.king, valid.length, domino);
       await framing;
       this.sfx('turnChime');
-      choice = await flow.w(this.humanPlace(flow, p, slot, valid));
+      choice = await flow.w(this.humanPlace(flow, p, slot, valid, coach));
+      this.coach.judge(coach, choice);
       if (this.camHeld) this.holdCamera(false);
       if (this.link) this.link.tell(p, 'place', choice);
     } else {
@@ -790,19 +840,21 @@ export class Controller {
     return 'It must touch your castle or a matching terrain.';
   }
 
-  humanPlace(flow, p, slot, valid) {
+  humanPlace(flow, p, slot, valid, coach = null) {
     const view = slot.view;
     const promise = new Promise((resolve, reject) => {
       const first = valid.find((v) => v.rot === 0) || valid[0];
       this.mode = {
         type: 'place', player: p, slot, view, domino: slot.domino, valid, rot: first ? first.rot : 0,
-        cell: first ? { x: first.x, y: first.y } : { x: 1, y: 0 }, local: null, ok: false, following: false, resolve, reject,
+        cell: first ? { x: first.x, y: first.y } : { x: 1, y: 0 }, local: null, ok: false, following: false, coach, resolve, reject,
       };
     });
     const m = this.mode;
+    // study mode's note on the ghost fills in once the analysis arrives
+    if (coach) coach.ready.then(() => { if (this.mode === m) m.previewKey = null; });
     this.footMarkers.forEach((mk) => p.root.add(mk));
     p.root.add(this.hintMesh);
-    this.hud.setActions({ rotate: true, hint: true, hintOn: this.settings.hints, discard: valid.length === 0 });
+    this.placeActions();
     if (!valid.length) {
       this.hud.prompt('This domino fits nowhere', 'Discard it to carry on');
       this.sfx('error');
@@ -843,7 +895,7 @@ export class Controller {
     trial.place(m.domino, m.cell.x, m.cell.y, m.rot);
     const gain = trial.score(this.opts).total - before;
     m.preview.element.style.opacity = 1;
-    m.preview.element.innerHTML = gain > 0 ? `+${gain}` : '+0';
+    m.preview.element.innerHTML = (gain > 0 ? `+${gain}` : '+0') + this.coach.placeNote(m);
     m.preview.element.classList.toggle('zero', gain <= 0);
   }
 
@@ -1041,6 +1093,7 @@ export class Controller {
     await flow.w(Promise.race([party, this.hud.offerResults()]));
     for (const w of winners) w.plateBody.classList.remove('tally');
     this.hud.showResults(rows, this.opts, {
+      coach: this.coach.summary(),
       hostDeals: !!this.link && this.link.role === 'guest',
       onAgain: () => this.onPlayAgain && this.onPlayAgain(),
       onMenu: () => this.onMenu && this.onMenu(),
@@ -1090,6 +1143,7 @@ export class Controller {
       if (k === 'r' || k === 'e') this.rotate(1);
       else if (k === 'q') this.rotate(-1);
       else if (k === 'g') this.toggleHints();
+      else if (k === 'a') this.coach.advise();
       else if ((k === 'enter' || k === ' ') && this.mode?.type === 'place') { e.preventDefault(); this.tryPlace(); }
       else if (k.startsWith('arrow') && this.mode?.type === 'place') { e.preventDefault(); this.nudge(k); }
       else if (this.onKey) this.onKey(k, e);
@@ -1099,8 +1153,13 @@ export class Controller {
   toggleHints() {
     this.settings.hints = !this.settings.hints;
     this.hud.setSeg('hints', this.settings.hints ? 'on' : 'off');
-    if (this.mode?.type === 'place') this.hud.setActions({ rotate: true, hint: true, hintOn: this.settings.hints, discard: this.mode.valid.length === 0 });
+    this.placeActions();
     this.updateHints();
+  }
+
+  placeActions() {
+    const m = this.mode;
+    if (m?.type === 'place') this.hud.setActions({ rotate: true, hint: true, hintOn: this.settings.hints, discard: m.valid.length === 0, advice: !!m.coach });
   }
 
   nudge(key) {
@@ -1129,15 +1188,13 @@ export class Controller {
       const hits = this.raycaster.intersectObjects(m.options.map((s) => s.view.base), false);
       const slot = hits.length ? m.options.find((s) => s.view.base === hits[0].object) : null;
       if (slot !== m.hovered) {
-        if (m.hovered) m.hovered.view.setGlow(0xffd36a, 0.35);
+        if (m.hovered) this.restGlow(m, m.hovered);
         m.hovered = slot;
         if (slot) { slot.view.setGlow(0xfff0b0, 1); this.sfx('hover'); }
         this.stage.renderer.domElement.style.cursor = slot ? 'pointer' : '';
       }
-      if (slot) {
-        const turn = `<div class="tt-row" style="margin-top:6px;font-style:italic;color:#cbbd9c">Slot ${slot.index + 1} of ${this.lineN} &middot; ${slot.index === 0 ? 'you pick first next round' : slot.index === this.lineN - 1 ? 'you pick last next round' : 'middle of the turn order'}</div>`;
-        this.hud.tooltip(this.hud.dominoTooltip(slot.domino, turn), e.clientX, e.clientY);
-      } else this.hud.tooltip(null);
+      if (slot) this.slotTip(m, slot, e.clientX, e.clientY);
+      else this.hud.tooltip(null);
     }
   }
 

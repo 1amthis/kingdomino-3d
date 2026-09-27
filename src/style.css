@@ -279,6 +279,24 @@ body.photo #hud, body.photo .labels-layer { opacity: 0; pointer-events: none; tr
 .prop.bonus { background: rgba(240, 199, 94, 0.15); color: var(--gold-hi); }
 .res-total { font-family: var(--deco); font-weight: 900; font-size: 34px; color: var(--gold-hi); text-shadow: 0 0 16px rgba(255, 200, 90, 0.4); }
 
+/* the coach: grade chips (Best → Blunder), its notes in tooltips and on the ghost, the results verdict */
+.grade { font-family: var(--caps); font-style: normal; font-size: 11px; letter-spacing: 1px; padding: 2px 7px; border-radius: 6px; margin-right: 4px;
+  background: color-mix(in srgb, var(--gc) 20%, transparent); color: var(--gc); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gc) 45%, transparent); white-space: nowrap; }
+.g-best { --gc: #7fe08e; } .g-excellent { --gc: #b4e36f; } .g-good { --gc: #e6d86a; }
+.g-inaccuracy { --gc: #f2b35a; } .g-mistake { --gc: #f5854c; } .g-blunder { --gc: #ff6258; }
+#tooltip .tt-coach { font-size: 14px; }
+#tooltip .tt-coach .dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+#tooltip .tt-coach.warn { color: #ffb4a8; font-style: italic; }
+#tooltip .tt-coach.dim { color: var(--ink-dim); font-style: italic; }
+#tooltip .tt-map { display: block; margin-top: 6px; }
+.popup.preview .coach-note { font-family: var(--caps); font-size: 14px; color: var(--gc); text-shadow: 0 1px 2px #000; vertical-align: 4px; }
+.setting > span small { display: block; max-width: 300px; font-size: 14px; font-style: italic; color: var(--ink-dim); }
+#results-coach { margin: 4px 0 6px; padding: 10px 14px; border-radius: 12px; background: rgba(111, 227, 255, 0.05); border: 1px solid rgba(111, 227, 255, 0.2); animation: rise 0.6s ease backwards; animation-delay: 0.6s; }
+#results-coach h3 { font-family: var(--caps); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #9fe9ff; margin: 0 0 6px; }
+.coach-row { padding: 4px 0; font-size: 16px; }
+.coach-row .dim { color: var(--ink-dim); font-style: italic; font-size: 14px; }
+.coach-grades { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
 /* ---------- hot seat ---------- */
 .pass-card { padding: 30px 40px; text-align: center; min-width: 320px; }
 .pass-shield { width: 70px; height: 78px; margin: 0 auto 10px; }
