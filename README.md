@@ -40,7 +40,7 @@ full rules engine with AI opponents, all running in the browser with no download
     <td><img src="docs/screenshots/results.jpg" alt="The final scores card with each property and bonus" /></td>
   </tr>
   <tr>
-    <td><b>2 to 4 players</b>, any mix of humans (same device or online) and AI at three levels. The menu plays a live AI game behind it.</td>
+    <td><b>2 to 4 players</b>, any mix of humans (same device or online) and AI at four levels. The menu plays a live AI game behind it.</td>
     <td><b>Final scores</b> with every property, the Middle Kingdom and Harmony bonuses, and the official tie-breakers.</td>
   </tr>
 </table>
@@ -80,11 +80,30 @@ full rules engine with AI opponents, all running in the browser with no download
 
 ## Rules implemented
 
-- 2–4 players, any mix of humans (hot-seat or online) and AI (Easy / Normal / Hard).
+- 2–4 players, any mix of humans (hot-seat or online) and AI (Easy / Normal / Hard / Expert, see [The AI](#the-ai)).
 - 2 players: 2 kings each, 24 tiles, opening picks in snake order (A, B, B, A) · 3 players: 36 tiles, lines of 3 · 4 players: all 48 tiles.
 - Connection rule (touch the castle or a matching terrain), the 5×5 limit, forced discards when nothing fits.
 - Turn order from the drafting line, final scoring with the official tie-breakers.
 - Optional **Middle Kingdom** (+10), **Harmony** (+5) and the **Mighty Duel** (2 players, 7×7, all 48 tiles).
+
+## The AI
+
+- **Easy, Normal and Hard** look one move ahead and weigh the kingdom by hand-tuned rules: crowned properties and
+  their open edges, squares that can no longer be filled, the chance of a bonus. Hard also takes dominoes a rival wants.
+- **Expert** searches. It runs a determinized Monte-Carlo tree search in a Web Worker, so the table keeps animating
+  while it thinks: every simulation deals the unseen dominoes afresh, then plays the game out to the end. A few thousand
+  simulations per move take a fraction of a second.
+- Expert against Hard, on paired deals (each deal played from both seats), 2,000 simulations per move:
+
+  | Game | Expert's record | Average lead |
+  | --- | --- | --- |
+  | 2 players | 83 wins, 17 losses | +10.2 points |
+  | 2 players, Middle Kingdom + Harmony | 81 wins, 19 losses | +12.4 points |
+  | Mighty Duel (7×7) | 40 wins, 0 losses | +27.6 points |
+  | 4 players (Expert and 3 Hard) | 24 wins in 40 games | +1.2 points over the best Hard |
+
+  `npm run bench` replays these (`--games`, `--players`, `--vs easy|normal|hard`, `--sims`, `--middle`, `--harmony`,
+  `--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
 
 ## Playing with friends online
 
@@ -134,6 +153,7 @@ glowing frame on your mat shrinks to show the 5×5 space you have left.
 npm install
 npm run dev        # http://localhost:5173
 npm run build      # static bundle in dist/
+npm test           # rules and AI checks (Node 20+)
 ```
 
 ## Put it online
@@ -153,6 +173,8 @@ src/
   core/rules.js      tiles, Kingdom (placement rules, properties, scoring), ranking
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
   core/rng.js        seeded PRNG so every tile's diorama is stable
+  core/search/       the Expert AI: engine.js (typed-array kingdoms for fast playouts), mcts.js (the tree search),
+                     state.js (table ⇄ search state), worker.js + expert.js (the Web Worker and its main-thread client)
   gfx/stage.js       renderer, lights, ambience presets, post-processing, camera flights
   gfx/terrain.js     procedural diorama recipes for the six terrains
   gfx/geo.js         vertex-coloured geometry batching (one draw call per material per tile)
@@ -166,6 +188,11 @@ src/
   ui/hud.js          menu, lobby, player cards, prompts, tooltips, results
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
   game/controller.js game flow, animation choreography, camera direction, input
+scripts/
+  headless.js        the game flow without the 3D, for benchmarks and tests
+  bench.js           Expert against a heuristic level on paired deals
+tests/
+  search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering

@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { DOMINOES, Kingdom, DIRS, footprint, kingsPerPlayer, lineSize, deckSize, rank, TERRAIN_INFO } from '../core/rules.js';
 import { choosePlacement, chooseSlot } from '../core/ai.js';
+import { askExpert } from '../core/search/expert.js';
+import { describeTable } from '../core/search/state.js';
 import { Rng } from '../core/rng.js';
 import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
@@ -18,6 +20,9 @@ const HOVER = 0.55;
 const UP = new THREE.Vector3(0, 1, 0);
 const XAXIS = new THREE.Vector3(1, 0, 0);
 export const CANCEL = Symbol('cancel');
+
+// The expert searches; when it cannot, it plays like Hard.
+const heuristicLevel = (type) => (type === 'expert' ? 'hard' : type);
 
 const quatY = (a) => new THREE.Quaternion().setFromAxisAngle(UP, a);
 const quatFaceDown = (a) => quatY(a).multiply(new THREE.Quaternion().setFromAxisAngle(XAXIS, Math.PI));
@@ -591,6 +596,14 @@ export class Controller {
     return v === LEFT ? undefined : v;
   }
 
+  // The expert's move from the search worker ('open', 'pick' or 'place' for this king), or undefined
+  // when the worker is unavailable and the heuristic should decide.
+  expertMove(phase, king) {
+    const table = describeTable({ players: this.players, current: this.current, next: this.next,
+      deckLeft: this.deck.length, opening: this.openingOrder, opts: this.opts }, phase, king);
+    return askExpert(table).catch(() => undefined);
+  }
+
   remoteNote(p) { return p.remote && p.type === 'human' ? 'Playing online' : ''; }
 
   // The one player at this screen reads "Your turn"; players sharing a screen are called by name.
@@ -628,9 +641,15 @@ export class Controller {
         const pick = await this.remoteMove(flow, p, 'select');
         const remote = options.find((s) => s.index === pick);
         if (remote) return remote;
-        await flow.w(this.tw.wait(420 + this.rng.float(0, 380)));
+        const pause = this.tw.wait(420 + this.rng.float(0, 380));
+        if (p.type === 'expert') {
+          const [i] = await flow.w(Promise.all([this.expertMove(placed ? 'pick' : 'open', king), pause]));
+          const slot = options.find((s) => s.index === i);
+          if (slot) return slot;
+        }
+        await flow.w(pause);
         const others = this.players.filter((o) => o !== p);
-        return chooseSlot(p, others, options, this.lineN, this.opts, p.type, this.rng);
+        return chooseSlot(p, others, options, this.lineN, this.opts, heuristicLevel(p.type), this.rng);
       };
       [slot] = await Promise.all([decide(), framing]);
     }
@@ -682,10 +701,15 @@ export class Controller {
       const decide = async () => {
         const move = await this.remoteMove(flow, p, 'place');
         // A remote move must be legal here too: one of our valid spots, or a discard when nothing fits.
-        const legal = move === null ? !valid.length : !!move && valid.some((v) => v.x === move.x && v.y === move.y && v.rot === move.rot);
-        if (legal) return move && { x: move.x, y: move.y, rot: move.rot };
-        await flow.w(this.tw.wait(380 + this.rng.float(0, 300)));
-        return choosePlacement(p.kingdom, domino, this.opts, p.type, this.rng);
+        const isLegal = (m) => (m === null ? !valid.length : !!m && valid.some((v) => v.x === m.x && v.y === m.y && v.rot === m.rot));
+        if (isLegal(move)) return move && { x: move.x, y: move.y, rot: move.rot };
+        const pause = this.tw.wait(380 + this.rng.float(0, 300));
+        if (p.type === 'expert' && valid.length > 1) {
+          const [m] = await flow.w(Promise.all([this.expertMove('place', slot.king), pause]));
+          if (m && isLegal(m)) return m;
+        }
+        await flow.w(pause);
+        return choosePlacement(p.kingdom, domino, this.opts, heuristicLevel(p.type), this.rng);
       };
       [choice] = await Promise.all([decide(), framing]);
       if (this.link) this.link.tell(p, 'place', choice);
