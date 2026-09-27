@@ -1,7 +1,7 @@
 {
   "name": "Kingdomino 3D",
   "short_name": "Kingdomino",
-  "description": "Kingdomino in 3D, against the AI or friends online.",
+  "description": "Kingdomino in 3D, against an Expert AI or friends online, with a coach that grades your moves.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
