@@ -8,7 +8,8 @@ import { describeTable, gameFrom, moveOut } from '../src/core/search/state.js';
 
 // types: one per seat ('easy' | 'normal' | 'hard' | 'expert'). The same seed deals the same chest and
 // opening order, whoever sits where, so swapping seats replays the same game from the other side.
-export function playGame({ types, seed = 1, middleKingdom = false, harmony = false, mightyDuel = false, budget }) {
+// onDecision(table, move, domino), if given, sees every decision the expert makes (for tests).
+export function playGame({ types, seed = 1, middleKingdom = false, harmony = false, mightyDuel = false, budget, onDecision }) {
   const n = types.length, size = mightyDuel ? 7 : 5, L = lineSize(n);
   const opts = { middleKingdom, harmony, size };
   const deal = new Rng(seed), rng = new Rng(seed ^ 0x5bd1e995);
@@ -26,13 +27,16 @@ export function playGame({ types, seed = 1, middleKingdom = false, harmony = fal
 
   const draw = () => deck.splice(0, L).sort((a, b) => a.id - b.id).map((domino, index) => ({ domino, index, king: null }));
   const expert = (phase, king) => {
-    const game = gameFrom(describeTable({ players, current, next, deckLeft: deck.length, opening, opts }, phase, king));
+    const table = describeTable({ players, current, next, deckLeft: deck.length, opening, opts }, phase, king);
+    const game = gameFrom(table);
     const t0 = performance.now();
     const { move, sims } = search.choose(game, budget);
     stats.moves++;
     stats.sims += sims;
     stats.ms += performance.now() - t0;
-    return moveOut(game, move);
+    const out = moveOut(game, move);
+    if (onDecision) onDecision(table, out, phase === 'place' ? current.find((s) => s.king === king).domino : null);
+    return out;
   };
   const select = (king, phase) => {
     const p = king.player, options = next.filter((s) => !s.king);

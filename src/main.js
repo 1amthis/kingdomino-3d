@@ -61,7 +61,7 @@ async function main() {
   if (!saved.qualityPicked) delete saved.quality;
   // phones and tablets run the full effects at 60fps but heat up doing it
   const touch = matchMedia('(pointer: coarse)').matches;
-  const settings = Object.assign({ quality: touch ? 'medium' : 'high', speed: '1', camera: 'auto', ambience: 'dusk', tilt: 'on', hints: 'on', music: true, sfx: true, name: '' }, saved);
+  const settings = Object.assign({ quality: touch ? 'medium' : 'high', speed: '1', camera: 'auto', ambience: 'dusk', tilt: 'on', hints: 'on', coach: 'off', music: true, sfx: true, name: '' }, saved);
   const persist = () => store.set(settings);
   const apply = (key, value) => {
     settings[key] = value;
@@ -72,9 +72,10 @@ async function main() {
     if (key === 'ambience') stage.setAmbience(value);
     if (key === 'tilt') stage.setTiltShift(value === 'on');
     if (key === 'hints') { ctl.settings.hints = value === 'on'; ctl.updateHints(); }
+    if (key === 'coach') ctl.settings.coach = value;
     persist();
   };
-  for (const k of ['quality', 'speed', 'camera', 'tilt', 'hints']) apply(k, settings[k]);
+  for (const k of ['quality', 'speed', 'camera', 'tilt', 'hints', 'coach']) apply(k, settings[k]);
   stage.ambience = { ...AMBIENCE[settings.ambience] };
   stage.ambienceName = settings.ambience;
   stage.applyAmbience(stage.ambience);
@@ -296,6 +297,7 @@ async function main() {
   });
   hud.on('rotate', () => ctl.rotate(1));
   hud.on('hint', () => { ctl.toggleHints(); apply('hints', ctl.settings.hints ? 'on' : 'off'); });
+  hud.on('advice', () => ctl.coach.advise());
   hud.on('discard', () => { const m = ctl.mode; if (m && m.type === 'place' && !m.valid.length) m.resolve(null); });
   ctl.onKey = (k) => {
     if (k === 'c') { if (inGame) ctl.toggleOverview(); }

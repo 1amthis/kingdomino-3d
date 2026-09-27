@@ -3,7 +3,7 @@ import { TERRAIN_INFO } from '../core/rules.js';
 import { Guide } from './guide.js';
 
 const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export const CROWN_SVG = '<svg class="crown-ico" viewBox="0 0 64 48"><path d="M4 40 L4 12 L18 26 L32 4 L46 26 L60 12 L60 40 Z"/></svg>';
 
@@ -261,6 +261,7 @@ export class Hud {
     q('hint').classList.toggle('hidden', !state.hint);
     q('hint').classList.toggle('on', !!state.hintOn);
     q('discard').classList.toggle('hidden', !state.discard);
+    q('advice').classList.toggle('hidden', !state.advice);
   }
 
   setToggle(action, on) {
@@ -317,7 +318,8 @@ export class Hud {
     return new Promise((resolve) => { b.onclick = () => { b.onclick = null; b.classList.add('hidden'); resolve(); }; });
   }
 
-  showResults(rows, opts, { onAgain, onMenu, hostDeals = false }) {
+  // coach: the coach's verdict for the players at this screen (html), if it was on
+  showResults(rows, opts, { onAgain, onMenu, hostDeals = false, coach = '' }) {
     this.el.showResults.classList.add('hidden');
     this.el.showResults.onclick = null;
     const table = $('#results-table');
@@ -339,6 +341,8 @@ export class Hud {
         <div><div class="res-name" style="color:${r.player.color}">${esc(r.player.name)}</div><div class="res-props">${props}${bonus}${none}</div></div>
         <div class="res-total">${r.s.total}</div></div>`;
     }).join('');
+    $('#results-coach').innerHTML = coach;
+    $('#results-coach').classList.toggle('hidden', !coach);
     this.el.results.classList.remove('hidden');
     const again = $('#res-again'), menu = $('#res-menu'), admire = $('#res-admire');
     // an online guest waits for the host to deal the next game

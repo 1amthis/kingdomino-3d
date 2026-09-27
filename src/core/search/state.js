@@ -57,11 +57,21 @@ export function gameFrom(t) {
   return game;
 }
 
-// A slot index when drafting; when placing, { x, y, rot } as rules.js takes it, or null to discard.
-export function moveOut(game, m) {
-  if (game.phase !== PLACE) return m;
-  if (m === DISCARD) return null;
-  const { size, col, row } = game.boards[0].g, a = m >> 8, b = m & 255;
+// A search placement as rules.js takes it: { x, y, rot } with square A on (x, y).
+export function placementOut(size, m) {
+  const { col, row } = grid(size), a = m >> 8, b = m & 255;
   const dx = col[b] - col[a], dy = row[b] - row[a];
   return { x: col[a] - size, y: row[a] - size, rot: DIRS.findIndex(([ex, ey]) => ex === dx && ey === dy) };
+}
+
+// A slot index when drafting; when placing, a placement, or null to discard.
+export function moveOut(game, m) {
+  if (game.phase !== PLACE) return m;
+  return m === DISCARD ? null : placementOut(game.boards[0].g.size, m);
+}
+
+// Search.analyse()'s report with its moves and landing spots in the controller's terms.
+export function analysisOut(game, a) {
+  const size = game.boards[0].g.size;
+  return { ...a, moves: a.moves.map((m) => ({ ...m, move: moveOut(game, m.move), land: m.land === null ? null : placementOut(size, m.land) })) };
 }

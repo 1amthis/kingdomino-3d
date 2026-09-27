@@ -141,6 +141,10 @@
         <svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
         <span>Hints</span>
       </button>
+      <button class="action-btn" data-action="advice" title="Ask the coach for the Expert's move (A)">
+        <svg viewBox="0 0 24 24"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 18.5 12 15.6 7 18.5l1.4-5.7L4 9l5.8-.7z"/></svg>
+        <span>Advice</span>
+      </button>
       <button class="action-btn danger" data-action="discard" title="Discard this domino (only when it cannot be placed)">
         <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
         <span>Discard</span>
@@ -185,6 +189,7 @@
         <div id="winner-line"></div>
       </div>
       <div id="results-table"></div>
+      <div id="results-coach" class="hidden"></div>
       <div class="menu-footer">
         <button class="ghost-btn" id="res-admire">View the board</button>
         <button class="ghost-btn" id="res-menu">Main menu</button>
@@ -308,6 +313,7 @@
             <div><span><kbd>Tap</kbd></span><span>Pick a domino</span></div>
             <div><span><kbd>Tap</kbd> <kbd>Tap</kbd></span><span>Show a spot, tap again to place</span></div>
             <div><span><kbd>Rotate</kbd> <kbd>Hints</kbd></span><span>Turn the domino, show the legal spots</span></div>
+            <div><span><kbd>Advice</kbd></span><span>The Expert&rsquo;s move, with the coach on</span></div>
             <div><span><kbd>Drag</kbd></span><span>Orbit the camera</span></div>
             <div><span><kbd>Pinch</kbd> <kbd>Two fingers</kbd></span><span>Zoom, slide the camera</span></div>
             <div><span>Tap a score</span><span>Look at that player&rsquo;s kingdom</span></div>
@@ -317,6 +323,7 @@
             <div><span><kbd>Click</kbd></span><span>Pick or place a domino</span></div>
             <div><span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>Rotate (or right-click)</span></div>
             <div><span><kbd>G</kbd></span><span>Legal-spot hints</span></div>
+            <div><span><kbd>A</kbd></span><span>Advice: the Expert&rsquo;s move, with the coach on</span></div>
             <div><span><kbd>Drag</kbd> <kbd>Wheel</kbd></span><span>Orbit, zoom</span></div>
             <div><span><kbd>Right-drag</kbd></span><span>Slide the camera (or Shift+drag)</span></div>
             <div><span><kbd>1</kbd>&ndash;<kbd>4</kbd></span><span>Look at a kingdom</span></div>
@@ -328,6 +335,8 @@
             <div><span><kbd>P</kbd></span><span>Photo mode</span></div>
             <div><span><kbd>Arrows</kbd> <kbd>Enter</kbd></span><span>Move, drop the domino</span></div>
           </div>
+          <h3>The coach</h3>
+          <p>Turn it on in <b>Settings</b>. <b>Trainer</b> grades each of your moves once you make it, from Best to Blunder, by the points of final lead it gives up against the Expert&rsquo;s choice, and sums up your game on the results card. <b>Study</b> also shows the values while you decide. <b>Advice</b> shows the Expert&rsquo;s move.</p>
           <h3>Playing online</h3>
           <p>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
         </section>
@@ -357,6 +366,8 @@
         <div class="seg" data-setting="tilt"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
       <div class="setting"><span>Hints for legal spots</span>
         <div class="seg" data-setting="hints"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+      <div class="setting"><span>Coach<small>Trainer grades each of your moves once you make it; Study also shows the values while you decide</small></span>
+        <div class="seg" data-setting="coach"><button data-v="off">Off</button><button data-v="trainer">Trainer</button><button data-v="study">Study</button></div></div>
     </div>
   </div>
 
