@@ -1,4 +1,4 @@
-# Builds the game and publishes dist/ to GitHub Pages on every push to main.
+# Tests and builds the game, then publishes dist/ to GitHub Pages on every push to main.
 # One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 name: Deploy to GitHub Pages
 
@@ -26,6 +26,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm test
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
