@@ -2,7 +2,7 @@
   "name": "kingdomino-3d",
   "private": true,
   "version": "1.0.0",
-  "description": "Kingdomino in 3D with Three.js, against the AI or friends online",
+  "description": "Kingdomino in 3D with Three.js: an Expert AI (Monte-Carlo tree search), a coach that grades every move, and online play with friends",
   "type": "module",
   "scripts": {
     "dev": "vite",

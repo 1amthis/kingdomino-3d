@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual" />
-  <title>Kingdomino 3D · Free online board game, vs AI or friends</title>
-  <meta name="description" content="Play Kingdomino in 3D, free in your browser: build a kingdom from 48 diorama dominoes against the AI or with friends online. No download, no sign-up." />
+  <title>Kingdomino 3D · Free board game vs an Expert AI or friends</title>
+  <meta name="description" content="Play the Kingdomino board game in 3D, free in your browser: against an Expert AI, with a coach that grades your moves, or with friends online. No sign-up." />
   <link rel="canonical" href="https://1amthis.github.io/kingdomino-3d/" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="theme-color" content="#1c120c" />
@@ -13,19 +13,19 @@
   <!-- Link previews (Slack, Discord, WhatsApp, X, LinkedIn…) -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Kingdomino 3D" />
-  <meta property="og:title" content="Kingdomino 3D · Play free in your browser" />
-  <meta property="og:description" content="Build your kingdom from 48 hand-carved diorama dominoes on a candle-lit table. Play against the AI or invite friends with a link. No download, no sign-up." />
+  <meta property="og:title" content="Kingdomino 3D · Play free vs an Expert AI or friends" />
+  <meta property="og:description" content="Build your kingdom from 48 hand-carved diorama dominoes on a candle-lit table. Take on an Expert AI that plays thousands of games ahead, learn from a coach that grades every move, or invite friends with a link. No download, no sign-up." />
   <meta property="og:url" content="https://1amthis.github.io/kingdomino-3d/" />
   <meta property="og:image" content="https://1amthis.github.io/kingdomino-3d/og-image.jpg" />
   <meta property="og:image:width" content="1280" />
   <meta property="og:image:height" content="640" />
-  <meta property="og:image:alt" content="Kingdomino 3D: miniature diorama kingdoms on a wooden table at golden hour" />
+  <meta property="og:image:alt" content="Kingdomino 3D: a miniature diorama kingdom on a candle-lit table. Play free against an Expert AI, with a coach, or online with friends" />
   <meta property="og:locale" content="en_GB" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Kingdomino 3D · Play free in your browser" />
-  <meta name="twitter:description" content="Build your kingdom from 48 hand-carved diorama dominoes. Play against the AI or invite friends with a link." />
+  <meta name="twitter:title" content="Kingdomino 3D · Play free vs an Expert AI or friends" />
+  <meta name="twitter:description" content="Build your kingdom from 48 diorama dominoes. Take on an Expert AI, learn from a coach that grades every move, or invite friends with a link." />
   <meta name="twitter:image" content="https://1amthis.github.io/kingdomino-3d/og-image.jpg" />
-  <meta name="twitter:image:alt" content="Kingdomino 3D: miniature diorama kingdoms on a wooden table at golden hour" />
+  <meta name="twitter:image:alt" content="Kingdomino 3D: a miniature diorama kingdom on a candle-lit table. Play free against an Expert AI, with a coach, or online with friends" />
 
   <!-- Icons: browser tab, search results, phone home screen -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -41,9 +41,17 @@
     "name": "Kingdomino 3D",
     "alternateName": "Kingdomino online",
     "url": "https://1amthis.github.io/kingdomino-3d/",
-    "description": "A 3D browser adaptation of the Kingdomino tile-laying board game, with procedural diorama dominoes, AI opponents and peer-to-peer online play.",
+    "description": "A 3D browser adaptation of the Kingdomino tile-laying board game, with procedural diorama dominoes, four levels of AI up to a Monte-Carlo tree search Expert, a coach that grades every move, and peer-to-peer online play.",
     "image": "https://1amthis.github.io/kingdomino-3d/og-image.jpg",
     "genre": ["Board game", "Strategy", "Tile-laying"],
+    "featureList": [
+      "Expert AI: determinized Monte-Carlo tree search in a Web Worker",
+      "Easy, Normal and Hard AI levels",
+      "Coach: every move graded from Best to Blunder, advice on request, a study mode that shows each move's value",
+      "Peer-to-peer online play with an invite link",
+      "48 procedural 3D diorama dominoes, day, golden hour and night",
+      "Optional Middle Kingdom, Harmony and Mighty Duel rules"
+    ],
     "gamePlatform": "Web browser",
     "applicationCategory": "GameApplication",
     "operatingSystem": "Any (WebGL 2 browser)",
@@ -75,7 +83,7 @@
       <div class="loading-bar"><div id="loading-fill"></div></div>
       <div id="loading-text">Loading…</div>
       <noscript>
-        <p class="noscript">Kingdomino 3D is a free browser version of the Kingdomino tile-laying board game: claim dominoes with your king, connect matching terrains and multiply each property by its crowns. Play against the AI or with up to three friends online.</p>
+        <p class="noscript">Kingdomino 3D is a free browser version of the Kingdomino tile-laying board game: claim dominoes with your king, connect matching terrains and multiply each property by its crowns. Play against four levels of AI, up to an Expert that plays out thousands of games before each move, turn on a coach that grades every move from Best to Blunder, or play with up to three friends online.</p>
         <p class="noscript"><b>It needs JavaScript and a WebGL 2 browser.</b></p>
       </noscript>
     </div>

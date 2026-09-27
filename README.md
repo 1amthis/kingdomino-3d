@@ -2,21 +2,56 @@
 
 # Kingdomino 3D
 
-**The Kingdomino board game on a candle-lit 3D table. Play it free in your browser, against the AI or with friends.**
+**The Kingdomino board game on a candle-lit 3D table. Play it free in your browser: against an Expert AI that plays
+out thousands of games before each move, with a coach that grades yours, or with friends online.**
 
 [![Play now, free in your browser](https://img.shields.io/badge/%E2%96%B6%20Play%20now-free%20in%20your%20browser-b3263a?style=for-the-badge)](https://1amthis.github.io/kingdomino-3d/)
 
 [![Deploy](https://github.com/1amthis/kingdomino-3d/actions/workflows/deploy.yml/badge.svg)](https://github.com/1amthis/kingdomino-3d/actions/workflows/deploy.yml)
+[![Expert AI: Monte-Carlo tree search](https://img.shields.io/badge/Expert%20AI-Monte--Carlo%20tree%20search-1f7a8c)](#the-ai)
+[![Coach: every move graded](https://img.shields.io/badge/coach-every%20move%20graded-3f8f4f)](#the-coach)
+[![Online play](https://img.shields.io/badge/online%20play-peer--to--peer%2C%20no%20server-2f6f3e)](#playing-with-friends-online)
 [![Three.js](https://img.shields.io/badge/Three.js-r186-000000?logo=threedotjs&logoColor=white)](https://threejs.org)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev)
-[![Online play](https://img.shields.io/badge/online%20play-peer--to--peer%2C%20no%20server-2f6f3e)](#playing-with-friends-online)
 
 <img src="docs/screenshots/gameplay.webp" width="100%" alt="A round of Kingdomino 3D: new dominoes are dealt face down and flip over on the drafting board, then each lord places theirs in their kingdom" />
 
 </div>
 
-Procedural miniature dioramas on every tile, a candle-lit table, animated critters, a generative lute soundtrack and a
-full rules engine with AI opponents, all running in the browser with no download and no sign-up.
+Procedural miniature dioramas on every tile, a candle-lit table, animated critters, a generative lute soundtrack, a
+full rules engine and four levels of AI, all running in the browser with no download and no sign-up.
+
+## Take on the Expert, learn from the coach
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/coach-study.jpg" alt="Study mode on the drafting board: a value pill beside each domino (Best, −12.9, −15.9) and a map of where the hovered domino scores most now and where the Expert would lay it" /></td>
+    <td width="50%"><img src="docs/screenshots/coach-grade.jpg" alt="A grade badge popping up over the move just played, while the Expert's choice flashes blue" /></td>
+  </tr>
+  <tr>
+    <td><b>Study mode.</b> Every draft domino carries what it gives up against the Expert's pick. Hover one to see where it scores most right now (gold) and where the Expert would lay it (blue).</td>
+    <td><b>Every move graded</b>, from Best to Blunder, by the points of final lead it gives up. After a poor move, the Expert's choice flashes blue.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/coach-place.jpg" alt="Placing in study mode: the legal squares tinted from green to red, the ghost domino showing +7 and Best" /></td>
+    <td><img src="docs/screenshots/coach-advice.jpg" alt="Advice: the domino the Expert would pick glows blue with an Expert tag" /></td>
+  </tr>
+  <tr>
+    <td><b>Where to lay it.</b> The legal squares are tinted from green to red, and the ghost domino shows what its spot is worth.</td>
+    <td><b>Stuck? Ask.</b> Advice (<kbd>A</kbd>) shows the Expert's move: its pick glows blue, or the ghost domino slides to its spot.</td>
+  </tr>
+</table>
+
+- **Expert** plans ahead with a Monte-Carlo tree search in a Web Worker: before each move it plays out thousands of
+  games, each with the unseen dominoes dealt afresh, and keeps the move that held up best. Against the Hard AI it wins
+  83 two-player games in 100, and all 40 Mighty Duels ([how it works](#the-ai)).
+- **The coach** is the same search pointed at your position. **Trainer** grades each of your moves; **Study** also
+  shows what every option is worth while you decide. At the end, the results card gives its verdict: points lost per
+  move and how your grades split ([more](#the-coach)).
+- Set a seat to **Expert** and the coach to **Trainer** or **Study** in the menu. For fair play, the coach turns itself
+  off whenever more than one person plays.
+
+## What's on the table
 
 <table>
   <tr>
@@ -36,12 +71,12 @@ full rules engine with AI opponents, all running in the browser with no download
     <td><b>The reckoning.</b> The camera visits each kingdom and counts every property, squares &times; crowns.</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/menu.jpg" alt="The main menu over a live AI-vs-AI game" /></td>
-    <td><img src="docs/screenshots/results.jpg" alt="The final scores card with each property and bonus" /></td>
+    <td><img src="docs/screenshots/menu.jpg" alt="The main menu over a live AI-vs-AI game, with the seat picker open on the computer's four levels and the coach set to Study" /></td>
+    <td><img src="docs/screenshots/results.jpg" alt="The final scores card with each property and bonus, and the coach's verdict" /></td>
   </tr>
   <tr>
-    <td><b>2 to 4 players</b>, any mix of humans (same device or online) and AI at four levels. The menu plays a live AI game behind it.</td>
-    <td><b>Final scores</b> with every property, the Middle Kingdom and Harmony bonuses, and the official tie-breakers.</td>
+    <td><b>2 to 4 players</b>, any mix of humans (same device or online) and AI at four levels, from Easy to Expert. The menu plays a live AI game behind it.</td>
+    <td><b>Final scores</b> with every property, the Middle Kingdom and Harmony bonuses and the official tie-breakers, plus the coach's verdict.</td>
   </tr>
 </table>
 
@@ -54,8 +89,6 @@ full rules engine with AI opponents, all running in the browser with no download
   <br />
   <sub>Made for phones too: tap to pick, tap twice to place, pinch to zoom.</sub>
 </p>
-
-## What's on the table
 
 - **All 48 official dominoes** with correct terrains and crowns, each carved as a unique diorama.
   - Wheat fields with swaying stalks, windmills with turning sails, cottages with chimney smoke, haystacks, scarecrows
@@ -93,22 +126,35 @@ full rules engine with AI opponents, all running in the browser with no download
 - **Expert** searches. It runs a determinized Monte-Carlo tree search in a Web Worker, so the table keeps animating
   while it thinks: every simulation deals the unseen dominoes afresh, then plays the game out to the end. A few thousand
   simulations per move take a fraction of a second.
-- Expert against Hard, on paired deals (each deal played from both seats), 2,000 simulations per move:
 
-  | Game | Expert's record | Average lead |
-  | --- | --- | --- |
-  | 2 players | 83 wins, 17 losses | +10.2 points |
-  | 2 players, Middle Kingdom + Harmony | 81 wins, 19 losses | +12.4 points |
-  | Mighty Duel (7×7) | 40 wins, 0 losses | +27.6 points |
-  | 4 players (Expert and 3 Hard) | 24 wins in 40 games | +1.2 points over the best Hard |
+```mermaid
+flowchart LR
+    pos(["The position<br/>on the table"]) --> deal
+    subgraph sim ["One simulation, up to 3,000 per move (1.5 s at most)"]
+        direction LR
+        deal["Deal the unseen<br/>dominoes afresh"] --> walk["Walk down the tree:<br/>moves that did well,<br/>or were tried little"]
+        walk --> out["Play the game out<br/>with a quick heuristic"]
+        out --> back["Score it: win or loss<br/>and margin, credited to<br/>each move on the way"]
+    end
+    back --> move(["Play the move<br/>tried most often"])
+```
 
-  `npm run bench` replays these (`--games`, `--players`, `--vs easy|normal|hard`, `--sims`, `--middle`, `--harmony`,
-  `--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
+Expert against Hard, on paired deals (each deal played from both seats), 2,000 simulations per move:
+
+| Game | Expert's record | Average lead |
+| --- | --- | --- |
+| 2 players | 83 wins, 17 losses | +10.2 points |
+| 2 players, Middle Kingdom + Harmony | 81 wins, 19 losses | +12.4 points |
+| Mighty Duel (7×7) | 40 wins, 0 losses | +27.6 points |
+| 4 players (Expert and 3 Hard) | 24 wins in 40 games | +1.2 points over the best Hard |
+
+`npm run bench` replays these (`--games`, `--players`, `--vs easy|normal|hard`, `--sims`, `--middle`, `--harmony`,
+`--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
 
 ### The coach
 
 Pick it in the main menu (or in Settings during a game). While you decide, the Expert quietly analyses your position
-in a worker of its own, trying every legal move. For fair play the coach locks itself off whenever more than one
+in a worker of its own: the same search, up to 8,000 simulations, with at least 24 for every legal move. For fair play the coach locks itself off whenever more than one
 person is at the table, on the same screen or online.
 
 - **Trainer**: once you move, a badge pops up on it, from **Best** through Excellent, Good, Inaccuracy and Mistake to
