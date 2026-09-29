@@ -225,7 +225,8 @@ sub-folder works too).
 
 - **GitHub Pages**: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and publishes every push
   to `main`. In a fork, turn it on once in *Settings → Pages → Source: GitHub Actions*, and change the
-  `https://1amthis.github.io/kingdomino-3d/` addresses in `index.html` and `public/sitemap.xml` to your own.
+  `https://1amthis.github.io/kingdomino-3d/` addresses in `index.html` to your own (the build writes `sitemap.xml`
+  from its canonical link).
 - **Anywhere else**: drag `dist/` onto [Netlify Drop](https://app.netlify.com/drop), or use Cloudflare Pages.
 
 ## Code map
@@ -264,7 +265,10 @@ tests/
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering
 (e.g. `kingdomino.stage.setAmbience('night')`).
 
-## Credits
+## Credits and license
 
 Kingdomino is a board game designed by Bruno Cathala and published by Blue Orange Games. This is an unofficial,
 non-commercial fan adaptation, not affiliated with or endorsed by them. If you enjoy it, buy the real box!
+
+The code is released under the [MIT license](LICENSE). The license covers this code only, not the Kingdomino name or
+game design.
