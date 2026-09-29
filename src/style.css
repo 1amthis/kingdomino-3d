@@ -93,6 +93,7 @@ button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight
   background: linear-gradient(180deg, #fff6d0 0%, var(--gold) 42%, #9a6512 58%, #f5d47a 78%, #fff1c0 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.45)) drop-shadow(0 0 30px rgba(255, 190, 80, 0.25)); }
 .subtitle { font-style: italic; color: var(--ink-dim); font-size: 18px; margin-top: 4px; }
+.title-tag { font-style: italic; color: var(--ink-dim); font-size: 17px; line-height: 1.35; margin: 6px auto 0; max-width: 34em; text-wrap: balance; }
 .menu-section { margin-top: 18px; }
 .menu-section h2 { font-family: var(--caps); font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin: 0 0 10px;
   display: flex; align-items: center; gap: 10px; }
@@ -454,6 +455,8 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .menu-footer { margin-top: 14px; }
 }
 @media (min-width: 761px) and (min-height: 501px) and (max-height: 620px) { #menu .title-crown { display: none; } }
+/* the tagline only shows where the menu has the height to spare (short phones and laptops go without) */
+@media (min-height: 501px) and (max-height: 740px) { #menu .title-tag { display: none; } }
 
 /* ---------- phones and small windows ----------
    The HUD shrinks to slim strips along the edges so the table stays in view: scores become small
@@ -556,7 +559,7 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 
 /* phone on its side: every pixel of height counts */
 @media (max-height: 500px) and (orientation: landscape) {
-  .title-crown { display: none; }
+  .title-crown, .title-tag { display: none; }
   .title { font-size: 30px; }
 }
 /* ...wide enough for two columns (a keyboard can leave an upright phone short too, but it stays narrow) */
