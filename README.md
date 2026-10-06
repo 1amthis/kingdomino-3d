@@ -114,7 +114,7 @@ full rules engine and four levels of AI, all running in the browser with no down
 ## Rules implemented
 
 - 2–4 players, any mix of humans (hot-seat or online) and AI (Easy / Normal / Hard / Expert, see [The AI](#the-ai)).
-- 2 players: 2 kings each, 24 tiles, opening picks in snake order (A, B, B, A) · 3 players: 36 tiles, lines of 3 · 4 players: all 48 tiles.
+- 2 players: 2 kings each, 24 tiles, opening picks in snake order (A, B, B, A) · 3 players: all 48 tiles, lines of 4, the tile nobody claims is discarded (2024 rulebook) · 4 players: all 48 tiles.
 - Connection rule (touch the castle or a matching terrain), the 5×5 limit, forced discards when nothing fits.
 - Turn order from the drafting line, final scoring with the official tie-breakers.
 - Optional **Middle Kingdom** (+10), **Harmony** (+5) and the **Mighty Duel** (2 players, 7×7, all 48 tiles).
