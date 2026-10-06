@@ -1,5 +1,6 @@
 // A table without the 3D, for benchmarks and tests: the controller's game flow (opening draft, then
-// place-and-pick in slot order) with any mix of the heuristic levels and the expert search.
+// place-and-pick in slot order, a 3-player line's unclaimed domino discarded) with any mix of the
+// heuristic levels and the expert search.
 import { DOMINOES, Kingdom, kingsPerPlayer, lineSize, deckSize, rank } from '../src/core/rules.js';
 import { choosePlacement, chooseSlot } from '../src/core/ai.js';
 import { Rng } from '../src/core/rng.js';
@@ -24,10 +25,11 @@ export function playGame({ types, seed = 1, middleKingdom = false, harmony = fal
   const search = new Search({ seed });
   const stats = { moves: 0, sims: 0, ms: 0 };
   let current = [], next = [];
+  const unclaimed = []; // ids of the dominoes nobody took (3 players)
 
   const draw = () => deck.splice(0, L).sort((a, b) => a.id - b.id).map((domino, index) => ({ domino, index, king: null }));
   const expert = (phase, king) => {
-    const table = describeTable({ players, current, next, deckLeft: deck.length, opening, opts }, phase, king);
+    const table = describeTable({ players, current, next, deckLeft: deck.length, opening, opts, unclaimed }, phase, king);
     const game = gameFrom(table);
     const t0 = performance.now();
     const { move, sims } = search.choose(game, budget);
@@ -60,7 +62,8 @@ export function playGame({ types, seed = 1, middleKingdom = false, harmony = fal
   next = draw();
   for (const king of opening) select(king, 'open');
   for (;;) {
-    current = next;
+    for (const s of next) if (!s.king) unclaimed.push(s.domino.id);
+    current = next.filter((s) => s.king);
     next = deck.length ? draw() : [];
     for (const slot of current) {
       place(slot);
@@ -68,5 +71,5 @@ export function playGame({ types, seed = 1, middleKingdom = false, harmony = fal
     }
     if (!next.length) break;
   }
-  return { players, ranking: rank(players, opts), stats };
+  return { players, ranking: rank(players, opts), stats, unclaimed };
 }

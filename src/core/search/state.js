@@ -4,13 +4,14 @@
 import { DIRS } from '../rules.js';
 import { Game, grid, INIT, PLACE, PICK, DISCARD } from './engine.js';
 
-// table: the controller's players, lines (slots of { domino, index, king }), chest count, opening order
-// and options. phase: 'open' (the opening draft), 'place' or 'pick'; king: whose turn it is.
-// Only what a player at the table can see goes in: the chest's count, never its order.
-export function describeTable({ players, current, next, deckLeft, opening, opts }, phase, king) {
+// table: the controller's players, lines (slots of { domino, index, king }; the line being placed holds
+// only its claimed slots), chest count, opening order, options and the ids of the dominoes discarded
+// unclaimed from a line (3 players). phase: 'open' (the opening draft), 'place' or 'pick'; king: whose
+// turn it is. Only what a player at the table can see goes in: the chest's count, never its order.
+export function describeTable({ players, current, next, deckLeft, opening, opts, unclaimed = [] }, phase, king) {
   const ids = (slots) => slots.map((s) => s.domino.id);
   const owners = (slots) => slots.map((s) => (s.king ? s.king.player.index : -1));
-  const seen = new Set([...ids(current), ...ids(next)]);
+  const seen = new Set([...ids(current), ...ids(next), ...unclaimed]);
   for (const p of players) {
     for (const pl of p.kingdom.placements) seen.add(pl.id);
     for (const id of p.kingdom.discards) seen.add(id);

@@ -162,6 +162,7 @@ export class Controller {
     this.kings = [];
     this.current = [];
     this.next = [];
+    this.unclaimed = [];
     this.footMarkers.forEach((m) => { m.visible = false; });
     this.hintMesh.count = 0;
     this.camHeld = false;
@@ -202,6 +203,9 @@ export class Controller {
     this.chest = makeChest();
     if (n === 2) { this.chest.position.set(6.3, 0, -0.2); this.chest.rotation.y = -Math.PI / 2; this.discardBase = new THREE.Vector3(6.3, 0, 2.6); }
     else { this.chest.position.set(0, 0, this.L.top - 1.25); this.discardBase = new THREE.Vector3(3.6, 0, this.L.top - 1.2); }
+    // With 3 players every line leaves a domino unclaimed, so their discards stack five high and the
+    // stacks run northwards, where nobody sits.
+    this.discardStack = n === 3 ? 5 : Infinity;
     this.world.add(this.chest);
     this.chestLabel = label('', 'chest-count');
     this.chestLabel.position.set(0, 1.9, 0);
@@ -513,6 +517,7 @@ export class Controller {
     for (const king of this.openingOrder) await this.selectPhase(flow, king);
     let round = 0;
     for (;;) {
+      await this.discardUnclaimed(flow);
       await this.advanceLine(flow);
       round++;
       this.setRoundLabel(round);
@@ -567,11 +572,25 @@ export class Controller {
     await flow.w(Promise.all(flips));
   }
 
+  // With 3 players a line holds one domino more than there are kings: once they have all picked,
+  // the one nobody claimed is discarded.
+  async discardUnclaimed(flow) {
+    const left = this.next.filter((s) => !s.king);
+    if (!left.length) return;
+    this.next = this.next.filter((s) => s.king);
+    for (const slot of left) {
+      this.unclaimed.push(slot.domino.id);
+      const why = this.tip('unclaimed', ' &middot; with three players, each line has one domino to spare');
+      if (!this.demo) this.hud.toast(`Nobody took domino ${slot.domino.id} &mdash; it is discarded${why}`, why ? 3.4 : 2.2);
+      await this.discardView(flow, slot.view, 0xd8c8a8);
+    }
+  }
+
   async advanceLine(flow) {
     const moves = this.next.map(async (slot, i) => {
       await flow.w(this.tw.wait(i * 90));
-      const kp = slot.king ? this.tw.move(slot.king.group, { position: this.kingSpot(0, i), duration: 700, arc: 0.4, ease: Ease.inOutCubic }) : null;
-      await flow.w(this.tw.move(slot.view.group, { position: this.slotPos(0, i), duration: 700, arc: 0.35, ease: Ease.inOutCubic }));
+      const kp = slot.king ? this.tw.move(slot.king.group, { position: this.kingSpot(0, slot.index), duration: 700, arc: 0.4, ease: Ease.inOutCubic }) : null;
+      await flow.w(this.tw.move(slot.view.group, { position: this.slotPos(0, slot.index), duration: 700, arc: 0.35, ease: Ease.inOutCubic }));
       if (kp) await flow.w(kp);
     });
     if (this.next.length) this.sfx('whoosh', 0.5, 0.6);
@@ -611,7 +630,7 @@ export class Controller {
   // The table as the search sees it, for this king's decision ('open', 'pick' or 'place').
   tableFor(phase, king) {
     return describeTable({ players: this.players, current: this.current, next: this.next,
-      deckLeft: this.deck.length, opening: this.openingOrder, opts: this.opts }, phase, king);
+      deckLeft: this.deck.length, opening: this.openingOrder, opts: this.opts, unclaimed: this.unclaimed }, phase, king);
   }
 
   // The expert's move from the search worker, or undefined when the worker is unavailable and the
@@ -768,7 +787,7 @@ export class Controller {
 
   // After a poor pick: the domino the Expert wanted glows blue for a moment.
   async flashSlot(slot) {
-    if (!slot || slot.king) return;
+    if (!slot || slot.king || !this.next.includes(slot)) return;
     slot.view.setGlow(ADVICE, 0.9);
     await this.tw.wait(this.coachTime(2000));
     const m = this.mode;
@@ -867,11 +886,12 @@ export class Controller {
     }
   }
 
-  async discardView(flow, view) {
+  async discardView(flow, view, glow = 0xff5a4a) {
     this.sfx('whoosh', 0.5);
-    view.setGlow(0xff5a4a, 0.8);
+    view.setGlow(glow, 0.8);
     // A face-down tile rests on its top face, so its origin sits on the table surface.
-    const dest = this.discardBase.clone().setY(SURFACE + this.discards * (TILE_H + 0.004));
+    const stack = Math.floor(this.discards / this.discardStack), level = this.discards % this.discardStack;
+    const dest = this.discardBase.clone().add(new THREE.Vector3(0, SURFACE + level * (TILE_H + 0.004), -1.55 * stack));
     this.discards++;
     const above = dest.clone().add(new THREE.Vector3(0, 0.7, 0));
     await flow.w(this.tw.move(view.group, { position: above, quaternion: quatFaceDown(0.2 * (this.discards % 3 - 1)), duration: 850, arc: 1.6 }));
