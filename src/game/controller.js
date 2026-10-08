@@ -6,6 +6,8 @@ import { choosePlacement, chooseSlot } from '../core/ai.js';
 import { askExpert } from '../core/search/expert.js';
 import { describeTable } from '../core/search/state.js';
 import { Coach } from './coach.js';
+import { tally } from '../core/coach.js';
+import { makeRecord } from '../core/history.js';
 import { Rng } from '../core/rng.js';
 import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
@@ -183,8 +185,10 @@ export class Controller {
     const size = config.mightyDuel ? 7 : 5;
     this.opts = { middleKingdom: config.middleKingdom, harmony: config.harmony, size };
     this.rng = new Rng();
+    this.startedAt = Date.now();
     // Dealing has its own seeded stream so every table in an online game draws the same tiles.
-    const deal = new Rng(config.seed ?? this.rng.int(0, 2 ** 32 - 1));
+    this.seed = config.seed ?? this.rng.int(0, 2 ** 32 - 1);
+    const deal = new Rng(this.seed);
     this.lineN = lineSize(n);
     const seats = this.computeSeats(n, size);
     this.players = config.seats.map((s, i) => ({ ...s, index: i, kingdom: new Kingdom(size), seat: seats[i], kings: [], views: [] }));
@@ -1091,6 +1095,15 @@ export class Controller {
       return;
     }
     this.finished = true;
+    // The game goes into the history now: leaving during the reckoning loses nothing. The coach's
+    // last grades can still be on their way; they join the saved game once they land.
+    const rows = rank(this.players, this.opts);
+    const record = this.record(rows);
+    const note = this.onFinished ? this.onFinished(record) : '';
+    const graded = this.coach.log.length;
+    this.coach.settled().then(() => {
+      if (flow.alive && this.coach.log.length > graded && this.onRegraded) this.onRegraded({ ...record, ...this.coachVerdict() });
+    });
     this.hud.setActions(null);
     this.hud.prompt('Final scoring', 'Each crowned property scores squares &times; crowns');
     this.hud.setRound('Game over');
@@ -1169,7 +1182,6 @@ export class Controller {
       p.plateBody.classList.remove('tally');
       highlights.forEach((h) => h.remove());
     }
-    const rows = rank(this.players, this.opts);
     this.hud.setActive(null);
     const o = this.overview();
     if (autoCam && !this.camHeld) { this.camKey = 'overview'; await flow.w(this.stage.flyTo(o.pos, o.target, 1800)); }
@@ -1184,10 +1196,26 @@ export class Controller {
     for (const w of winners) w.plateBody.classList.remove('tally');
     this.hud.showResults(rows, this.opts, {
       coach: this.coach.summary(),
+      note,
       hostDeals: !!this.link && this.link.role === 'guest',
       onAgain: () => this.onPlayAgain && this.onPlayAgain(),
       onMenu: () => this.onMenu && this.onMenu(),
     });
+  }
+
+  // The finished game as the history keeps it (see core/history.js).
+  record(rows) {
+    return makeRecord({
+      players: this.players, rows, config: this.config, seed: this.seed,
+      online: this.link ? this.link.role : null,
+      start: this.startedAt,
+      ...this.coachVerdict(),
+    });
+  }
+
+  coachVerdict() {
+    const log = this.coach.log;
+    return { coach: log.length ? this.settings.coach : null, verdict: log.length ? tally(log) : null };
   }
 
   async celebrate(flow, winners) {

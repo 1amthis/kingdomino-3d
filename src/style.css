@@ -442,6 +442,105 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 @keyframes gCycle { 0%, 28% { opacity: 1; } 36%, 92% { opacity: 0.2; } 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .guide-art * { animation: none !important; } }
 
+/* ---------- history: the games kept in this browser, and the stats drawn from them ---------- */
+/* its question (clearing the history) comes in front of it */
+#ask { z-index: 70; }
+/* the results card's line about the history: a new personal best, a first win over the Expert */
+#results-note { width: fit-content; max-width: 100%; margin: -6px auto 14px; padding: 6px 16px 7px; border-radius: 10px; background: rgba(240, 199, 94, 0.12); border: 1px solid rgba(240, 199, 94, 0.45);
+  font-family: var(--caps); font-size: 14px; letter-spacing: 0.5px; color: var(--gold-hi); animation: rise 0.6s ease backwards; animation-delay: 0.5s; }
+#results-note b { font-size: 16px; }
+#results-note i { font-family: var(--serif); letter-spacing: 0; color: var(--ink-dim); }
+
+.modal-card.history-card { width: min(780px, 100%); height: min(800px, calc(100vh - 32px)); height: min(800px, calc(100dvh - 32px)); display: flex; flex-direction: column; overflow: hidden; }
+.history-head { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding-right: 44px; }
+.modal-card .history-head h2 { margin: 0; padding-right: 0; }
+.history-body { flex: 1; min-height: 0; overflow: hidden auto; margin: 14px -10px 0; padding: 0 10px 14px; }
+.history-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(240, 199, 94, 0.16); }
+.history-msg { flex: 1 1 100%; font-style: italic; font-size: 15px; color: var(--gold-hi); }
+.history-msg:empty { display: none; }
+.history-local { flex: 1; min-width: 9em; font-style: italic; font-size: 14px; color: var(--ink-dim); }
+.ghost-btn.small { padding: 8px 12px; font-size: 12px; }
+.history-foot .ghost-btn:disabled { opacity: 0.35; pointer-events: none; }
+.h-empty { text-align: center; padding: 36px 10px; color: var(--ink-dim); }
+.modal-card .h-empty p { margin: 6px auto; max-width: 30em; color: var(--ink-dim); }
+.modal-card .h-empty b { color: var(--ink); }
+.modal-card p.h-hint { margin: 8px 0 0; font-size: 14px; font-style: italic; color: var(--ink-dim); }
+.modal-card p.h-hint b { color: var(--ink); font-style: normal; }
+.modal-card p.h-count { margin: 0 0 8px; font-size: 14px; font-style: italic; color: var(--ink-dim); }
+
+/* stats */
+.h-who { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 12px; font-style: italic; color: var(--ink-dim); }
+.h-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.h-tile { min-width: 0; padding: 10px 12px 9px; border-radius: 12px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(240, 199, 94, 0.2); }
+.h-tile b { display: block; font-family: var(--deco); font-weight: 900; font-size: 30px; line-height: 1.05; color: var(--gold-hi); text-shadow: 0 0 14px rgba(255, 200, 90, 0.3); }
+.h-tile span { display: block; margin-top: 3px; font-family: var(--caps); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); }
+.h-tile small { display: block; font-style: italic; font-size: 14px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-sec { margin-top: 20px; }
+.modal-card .h-sec h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; }
+.h-sec h3::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(240, 199, 94, 0.5), transparent); }
+/* the scores chart: one column per game, a crown over each win, a line at the average */
+.hchart { padding: 0 70px 0 30px; }
+.hc-plot { position: relative; height: 130px; margin-top: 18px; }
+.hc-tick, .hc-avg { position: absolute; left: 0; right: 0; height: 0; pointer-events: none; }
+.hc-tick { border-top: 1px solid rgba(255, 235, 190, 0.09); }
+.hc-tick span { position: absolute; right: calc(100% + 7px); top: -8px; font-family: var(--caps); font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.hc-avg { z-index: 1; border-top: 1px solid rgba(240, 199, 94, 0.6); }
+.hc-avg span { position: absolute; left: calc(100% + 7px); top: -10px; font-style: italic; font-size: 13px; color: var(--ink-dim); white-space: nowrap; }
+.hc-cols { position: absolute; inset: 0; display: flex; gap: 2px; }
+.hc-col { flex: 1 1 0; max-width: 34px; display: flex; align-items: flex-end; justify-content: center; cursor: pointer; outline: none; }
+.hc-col i { position: relative; width: 100%; max-width: 24px; min-height: 3px; border-radius: 4px 4px 0 0; background: rgba(240, 199, 94, 0.4); transition: background 0.15s; }
+.hc-col.won i { background: linear-gradient(180deg, #f6d677, #c8922d); }
+.hc-col i .crown-ico { position: absolute; left: 50%; bottom: calc(100% + 3px); transform: translateX(-50%); width: 12px; height: 9px; }
+.hc-col.on i, .hc-col:hover i { background: var(--gold-hi); }
+.hc-col:focus-visible i { box-shadow: 0 0 0 2px var(--gold-hi); }
+.hc-tip { position: absolute; z-index: 2; transform: translateX(-50%); pointer-events: none; padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+  background: rgba(18, 12, 8, 0.95); border: 1px solid rgba(240, 199, 94, 0.5); box-shadow: var(--shadow); }
+.hc-tip b { display: block; font-family: var(--caps); font-size: 15px; color: var(--gold-hi); }
+.hc-tip span { font-size: 13px; font-style: italic; color: var(--ink-dim); }
+/* head to head, against each level of the computer and each person */
+.h2h { display: grid; grid-template-columns: 8.5em minmax(40px, 1fr) auto 3em; gap: 7px 12px; align-items: center; }
+.h2h-row { display: contents; }
+.h2h-who { display: flex; align-items: center; gap: 8px; min-width: 0; font-family: var(--caps); font-size: 14px; color: var(--ink); }
+.h2h-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h2h-bar { height: 8px; border-radius: 999px; background: rgba(240, 199, 94, 0.14); overflow: hidden; }
+.h2h-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #b98428, #f6d677); }
+.h2h-rec { font-size: 15px; color: var(--ink-dim); white-space: nowrap; }
+.h2h-rec b { color: var(--ink); }
+.h2h-pct { font-family: var(--caps); font-weight: 700; font-size: 15px; color: var(--gold-hi); text-align: right; font-variant-numeric: tabular-nums; }
+.h-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); column-gap: 24px; }
+.h-facts > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 2px; border-bottom: 1px solid rgba(255, 220, 150, 0.08); font-size: 15px; }
+.h-facts > div > :first-child { color: var(--ink-dim); }
+.h-facts > div > :last-child { text-align: right; }
+.h-facts b { font-family: var(--caps); color: var(--gold-hi); }
+
+/* games: the list, and one game's final scores */
+.hg-list { display: grid; gap: 6px; }
+.hg-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; padding: 8px 12px 8px 8px; border-radius: 12px; cursor: pointer;
+  border: 1px solid rgba(240, 199, 94, 0.14); background: rgba(255, 255, 255, 0.03); color: var(--ink); text-align: left; font-family: var(--serif); transition: background 0.2s, border-color 0.2s; }
+.hg-row:hover, .hg-row:focus-visible { background: rgba(240, 199, 94, 0.08); border-color: rgba(240, 199, 94, 0.45); outline: none; }
+.kmap { display: block; flex: none; }
+.hg-main { display: grid; gap: 4px; min-width: 0; }
+.hg-when { font-family: var(--caps); font-size: 13px; letter-spacing: 0.5px; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hg-when i { font-family: var(--serif); font-size: 14px; letter-spacing: 0; color: var(--ink-dim); }
+.hg-when i::before { content: ' · '; }
+.hg-players { display: flex; flex-wrap: wrap; gap: 3px 14px; }
+.hg-p { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 15px; color: var(--ink-dim); }
+.hg-p .shield { width: 14px; height: 16px; flex: none; }
+.hg-name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hg-p b { font-family: var(--caps); color: var(--ink); }
+.hg-p.me { color: var(--ink); }
+.hg-p.me .hg-name { font-weight: 600; }
+.hg-result { padding: 4px 10px; border-radius: 999px; font-family: var(--caps); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; background: rgba(255, 255, 255, 0.07); color: var(--ink-dim); }
+.hg-result.won { background: linear-gradient(180deg, #f6d677, #b98428); color: #2a1804; }
+.h-more { display: block; margin: 12px auto 0; }
+.hd-head { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.hd-title { font-family: var(--caps); font-weight: 700; font-size: 18px; color: var(--gold-hi); }
+.hd-meta { font-style: italic; font-size: 15px; color: var(--ink-dim); }
+.res-row.hd-row { grid-template-columns: 36px 34px minmax(0, 1fr) auto auto; animation: none; }
+.hd-row .shield { width: 30px; height: 34px; }
+.hd-row .res-total { min-width: 1.5em; font-size: 28px; text-align: right; }
+.res-name .tag { padding: 1px 6px; border-radius: 5px; vertical-align: 2px; font-size: 10px; font-weight: 500; letter-spacing: 1px; background: rgba(255, 255, 255, 0.08); color: var(--ink-dim); }
+
 /* laptop-height windows: the menu tightens up so it fits without scrolling */
 @media (min-width: 761px) and (min-height: 501px) and (max-height: 760px) {
   .menu-card { padding: 18px 30px; }
@@ -591,3 +690,23 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 .typing .screen :is(.title-wrap, .menu-footer, .menu-caption, .menu-section:not(:focus-within)) { display: none; }
 .typing .screen .menu-section { margin-top: 0; }
 .typing-tight .screen .menu-section h2 { display: none; }
+
+/* the history on a phone: two tiles a row, the kingdoms smaller, the footer's buttons sharing a row */
+@media (max-width: 760px) {
+  .h-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .h-tile b { font-size: 24px; }
+  .hchart { padding-right: 0; }
+  .hc-avg span { display: none; }
+  .h2h { grid-template-columns: 6.4em minmax(24px, 1fr) auto 2.6em; gap: 7px 8px; }
+  .h2h-who, .h2h-rec, .h2h-pct { font-size: 13px; }
+  .h2h-who .pips { display: none; }
+  .res-row.hd-row { grid-template-columns: 26px minmax(0, 1fr) auto auto; }
+  .hd-row .kmap { width: 50px; height: 50px; }
+  .hd-row .res-total { font-size: 24px; }
+  .hg-row { gap: 10px; padding: 7px 10px 7px 7px; }
+  .hg-when i { display: block; overflow: hidden; text-overflow: ellipsis; }
+  .hg-when i::before { content: none; }
+  .hg-p { font-size: 14px; }
+  .history-local { flex-basis: 100%; }
+  .history-foot .ghost-btn { flex: 1 1 auto; }
+}
