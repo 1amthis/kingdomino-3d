@@ -30,7 +30,7 @@ const SEAT_KINDS = [
   { v: 'easy', name: 'Easy', ai: 1 }, { v: 'normal', name: 'Normal', ai: 2 }, { v: 'hard', name: 'Hard', ai: 3 }, { v: 'expert', name: 'Expert', ai: 4 },
   { v: 'off', name: 'Empty seat', icon: 'off' },
 ];
-const pips = (n) => `<span class="pips">${[1, 2, 3, 4].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+export const pips = (n) => `<span class="pips">${[1, 2, 3, 4].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 const seatFace = (k) => `<span class="sp-ico">${ICONS[k.icon || 'ai']}</span><span class="sp-name">${k.name}</span>${k.ai ? pips(k.ai) : ''}`;
 
 // The coach's line under its switch, for each setting and when fair play turns it off.
@@ -428,8 +428,9 @@ export class Hud {
     return new Promise((resolve) => { b.onclick = () => { b.onclick = null; b.classList.add('hidden'); resolve(); }; });
   }
 
-  // coach: the coach's verdict for the players at this screen (html), if it was on
-  showResults(rows, opts, { onAgain, onMenu, hostDeals = false, coach = '' }) {
+  // coach: the coach's verdict for the players at this screen (html), if it was on;
+  // note: what stands out against the history (html), such as a new personal best
+  showResults(rows, opts, { onAgain, onMenu, hostDeals = false, coach = '', note = '' }) {
     this.el.showResults.classList.add('hidden');
     this.el.showResults.onclick = null;
     const table = $('#results-table');
@@ -439,6 +440,8 @@ export class Hud {
     $('#winner-line').innerHTML = winners.length > 1
       ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} tie for first place.`
       : `${this.wins(winners[0].player)} with ${top} point${top === 1 ? '' : 's'}.`;
+    $('#results-note').innerHTML = note;
+    $('#results-note').classList.toggle('hidden', !note);
     table.innerHTML = rows.map((r, i) => {
       const props = r.s.regions.filter((g) => g.crowns > 0).sort((a, b) => b.score - a.score).map((g) => {
         const info = TERRAIN_INFO[g.terrain];

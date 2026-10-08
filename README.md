@@ -111,6 +111,20 @@ full rules engine and four levels of AI, all running in the browser with no down
   generative D-dorian lute-and-drone score built from Karplus–Strong plucked strings.
 - The main menu plays a **live AI-vs-AI game** on the table behind it.
 
+## History and stats
+
+Every finished game is kept in your browser, and **History** in the main menu shows it:
+
+- **Stats** for each person who plays at the screen: games, wins, average and best score, a chart of the last 20
+  games, the record against each AI level and against each friend, records (richest property, most crowns, longest
+  winning run, how often the bonuses come) and, with the coach on, points lost per move over time.
+- **Games**: every game with its final scores, each kingdom drawn square by square, and the coach's verdict.
+- The results card says when a game sets a **personal best** or is a **first win over the Expert**.
+
+There is no server and no account: the history lives in this browser only (`localStorage`). Clearing the site's
+data or using a private window loses it, and other devices don't see it. **Export** saves it as a file, and
+**Import** adds a file's games to another browser's history. Online games are kept by every player who takes part.
+
 ## Rules implemented
 
 - 2–4 players, any mix of humans (hot-seat or online) and AI (Easy / Normal / Hard / Expert, see [The AI](#the-ai)).
@@ -236,6 +250,7 @@ src/
   core/rules.js      tiles, Kingdom (placement rules, properties, scoring), ranking
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
   core/coach.js      the coach's grades: points given up against the Expert's move, a game's tally
+  core/history.js    the game history: each finished game as a record, the log in localStorage, export/import, stats
   core/rng.js        seeded PRNG so every tile's diorama is stable
   core/search/       the Expert AI: engine.js (typed-array kingdoms for fast playouts), mcts.js (the tree search),
                      state.js (table ⇄ search state), worker.js + expert.js (the Web Workers, one for the Expert's
@@ -251,6 +266,7 @@ src/
   gfx/textures.js    canvas-painted wood, felt, tile backs, water normals
   audio/sound.js     synthesised SFX and generative music
   ui/hud.js          menu, lobby, player cards, prompts, tooltips, results
+  ui/history.js      the history window: stats, the chart, the list of games, a game's final scores
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
   game/controller.js game flow, animation choreography, camera direction, input
   game/coach.js      the coach at the table: analyses, grades, advice, study notes, the results verdict
@@ -260,6 +276,7 @@ scripts/
 tests/
   search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
   coach.test.js      the analysis covers every move soundly; grades follow from it
+  history.test.js    records read back unchanged, imports are checked and merged once, stats count each side right
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering

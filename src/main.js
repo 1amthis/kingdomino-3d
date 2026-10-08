@@ -5,6 +5,8 @@ import { buildTable } from './gfx/table.js';
 import { Effects } from './gfx/effects.js';
 import { Sound } from './audio/sound.js';
 import { Hud } from './ui/hud.js';
+import { HistoryView } from './ui/history.js';
+import { GameLog } from './core/history.js';
 import { Controller } from './game/controller.js';
 import { HostSession, GuestSession, inviteCode, inviteLink, clearInvite, isLocalHost } from './net/online.js';
 
@@ -84,6 +86,27 @@ async function main() {
   hud.setToggle('music', settings.music);
   hud.setToggle('sound', settings.sfx);
   hud.on('setting', ({ key, value }) => { if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
+
+  // ---------- history ----------
+  // Every finished game is kept in this browser (localStorage), and what stands out about it shows on
+  // the results card. After the first one, the browser is asked once not to clear that storage when
+  // it runs short of space.
+  let storage = null; // (a browser that blocks storage throws on the mere access; nothing is kept then)
+  try { storage = window.localStorage; } catch { /* blocked */ }
+  const log = new GameLog(storage);
+  const history = new HistoryView(hud, log);
+  let askedToKeep = false;
+  ctl.onFinished = (record) => {
+    const note = history.note(record);
+    if (!log.save(record)) { hud.toast('This game could not be kept in the history: this browser does not allow it.', 3.5); return note; }
+    if (!askedToKeep && navigator.storage && navigator.storage.persist) {
+      askedToKeep = true;
+      navigator.storage.persisted().then((kept) => kept || navigator.storage.persist()).catch(() => {});
+    }
+    return note;
+  };
+  // the coach's last grades landed after the game was saved
+  ctl.onRegraded = (record) => log.save(record);
 
   document.addEventListener('pointerdown', () => sound.init(), { once: true });
   document.addEventListener('keydown', () => sound.init(), { once: true });

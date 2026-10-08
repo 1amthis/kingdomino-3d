@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/search.test.js tests/coach.test.js",
+    "test": "node --test tests/search.test.js tests/coach.test.js tests/history.test.js",
     "bench": "node scripts/bench.js"
   },
   "dependencies": {
