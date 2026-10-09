@@ -1194,7 +1194,8 @@ export class Controller {
     this.hud.setActions(null);
     this.hud.prompt('Final scoring', 'Each crowned property scores squares &times; crowns');
     this.hud.setRound('Game over');
-    // The reckoning keeps its own stately pace whatever the game speed, so every count can be read.
+    // The reckoning keeps its own pace whatever the game speed: brisk, as each count stays up a while
+    // after the next one is called; the winner's moment gets the time.
     this.tw.speed = 1;
     const autoCam = this.settings.camera === 'auto';
     this.shot = { key: 'overview', view: () => this.overview() };
@@ -1202,29 +1203,32 @@ export class Controller {
     const setPts = (p, v) => { p.plate.element.querySelector('.pts').textContent = v; };
     // everyone starts again from nothing, and the realms are counted up one by one
     for (const p of this.players) { setPts(p, 0); this.hud.updatePlayer(p, 0, p.kingdom.score(this.opts).crowns); }
-    await flow.w(this.tw.wait(900));
+    await flow.w(this.tw.wait(500));
     for (const p of this.players) {
       const s = p.kingdom.score(this.opts);
       const regions = s.regions.filter((r) => r.crowns > 0).sort((a, b) => a.score - b.score);
       this.hud.setActive(p);
       this.hud.prompt(`Scoring ${this.hud.whose(p)} kingdom`, 'Each crowned property scores squares &times; crowns');
-      if (autoCam && !this.camHeld) { const v = this.realmView(p); this.camKey = 'realm' + p.index; await flow.w(this.stage.flyTo(v.pos, v.target, 1500)); }
-      await flow.w(this.tw.wait(350));
+      if (autoCam && !this.camHeld) { const v = this.realmView(p); this.camKey = 'realm' + p.index; await flow.w(this.stage.flyTo(v.pos, v.target, 900)); }
+      await flow.w(this.tw.wait(100));
       // bonuses float one row beyond the castle (up the screen), clear of its name plate
       const aboveCastle = (row) => this.cellWorld(p, 0, -row, REST + 1);
       let running = 0;
       const highlights = [];
       if (!regions.length) {
         this.popup(aboveCastle(1.2), 'No crowned property', 'popup small', 2200);
-        await flow.w(this.tw.wait(1300));
+        await flow.w(this.tw.wait(800));
       }
+      // the small properties tick by (quicker still when there are many); the richest comes last and
+      // gets a longer look
+      const beat = Math.max(300, Math.min(500, 2000 / (regions.length - 1)));
       for (let i = 0; i < regions.length; i++) {
         const r = regions[i];
         const hl = this.highlightRegion(p, r);
         highlights.push(hl);
         running += r.score;
         const cx = r.cells.reduce((a, c) => a + c[0], 0) / r.size, cy = r.cells.reduce((a, c) => a + c[1], 0) / r.size;
-        this.popup(this.cellWorld(p, cx, cy, REST + 0.9), `${r.size} <span class="mul">&times;</span> ${r.crowns}${CROWN_SVG} <span class="mul">=</span> ${r.score}`, 'popup region', 2300);
+        this.popup(this.cellWorld(p, cx, cy, REST + 0.9), `${r.size} <span class="mul">&times;</span> ${r.crowns}${CROWN_SVG} <span class="mul">=</span> ${r.score}`, 'popup region', 1900);
         this.sound.chime(i);
         for (const [x, y] of r.cells) {
           const c = p.kingdom.get(x, y);
@@ -1232,8 +1236,7 @@ export class Controller {
         }
         this.hud.updatePlayer(p, running, s.crowns);
         setPts(p, running);
-        // the richest property comes last and gets a longer look
-        await flow.w(this.tw.wait(i === regions.length - 1 ? 1600 : 1250));
+        await flow.w(this.tw.wait(i === regions.length - 1 ? 850 : beat));
         hl.dim();
       }
       if (s.middle) {
@@ -1243,7 +1246,7 @@ export class Controller {
         this.sound.bell(84, 0.2);
         this.hud.updatePlayer(p, running, s.crowns);
         setPts(p, running);
-        await flow.w(this.tw.wait(1300));
+        await flow.w(this.tw.wait(650));
       }
       if (s.harmony) {
         running += s.harmony;
@@ -1252,7 +1255,7 @@ export class Controller {
         this.sound.bell(88, 0.2);
         this.hud.updatePlayer(p, running, s.crowns);
         setPts(p, running);
-        await flow.w(this.tw.wait(1300));
+        await flow.w(this.tw.wait(650));
       }
       // the realm's total: every counted property glows once more and the name plate swells
       this.hud.updatePlayer(p, s.total, s.crowns);
@@ -1265,13 +1268,13 @@ export class Controller {
       if (s.middle) parts.push('Middle Kingdom +10');
       if (s.harmony) parts.push('Harmony +5');
       this.hud.prompt(`${this.hud.who(p)} &middot; ${s.total} point${s.total === 1 ? '' : 's'}`, parts.join(' &middot; '));
-      await flow.w(this.tw.wait(1800));
+      await flow.w(this.tw.wait(1100));
       p.plateBody.classList.remove('tally');
       highlights.forEach((h) => h.remove());
     }
     this.hud.setActive(null);
     const o = this.overview();
-    if (autoCam && !this.camHeld) { this.camKey = 'overview'; await flow.w(this.stage.flyTo(o.pos, o.target, 1800)); }
+    if (autoCam && !this.camHeld) { this.camKey = 'overview'; await flow.w(this.stage.flyTo(o.pos, o.target, 1500)); }
     const winners = rows.filter((r) => r.place === 1).map((r) => r.player);
     this.hud.prompt(winners.length > 1 ? 'It’s a tie!' : `${this.hud.wins(winners[0])}!`,
       winners.length > 1 ? `${winners.map((w) => this.hud.who(w)).join(' and ')} &middot; ${rows[0].s.total} points each` : `${rows[0].s.total} points`);

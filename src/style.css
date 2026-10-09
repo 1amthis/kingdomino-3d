@@ -276,7 +276,7 @@ button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight
 .popup.preview { animation: none; font-size: 22px; transition: opacity 0.2s; }
 .popup.preview.zero { color: var(--ink-dim); text-shadow: 0 2px 0 #000; font-size: 17px; }
 body.photo #hud, body.photo .labels-layer { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
-.popup.region { font-family: var(--caps); font-size: 22px; animation: popRegion 2.2s ease forwards; }
+.popup.region { font-family: var(--caps); font-size: 22px; animation: popRegion 1.8s ease forwards; }
 .popup.region .mul { color: #fff; opacity: 0.85; font-size: 16px; }
 .popup.bonus { font-family: var(--caps); font-size: 22px; letter-spacing: 1px; }
 @keyframes popup { 0% { opacity: 0; transform: translateY(10px) scale(0.6); } 15% { opacity: 1; transform: translateY(0) scale(1.15); } 30% { transform: scale(1); } 80% { opacity: 1; transform: translateY(-24px); } 100% { opacity: 0; transform: translateY(-40px); } }
