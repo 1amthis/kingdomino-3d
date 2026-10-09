@@ -177,6 +177,11 @@ Expert against Hard, on paired deals (each deal played from both seats), 2,000 s
 `npm run bench` replays these (`--games`, `--players`, `--vs easy|normal|hard`, `--sims`, `--middle`, `--harmony`,
 `--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
 
+`npm run study` points the same search at the game itself: what each domino is worth as a first pick and what a later
+slot costs (`openings`), who wins from which seat and what winning kingdoms are made of (`selfplay`), and how to lay a
+domino (`firstplace`, `placement`). Runs save as they go and pick up where they stopped; the options are at the top of
+[`scripts/study.js`](scripts/study.js).
+
 ### The coach
 
 Pick it in the main menu (or in Settings during a game). While you decide, the Expert quietly analyses your position
@@ -292,6 +297,7 @@ src/
 scripts/
   headless.js        core/table.js's flow with AI seats, for benchmarks and tests; records moves and replays them
   bench.js           Expert against a heuristic level on paired deals
+  study.js           strategy studies with the Expert's search: opening picks, seats, how to lay dominoes
 tests/
   search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
   coach.test.js      the analysis covers every move soundly; grades follow from it
