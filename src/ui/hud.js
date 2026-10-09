@@ -1,5 +1,6 @@
 // DOM overlay: menu, player cards, prompts, tooltips, results and modals.
 import { TERRAIN_INFO } from '../core/rules.js';
+import { GAMES, newDynasty } from '../core/dynasty.js';
 import { Guide } from './guide.js';
 
 const $ = (s) => document.querySelector(s);
@@ -45,6 +46,17 @@ export function shieldSVG(color, idx = 0) {
   return `<svg class="shield" viewBox="0 0 64 72"><defs><linearGradient id="sg${idx}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#b8841f"/><stop offset="1" stop-color="#f3cf6a"/></linearGradient></defs>
     <path d="M6 6 H58 V34 C58 52 44 62 32 68 C20 62 6 52 6 34 Z" fill="${color}" stroke="url(#sg${idx})" stroke-width="4"/>
     <path d="M10 10 H54 V20 H10 Z" fill="rgba(255,255,255,0.12)"/>${CHARGES[idx % CHARGES.length]}</svg>`;
+}
+
+const ROMAN = ['I', 'II', 'III', 'IV'];
+
+// A dynasty's standings: rows of { place, player: { name, color, crest }, scores: [each game's score, or
+// null when it has not been played], total }, best first. heads: each game's column heading (html).
+export function dynastyTable(rows, heads = Array.from({ length: GAMES }, (_, k) => `<span class="long">Game </span>${k + 1}`)) {
+  return `<table class="dyn-table"><thead><tr><th colspan="2"></th>${heads.map((h) => `<th>${h}</th>`).join('')}<th>Total</th></tr></thead>
+    <tbody>${rows.map((r) => `<tr class="${r.place === 1 ? 'first' : ''}"><td class="dyn-rank">${ROMAN[r.place - 1]}</td>
+      <td class="dyn-who">${shieldSVG(r.player.color, r.player.crest)}<span style="color:${r.player.color}">${esc(r.player.name)}</span></td>
+      ${r.scores.map((v) => `<td>${v ?? '<span class="dim">&ndash;</span>'}</td>`).join('')}<td class="dyn-total">${r.total}</td></tr>`).join('')}</tbody></table>`;
 }
 
 export class Hud {
@@ -195,6 +207,7 @@ export class Hud {
         harmony: $('#opt-harmony').checked,
         mightyDuel: active.length === 2 && $('#opt-duel').checked,
         snake: active.length > 2 && $('#opt-snake').checked,
+        dynasty: $('#opt-dynasty').checked ? newDynasty() : null,
       });
     };
     btn.addEventListener('click', handler);
@@ -281,7 +294,8 @@ export class Hud {
   hideHud() { this.el.hud.classList.add('hidden'); }
 
   // humans: the players at this screen (with just one, their kingdom reads "your kingdom").
-  setPlayers(players, humans = []) {
+  // carried: in a dynasty, each seat's points from its earlier games: the cards keep a running total.
+  setPlayers(players, humans = [], carried = null) {
     this.el.players.innerHTML = '';
     this.el.realms.innerHTML = '';
     this.cards.clear();
@@ -293,8 +307,10 @@ export class Hud {
       c.dataset.view = String(i);
       c.style.setProperty('--pc', p.color);
       c.title = `Look at ${whose} (${i + 1})`;
+      const total = carried && `<div class="pdyn" title="Dynasty total: ${carried[i]} from the earlier games, and this one">&Sigma; <b>${carried[i]}</b></div>`;
+      if (carried) c.dataset.carried = String(carried[i]);
       c.innerHTML = `${shieldSVG(p.color, p.crest)}<div class="pinfo"><div class="pname">${esc(p.name)}</div>
-        <div class="pmeta"><span class="tag">${tagFor(p)}</span><span class="crowns">${CROWN_SVG} <b>0</b></span></div></div><div class="pscore">0</div>`;
+        <div class="pmeta"><span class="tag">${tagFor(p)}</span><span class="crowns">${CROWN_SVG} <b>0</b></span></div></div><div class="pscores"><div class="pscore">0</div>${total || ''}</div>`;
       c.addEventListener('click', () => this.emit('view', i));
       this.el.players.appendChild(c);
       this.cards.set(p, c);
@@ -329,6 +345,8 @@ export class Hud {
       s.classList.remove('bump'); void s.offsetWidth; s.classList.add('bump');
     }
     c.querySelector('.crowns b').textContent = crowns;
+    const total = c.querySelector('.pdyn b');
+    if (total) total.textContent = Number(c.dataset.carried) + score;
   }
 
   // After a friend leaves and the AI takes over their kingdom.
@@ -432,20 +450,32 @@ export class Hud {
 
   // coach: the coach's verdict for the players at this screen (html), if it was on;
   // note: what stands out against the history (html), such as a new personal best;
-  // onReview: opens the game in the history, over this card (none when the history could not keep it)
-  showResults(rows, opts, { onAgain, onMenu, onReview = null, hostDeals = false, coach = '', note = '' }) {
+  // onReview: opens the game in the history, over this card (none when the history could not keep it);
+  // dynasty: in a game of a dynasty, its standings with this game: { game (its number), rows (standings(),
+  // each with its player) }. Once the dynasty is over, they lead the card.
+  showResults(rows, opts, { onAgain, onMenu, onReview = null, hostDeals = false, coach = '', note = '', dynasty = null }) {
     this.el.showResults.classList.add('hidden');
     this.el.showResults.onclick = null;
     const table = $('#results-table');
-    const winners = rows.filter((r) => r.place === 1);
+    const over = !!dynasty && dynasty.game >= GAMES;
+    const lead = over ? dynasty.rows : rows;
+    const winners = lead.filter((r) => r.place === 1);
     const names = winners.map((w) => this.who(w.player));
     const top = winners[0].s.total;
+    const what = over ? ' the dynasty' : dynasty ? ` game ${dynasty.game}` : '';
+    $('#results-title').textContent = over ? 'The Dynasty' : dynasty ? `Game ${dynasty.game} of ${GAMES}` : 'Final scores';
     $('#winner-line').innerHTML = winners.length > 1
-      ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} tie for first place.`
-      : `${this.wins(winners[0].player)} with ${top} point${top === 1 ? '' : 's'}.`;
+      ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} ${over ? 'share the dynasty' : 'tie for first place'}.`
+      : `${this.wins(winners[0].player)}${what} with ${top} point${top === 1 ? '' : 's'}.`;
     $('#results-note').innerHTML = note;
     $('#results-note').classList.toggle('hidden', !note);
-    table.innerHTML = rows.map((r, i) => {
+    const dyn = $('#results-dynasty');
+    dyn.innerHTML = !dynasty ? '' : `<h3>${over ? 'The three games added up' : `The dynasty · after game ${dynasty.game} of ${GAMES}`}</h3>
+      ${dynastyTable(dynasty.rows.map((r) => ({ ...r, scores: Array.from({ length: GAMES }, (_, k) => r.games[k] ?? null), total: r.s.total })))}`;
+    dyn.classList.toggle('hidden', !dynasty);
+    if (over) table.before(dyn); else table.after(dyn);
+    // (under the dynasty, the last game's own scores)
+    table.innerHTML = (over ? `<h3 class="res-sub">Game ${GAMES}</h3>` : '') + rows.map((r, i) => {
       const props = r.s.regions.filter((g) => g.crowns > 0).sort((a, b) => b.score - a.score).map((g) => {
         const info = TERRAIN_INFO[g.terrain];
         return `<span class="prop"><span class="chip" style="background:${info.color}"></span>${g.size}&times;${g.crowns} = <b>${g.score}</b></span>`;
@@ -453,7 +483,7 @@ export class Hud {
       const bonus = (r.s.middle ? `<span class="prop bonus">Middle Kingdom +10</span>` : '') + (r.s.harmony ? `<span class="prop bonus">Harmony +5</span>` : '');
       const none = !props && !bonus ? '<span class="prop">No crowned property</span>' : '';
       return `<div class="res-row ${r.place === 1 ? 'first' : ''}" style="animation-delay:${0.15 + i * 0.12}s">
-        <div class="res-rank">${['I', 'II', 'III', 'IV'][r.place - 1]}</div>${shieldSVG(r.player.color, r.player.crest)}
+        <div class="res-rank">${ROMAN[r.place - 1]}</div>${shieldSVG(r.player.color, r.player.crest)}
         <div><div class="res-name" style="color:${r.player.color}">${esc(r.player.name)}</div><div class="res-props">${props}${bonus}${none}</div></div>
         <div class="res-total">${r.s.total}</div></div>`;
     }).join('');
@@ -464,7 +494,9 @@ export class Hud {
     // an online guest waits for the host to deal the next game
     again.disabled = hostDeals;
     again.classList.toggle('waiting', hostDeals);
-    again.querySelector('span').textContent = hostDeals ? 'Waiting for the host to start again' : 'Play again';
+    const next = dynasty && !over ? dynasty.game + 1 : 0;
+    again.querySelector('span').textContent = hostDeals ? (next ? `Waiting for the host to deal game ${next}` : 'Waiting for the host to start again')
+      : next ? `Play game ${next} of ${GAMES}` : over ? 'New dynasty' : 'Play again';
     menu.textContent = hostDeals ? 'Leave game' : 'Main menu';
     review.classList.toggle('hidden', !onReview);
     const cleanup = () => { again.onclick = menu.onclick = admire.onclick = review.onclick = this.el.showResults.onclick = null; };
