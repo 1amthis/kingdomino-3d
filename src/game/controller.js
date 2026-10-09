@@ -1179,7 +1179,8 @@ export class Controller {
     // last grades can still be on their way; they join the saved game once they land.
     const rows = rank(this.players, this.opts);
     const record = this.record(rows);
-    const note = this.onFinished ? this.onFinished(record) : '';
+    // note: what stands out against the history; review: opens the game in it, once it is kept there
+    const { note = '', review = null } = (this.onFinished && this.onFinished(record)) || {};
     const graded = this.coach.log.length;
     this.coach.settled().then(() => {
       if (flow.alive && this.coach.log.length > graded && this.onRegraded) this.onRegraded({ ...record, ...this.coachVerdict() });
@@ -1280,6 +1281,7 @@ export class Controller {
       hostDeals: !!this.link && this.link.role === 'guest',
       onAgain: () => this.onPlayAgain && this.onPlayAgain(),
       onMenu: () => this.onMenu && this.onMenu(),
+      onReview: review,
     });
   }
 

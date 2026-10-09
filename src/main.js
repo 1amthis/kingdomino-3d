@@ -90,8 +90,8 @@ async function main() {
 
   // ---------- history ----------
   // Every finished game is kept in this browser (localStorage), and what stands out about it shows on
-  // the results card. After the first one, the browser is asked once not to clear that storage when
-  // it runs short of space.
+  // the results card, with a way into the history at that game. After the first one, the browser is
+  // asked once not to clear that storage when it runs short of space.
   let storage = null; // (a browser that blocks storage throws on the mere access; nothing is kept then)
   try { storage = window.localStorage; } catch { /* blocked */ }
   const log = new GameLog(storage);
@@ -104,12 +104,12 @@ async function main() {
   ctl.onFinished = (record) => {
     ongoing.clear();
     const note = history.note(record);
-    if (!log.save(record)) { hud.toast('This game could not be kept in the history: this browser does not allow it.', 3.5); return note; }
+    if (!log.save(record)) { hud.toast('This game could not be kept in the history: this browser does not allow it.', 3.5); return { note }; }
     if (!askedToKeep && navigator.storage && navigator.storage.persist) {
       askedToKeep = true;
       navigator.storage.persisted().then((kept) => kept || navigator.storage.persist()).catch(() => {});
     }
-    return note;
+    return { note, review: () => history.openGame(record.id) };
   };
   // the coach's last grades landed after the game was saved
   ctl.onRegraded = (record) => log.save(record);
@@ -165,6 +165,8 @@ async function main() {
     hud.hideMenu();
     hud.hideLobby();
     hud.hideResults();
+    // (an online guest can be in the history, reviewing the last game, when the host deals the next)
+    history.close();
     stage.tweener.speed = ctl.settings.speed;
     await ctl.startGame(config, { link: session, resume });
   }

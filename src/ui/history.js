@@ -94,15 +94,26 @@ export class HistoryView {
     }).observe(this.el, { attributes: true, attributeFilter: ['class'] });
   }
 
-  open(tab = this.tab) {
+  // gameId: open straight at that game
+  open(tab = this.tab, gameId = null) {
     this.tab = tab;
-    this.gameId = null;
+    this.gameId = gameId;
     this.view = null;
     this.shown = PAGE;
     this.say('');
     this.render();
     this.el.classList.remove('hidden');
   }
+
+  // The game just finished, from the results card: the coach's review is brought into view, under
+  // the scores, since that is what the player came for.
+  openGame(id) {
+    this.open('games', id);
+    const sec = this.body.querySelector('#h-review');
+    if (sec) sec.scrollIntoView({ block: 'nearest' });
+  }
+
+  close() { this.el.classList.add('hidden'); }
 
   say(text) { $('#history-msg').textContent = text; }
 

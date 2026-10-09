@@ -429,8 +429,9 @@ export class Hud {
   }
 
   // coach: the coach's verdict for the players at this screen (html), if it was on;
-  // note: what stands out against the history (html), such as a new personal best
-  showResults(rows, opts, { onAgain, onMenu, hostDeals = false, coach = '', note = '' }) {
+  // note: what stands out against the history (html), such as a new personal best;
+  // onReview: opens the game in the history, over this card (none when the history could not keep it)
+  showResults(rows, opts, { onAgain, onMenu, onReview = null, hostDeals = false, coach = '', note = '' }) {
     this.el.showResults.classList.add('hidden');
     this.el.showResults.onclick = null;
     const table = $('#results-table');
@@ -457,15 +458,18 @@ export class Hud {
     $('#results-coach').innerHTML = coach;
     $('#results-coach').classList.toggle('hidden', !coach);
     this.el.results.classList.remove('hidden');
-    const again = $('#res-again'), menu = $('#res-menu'), admire = $('#res-admire');
+    const again = $('#res-again'), menu = $('#res-menu'), admire = $('#res-admire'), review = $('#res-review');
     // an online guest waits for the host to deal the next game
     again.disabled = hostDeals;
     again.classList.toggle('waiting', hostDeals);
     again.querySelector('span').textContent = hostDeals ? 'Waiting for the host to start again' : 'Play again';
     menu.textContent = hostDeals ? 'Leave game' : 'Main menu';
-    const cleanup = () => { again.onclick = menu.onclick = admire.onclick = this.el.showResults.onclick = null; };
+    review.classList.toggle('hidden', !onReview);
+    const cleanup = () => { again.onclick = menu.onclick = admire.onclick = review.onclick = this.el.showResults.onclick = null; };
     again.onclick = () => { cleanup(); this.el.results.classList.add('hidden'); onAgain(); };
     menu.onclick = () => { cleanup(); this.el.results.classList.add('hidden'); onMenu(); };
+    // the history opens over the card, which is still there once it closes
+    review.onclick = onReview && (() => onReview());
     admire.onclick = () => {
       this.el.results.classList.add('hidden');
       this.el.showResults.querySelector('span').textContent = 'Show final scores';
