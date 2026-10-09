@@ -1,6 +1,7 @@
 // The games played in this browser: a record of each finished game, and the stats drawn from them.
 // Plain data in and out (the storage is handed in), so a record could later go to a server unchanged.
 import { FLOW, cleanMoves, isAction } from './moves.js';
+import { GAMES, gameNumber, standings } from './dynasty.js';
 
 export const VERSION = 1;
 export const KEEP = 1000; // beyond this, the oldest games make way
@@ -32,8 +33,8 @@ export function decodeMap(rows) {
 }
 
 // The game just finished, as it goes into the history. players: the controller's players (with their
-// kingdoms), rows: rank()'s final ranking, config: the game's config (its seats as they were dealt),
-// moves: every decision of the game (see moves.js), which with the seed replay it.
+// kingdoms), rows: rank()'s final ranking, config: the game's config (its seats as they were dealt, and
+// its dynasty if it is one), moves: every decision of the game (see moves.js), which with the seed replay it.
 export function makeRecord({ players, rows, config, seed = null, moves = null, online = null, coach = null, verdict = null, start = null, end = Date.now() }) {
   const rowOf = new Map(rows.map((r) => [r.player, r]));
   return {
@@ -42,6 +43,8 @@ export function makeRecord({ players, rows, config, seed = null, moves = null, o
     start, end,
     online, // 'host' or 'guest' for a game played online
     rules: { middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel, snake: !!config.snake },
+    // a game of a dynasty: which one, and its number in it (its games share the id)
+    ...(config.dynasty ? { dynasty: { id: config.dynasty.id, game: gameNumber(config.dynasty) } } : {}),
     seed,
     ...(seed !== null && moves ? { flow: FLOW, moves: moves.slice() } : {}),
     coach, // 'trainer' or 'study' when the coach graded the game
@@ -119,11 +122,14 @@ export function cleanRecord(r) {
   const rules = r.rules || {};
   const seed = int(r.seed, 0, 2 ** 32 - 1) ? r.seed : null, moves = seed !== null && int(r.flow, 1, 99) && cleanMoves(r.moves);
   const review = moves && cleanReview(r.review, moves);
+  const dynasty = r.dynasty && typeof r.dynasty.id === 'string' && /^[\w-]{1,40}$/.test(r.dynasty.id) && int(r.dynasty.game, 1, GAMES)
+    ? { id: r.dynasty.id, game: r.dynasty.game } : null;
   return {
     v: VERSION, id: r.id,
     start: Number.isFinite(r.start) && r.start <= r.end ? r.start : null, end: r.end,
     online: r.online === 'host' || r.online === 'guest' ? r.online : null,
     rules: { middleKingdom: !!rules.middleKingdom, harmony: !!rules.harmony, mightyDuel: !!rules.mightyDuel, snake: !!rules.snake },
+    ...(dynasty ? { dynasty } : {}),
     seed,
     // (a game from an older flow keeps its moves, though this version cannot replay them)
     ...(moves ? { flow: r.flow, moves } : {}),
@@ -193,6 +199,24 @@ export class GameLog {
   exportText() {
     return JSON.stringify({ app: 'kingdomino-3d', type: 'history', v: VERSION, exported: new Date().toISOString(), games: this.all() });
   }
+}
+
+// ---------- dynasties ----------
+// A dynasty's games kept in the history, by their number in it: { id, games: [record or null] (a game the
+// history no longer holds, or that was never played, is null), complete (all three are here),
+// standings (see core/dynasty.js, over the games here) }, or null when none of its games is here.
+export function dynastyOf(records, id) {
+  const games = Array(GAMES).fill(null);
+  for (const r of records) if (r.dynasty && r.dynasty.id === id && !games[r.dynasty.game - 1]) games[r.dynasty.game - 1] = r;
+  const first = games.find(Boolean);
+  if (!first) return null;
+  // (a hand-made file could seat a game of it differently: only the games at the same table count)
+  const kept = games.map((r) => (r && r.players.length === first.players.length ? r : null));
+  return {
+    id, games: kept,
+    complete: kept.every(Boolean),
+    standings: standings({ games: kept.filter(Boolean).map((r) => r.players) }),
+  };
 }
 
 // ---------- stats ----------
@@ -271,6 +295,14 @@ export function statsFor(records, name) {
       if (!richest || size * crowns > richest.score) richest = { terrain, size, crowns, score: size * crowns, end: r.end, id: r.id };
     }
   }
+  // the dynasties played out to the end, and won (a shared first place counts), from the last game's seat
+  const dynasties = { won: 0, of: 0 };
+  for (const { r, me } of games) {
+    const d = r.dynasty && r.dynasty.game === GAMES && dynastyOf(records, r.dynasty.id);
+    if (!d || !d.complete || d.games[GAMES - 1] !== r) continue;
+    dynasties.of++;
+    if (d.standings.find((row) => row.seat === r.players.indexOf(me)).place === 1) dynasties.won++;
+  }
   const bonus = (rule, field) => {
     const on = games.filter((g) => g.r.rules[rule]);
     return { got: on.filter((g) => g.me[field] > 0).length, of: on.length };
@@ -295,6 +327,7 @@ export function statsFor(records, name) {
     people: [...people.values()].sort((a, b) => b.games - a.games || a.name.localeCompare(b.name)),
     middle: bonus('middleKingdom', 'middle'),
     harmony: bonus('harmony', 'harmony'),
+    dynasties,
     recent: games.slice(-20).map(({ r, me }) => ({ id: r.id, end: r.end, total: me.total, place: me.place, players: r.players.length })),
     coach: coached.length ? {
       ...coachLoss(coached),

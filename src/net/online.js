@@ -2,6 +2,7 @@
 // each guest mirrors it move by move, and a shared seed deals every table the same dominoes.
 // The controller only sees two calls: choose(player, kind) for a move made elsewhere, and
 // tell(player, kind, value) for a move made here.
+import { cleanDynasty } from '../core/dynasty.js';
 
 export const LEFT = Symbol('left');
 
@@ -162,7 +163,8 @@ export class HostSession extends Emitter {
   get openSeats() { return this.config.seats.filter((s, i) => s.type === 'remote' && !this.guests.has(i)).length; }
 
   // Deal a new game: friends who are here play online, empty online seats go to a Knight.
-  start() {
+  // dynasty: when the game is one of a dynasty, its state (see core/dynasty.js).
+  start(dynasty = this.config.dynasty) {
     this.started = true;
     this.n = 0;
     const seats = this.config.seats.map((s, i) => {
@@ -170,7 +172,7 @@ export class HostSession extends Emitter {
       const g = this.guests.get(i);
       return g ? { ...s, name: g.name, type: 'human', remote: true } : { ...s, type: 'normal' };
     });
-    const config = { ...this.config, seats, seed: (Math.random() * 2 ** 32) >>> 0 };
+    const config = { ...this.config, seats, seed: (Math.random() * 2 ** 32) >>> 0, dynasty: dynasty || null };
     for (const [i, g] of this.guests) {
       g.box = new Mailbox();
       if (g.conn.open) g.conn.send({ t: 'start', config, you: i });
@@ -251,7 +253,10 @@ export class GuestSession extends Emitter {
       type: i === you ? 'human' : TYPES.includes(s.type) ? s.type : 'normal',
       remote: i !== you,
     }));
-    return { seats, seed: config.seed >>> 0, middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel, snake: !!config.snake };
+    return {
+      seats, seed: config.seed >>> 0, middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel, snake: !!config.snake,
+      dynasty: cleanDynasty(config.dynasty, seats.length),
+    };
   }
 
   // The next move from the host's stream. If the host is gone, the table simply freezes

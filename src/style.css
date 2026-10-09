@@ -204,6 +204,9 @@ button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight
 .player-card .pmeta .kings { display: inline-flex; gap: 2px; }
 .player-card .pscore { font-family: var(--caps); font-weight: 900; font-size: 24px; color: var(--gold-hi); text-shadow: 0 0 12px rgba(255, 200, 90, 0.35); min-width: 34px; text-align: right; }
 .player-card .pscore.bump { animation: bump 0.6s ease; }
+/* in a dynasty, the running total under the game's score */
+.player-card .pdyn { margin-top: -3px; font-family: var(--caps); font-size: 11px; color: var(--ink-dim); text-align: right; white-space: nowrap; }
+.player-card .pdyn b { color: var(--gold); font-variant-numeric: tabular-nums; }
 @keyframes bump { 30% { transform: scale(1.35); color: #fff; } }
 .player-card .tag { font-size: 10px; font-family: var(--caps); letter-spacing: 1px; padding: 1px 6px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); color: var(--ink-dim); }
 .crown-ico { width: 14px; height: 11px; fill: var(--gold); vertical-align: -1px; }
@@ -343,6 +346,23 @@ body.photo #hud, body.photo .labels-layer { opacity: 0; pointer-events: none; tr
 .seg.locked { opacity: 0.5; }
 .seg.locked button { cursor: not-allowed; }
 .setting > span small { display: block; max-width: 300px; font-size: 14px; }
+/* a dynasty's standings, on the results card and in the history */
+#results-dynasty { margin: 4px 0 12px; padding: 12px 16px 6px; border-radius: 12px; background: rgba(240, 199, 94, 0.06); border: 1px solid rgba(240, 199, 94, 0.3); animation: rise 0.6s ease backwards; animation-delay: 0.5s; }
+#results-dynasty h3, .res-sub { font-family: var(--caps); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin: 0 0 6px; }
+.res-sub { margin: 2px 0 8px; }
+.dyn-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.dyn-table th { padding: 0 8px 6px; font-family: var(--caps); font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-dim); text-align: right; white-space: nowrap; }
+.dyn-table td { padding: 6px 8px; border-top: 1px solid rgba(255, 220, 150, 0.1); font-family: var(--caps); font-size: 16px; color: var(--ink); text-align: right; white-space: nowrap; }
+.dyn-table tr.first td { background: rgba(240, 199, 94, 0.1); }
+.dyn-table .dyn-rank { width: 2em; font-family: var(--deco); font-size: 18px; color: var(--gold); text-align: center; }
+/* (width 100% and max-width 0: the name takes the room left, and ends in an ellipsis rather than widen the table) */
+.dyn-table .dyn-who { width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; text-align: left; }
+.dyn-who .shield { width: 20px; height: 23px; margin-right: 8px; vertical-align: middle; }
+.dyn-table .dyn-total { font-family: var(--deco); font-weight: 900; font-size: 22px; color: var(--gold-hi); }
+.dyn-table .dim { opacity: 0.5; }
+.dyn-link { padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--gold); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.dyn-link:hover, .dyn-link:focus-visible { color: var(--gold-hi); }
+.dyn-here { color: var(--gold-hi); }
 /* the results card's verdict */
 #results-coach { margin: 4px 0 6px; padding: 12px 16px; border-radius: 12px; background: rgba(111, 227, 255, 0.05); border: 1px solid rgba(111, 227, 255, 0.22); animation: rise 0.6s ease backwards; animation-delay: 0.6s; }
 #results-coach h3 { font-family: var(--caps); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #9fe9ff; margin: 0 0 8px; }
@@ -533,6 +553,12 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 .hg-result { padding: 4px 10px; border-radius: 999px; font-family: var(--caps); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; background: rgba(255, 255, 255, 0.07); color: var(--ink-dim); }
 .hg-result.won { background: linear-gradient(180deg, #f6d677, #b98428); color: #2a1804; }
 .h-more { display: block; margin: 12px auto 0; }
+/* a dynasty's games in the list: a line that sums it up, and the games under it */
+.hg-dyn { display: flex; align-items: baseline; gap: 10px; width: 100%; margin-top: 6px; padding: 2px 4px; border: 0; background: none; color: var(--ink-dim); font-family: var(--serif); font-size: 15px; text-align: left; cursor: pointer; }
+.hg-dyn:first-child { margin-top: 0; }
+.hg-dyn:hover, .hg-dyn:focus-visible { color: var(--ink); outline: none; }
+.hg-dyn-name { font-family: var(--caps); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+.hg-row.in-dyn { width: calc(100% - 14px); margin-left: 14px; border-left: 3px solid rgba(240, 199, 94, 0.45); }
 .hd-head { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 12px; }
 .hd-title { font-family: var(--caps); font-weight: 700; font-size: 18px; color: var(--gold-hi); }
 .hd-meta { font-style: italic; font-size: 15px; color: var(--ink-dim); }
@@ -642,6 +668,7 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .player-card .pinfo { display: none; }
   .player-card .shield { width: 22px; height: 25px; }
   .player-card .pscore { font-size: 18px; min-width: 20px; }
+  .player-card .pdyn { font-size: 10px; }
   .player-card.active { transform: translateX(5px); }
   /* the kingdom on screen, as the dock's realm shields would show it */
   .player-card.on::after { content: ''; position: absolute; inset: 2px; border-radius: 9px; pointer-events: none;
@@ -749,6 +776,11 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 @media (max-width: 760px) {
   .res-row { grid-template-columns: 30px 1fr auto; }
   .res-row .shield { display: none; }
+  #results-dynasty { padding: 10px 10px 4px; }
+  .dyn-table .long, .dyn-who .shield { display: none; }
+  .dyn-table th { padding: 0 6px 5px; }
+  .dyn-table td { padding: 5px 6px; font-size: 15px; }
+  .dyn-table .dyn-total { font-size: 19px; }
   .invite-row { flex-wrap: wrap; }
   .invite-row input { flex-basis: 100%; }
 }

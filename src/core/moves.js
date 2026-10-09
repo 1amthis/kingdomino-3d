@@ -4,6 +4,7 @@
 // Each move is a short string: '0s2' (seat 0 picks the domino in slot 2), '1p-1,0,3' (seat 1 lays its
 // domino with square A on (-1, 0), rotation 3), '2d' (seat 2 discards the domino that fits nowhere).
 import { GRADES } from './coach.js';
+import { cleanDynasty } from './dynasty.js';
 
 // The game flow the moves follow (dealing, turn order, the 3-player discard). A change to it makes
 // older records unplayable, so it would come with a new number.
@@ -64,18 +65,21 @@ function cleanGrades(log) {
 }
 
 // A saved game that can be picked up again, copied field by field, or null.
-// { config (the menu's seats and rules, with the seed), start, moves, coach (its grades so far) }
+// { config (the menu's seats and rules, with the seed and any dynasty), start, moves, coach (its grades so far) }
 export function cleanSaved(g) {
   if (!g || typeof g !== 'object' || g.v !== 1 || g.flow !== FLOW) return null;
   const c = g.config;
   if (!c || typeof c !== 'object' || !Array.isArray(c.seats) || c.seats.length < 2 || c.seats.length > 4) return null;
   const seats = c.seats.map(cleanSeat), moves = cleanMoves(g.moves);
   if (seats.some((s) => !s) || !moves || !int(c.seed, 0, 2 ** 32 - 1)) return null;
+  // a game of a dynasty, with the scores of the games before it
+  const dynasty = cleanDynasty(c.dynasty, seats.length);
   return {
     config: {
       seats, seed: c.seed,
       middleKingdom: !!c.middleKingdom, harmony: !!c.harmony, mightyDuel: seats.length === 2 && !!c.mightyDuel,
       snake: seats.length > 2 && !!c.snake,
+      ...(dynasty ? { dynasty } : {}),
     },
     start: Number.isFinite(g.start) ? g.start : null,
     moves,

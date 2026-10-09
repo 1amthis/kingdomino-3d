@@ -8,6 +8,7 @@ import { Hud } from './ui/hud.js';
 import { HistoryView } from './ui/history.js';
 import { GameLog } from './core/history.js';
 import { SavedGame } from './core/moves.js';
+import { isOver, nextDynasty } from './core/dynasty.js';
 import { Controller, ReplayError } from './game/controller.js';
 import { HostSession, GuestSession, inviteCode, inviteLink, clearInvite, isLocalHost } from './net/online.js';
 
@@ -103,6 +104,10 @@ async function main() {
   let askedToKeep = false;
   ctl.onFinished = (record) => {
     ongoing.clear();
+    // A dynasty carries on: until its next game is dealt, a reload deals it.
+    if (!session && ctl.dynasty && !isOver(ctl.dynasty)) {
+      ongoing.save({ config: { ...lastConfig, dynasty: ctl.dynasty, seed: (Math.random() * 2 ** 32) >>> 0 }, start: null, moves: [], coach: [] });
+    }
     const note = history.note(record);
     if (!log.save(record)) { hud.toast('This game could not be kept in the history: this browser does not allow it.', 3.5); return { note }; }
     if (!askedToKeep && navigator.storage && navigator.storage.persist) {
@@ -171,10 +176,11 @@ async function main() {
     await ctl.startGame(config, { link: session, resume });
   }
 
-  // A saved game whose moves no longer replay (a change to the game since) is let go.
+  // A saved game whose moves no longer replay (a change to the game since) is let go. One without a
+  // move yet (a dynasty's next game) is simply dealt from its seed, as if it had just been started.
   async function resumeGame(game) {
     try {
-      await startReal(game.config, game);
+      await startReal(game.config, game.moves.length ? game : null);
     } catch (e) {
       if (!(e instanceof ReplayError)) throw e;
       console.warn('[resume]', e.message);
@@ -185,11 +191,14 @@ async function main() {
     }
   }
 
+  // A dynasty deals its next game, and once it is over, a new dynasty.
   ctl.onPlayAgain = () => {
-    if (!session) startReal(lastConfig);
-    else if (session.role === 'host') startReal(session.start());
+    const dynasty = nextDynasty(ctl.dynasty);
+    if (!session) startReal({ ...lastConfig, dynasty });
+    else if (session.role === 'host') startReal(session.start(dynasty));
   };
-  ctl.onMenu = () => { leaveOnline(); showMenu(); };
+  // (leaving a dynasty between its games: the next one is no longer kept for a reload)
+  ctl.onMenu = () => { ongoing.clear(); leaveOnline(); showMenu(); };
 
   // ---------- online tables ----------
   function leaveOnline() {
@@ -325,7 +334,7 @@ async function main() {
     // once the reckoning has begun there is nothing left to lose, so no question
     if (inGame && !ctl.finished) {
       const [title, text, yes] = !session
-        ? ['Quit this game?', 'This game will be lost.', 'Quit']
+        ? ['Quit this game?', ctl.config.dynasty ? 'This game will be lost, and the dynasty left unfinished.' : 'This game will be lost.', 'Quit']
         : session.role === 'host'
           ? ['End the game for everyone?', 'All players return to the menu.', 'End game']
           : ['Leave this game?', 'The AI takes over your kingdom.', 'Leave'];

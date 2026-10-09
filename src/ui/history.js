@@ -2,12 +2,13 @@
 // game can be played back move by move, and reviewed by the coach. Everything lives in this browser's
 // storage; export and import carry it to another one.
 import { TERRAIN_INFO } from '../core/rules.js';
-import { decodeMap, profiles, statsFor, parseExport, highlights } from '../core/history.js';
+import { decodeMap, profiles, statsFor, parseExport, highlights, dynastyOf } from '../core/history.js';
+import { GAMES } from '../core/dynasty.js';
 import { replayable, replayRecord } from '../core/replay.js';
 import { reviewedSeats, reviewPlan, reviewVerdicts, gradeOf, isPoor } from '../core/review.js';
 import { ReplayView } from './replay.js';
 import { ReviewRunner } from './review.js';
-import { esc, shieldSVG, pips, CROWN_SVG } from './hud.js';
+import { esc, shieldSVG, pips, CROWN_SVG, dynastyTable } from './hud.js';
 
 const $ = (s) => document.querySelector(s);
 const LEVELS = { easy: ['Easy', 1], normal: ['Normal', 2], hard: ['Hard', 3], expert: ['Expert', 4] };
@@ -200,6 +201,7 @@ export class HistoryView {
     facts.push(['Longest winning run', `<b>${s.streak.best}</b>${s.streak.current > 1 ? ` · ${s.streak.current} in a row now` : ''}`]);
     if (s.middle.of) facts.push(['Middle Kingdom', `<b>${s.middle.got}</b> of ${plural(s.middle.of, 'game')}`]);
     if (s.harmony.of) facts.push(['Harmony', `<b>${s.harmony.got}</b> of ${plural(s.harmony.of, 'game')}`]);
+    if (s.dynasties.of) facts.push(['Dynasties won', `<b>${s.dynasties.won}</b> of ${s.dynasties.of}`]);
     const records2 = section('Records', `<div class="h-facts">${facts.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('')}</div>`);
 
     return `${picker}<div class="h-tiles">${tiles}</div>
@@ -270,27 +272,57 @@ export class HistoryView {
   // ---------- games ----------
   listView(records) {
     const games = records.slice().reverse();
-    const rows = games.slice(0, this.shown).map((r) => {
+    const rows = games.slice(0, this.shown).map((r, i) => {
       const me = focusOf(r), here = me.kind === 'here';
       const [mode, table] = modeOf(r);
+      // a dynasty's games run together under a line that sums it up
+      const d = r.dynasty, head = d && (i === 0 || !games[i - 1].dynasty || games[i - 1].dynasty.id !== d.id) ? this.dynastyHead(records, d.id) : '';
       const result = !here ? '' : me.place === 1
         ? `<span class="hg-result won">${r.players.filter((p) => p.place === 1).length > 1 ? 'Shared win' : 'Won'}</span>`
         : `<span class="hg-result">${ordinal(me.place)}</span>`;
       const players = r.players.slice().sort((a, b) => a.place - b.place).map((p) => `<span class="hg-p${p === me && here ? ' me' : ''}">
         ${shieldSVG(p.color, p.crest)}<span class="hg-name">${esc(p.name)}</span><b>${p.total}</b></span>`).join('');
-      return `<button type="button" class="hg-row" data-game="${r.id}">
+      return `${head}<button type="button" class="hg-row${d ? ' in-dyn' : ''}" data-game="${r.id}">
         <span class="hg-map">${kingdomSVG(me.map, { cell: 7, size: r.rules.mightyDuel ? 7 : 5, crowns: false })}</span>
-        <span class="hg-main"><span class="hg-when">${when(r.end)}<i>${mode} · ${table}</i></span><span class="hg-players">${players}</span></span>
+        <span class="hg-main"><span class="hg-when">${when(r.end)}<i>${d ? `Game ${d.game} of ${GAMES} · ` : ''}${mode} · ${table}</i></span><span class="hg-players">${players}</span></span>
         ${result}</button>`;
     }).join('');
     const more = games.length > this.shown ? `<button type="button" class="ghost-btn h-more" data-more>Show ${Math.min(PAGE, games.length - this.shown)} more</button>` : '';
     return `<p class="h-count">${plural(games.length, 'game')} kept in this browser</p><div class="hg-list">${rows}</div>${more}`;
   }
 
+  // The line over a dynasty's games in the list: who won it, or how far it went. It opens its latest game.
+  dynastyHead(records, id) {
+    const d = dynastyOf(records, id), latest = d.games.filter(Boolean).pop();
+    const winners = d.standings.filter((row) => row.place === 1).map((row) => `<b style="color:${latest.players[row.seat].color}">${esc(latest.players[row.seat].name)}</b>`);
+    const what = !d.complete ? `unfinished, ${plural(d.games.filter(Boolean).length, 'game')} of ${GAMES}`
+      : winners.length > 1 ? `shared by ${listOf(winners)}, ${d.standings[0].s.total} points each`
+        : `won by ${winners[0]} with ${d.standings[0].s.total} points`;
+    return `<button type="button" class="hg-dyn" data-game="${latest.id}"><span class="hg-dyn-name">Dynasty</span><span>${what}</span></button>`;
+  }
+
+  // A dynasty's standings in one of its games, each game a link to it.
+  dynastySection(r) {
+    const d = dynastyOf(this.records, r.dynasty.id), latest = d.games.filter(Boolean).pop();
+    const heads = d.games.map((g, k) => {
+      const name = `<span class="long">Game </span>${k + 1}`;
+      return !g ? name : g.id === r.id ? `<span class="dyn-here">${name}</span>` : `<button type="button" class="dyn-link" data-game="${g.id}" title="Open game ${k + 1}">${name}</button>`;
+    });
+    const rows = d.standings.map((row) => ({
+      place: row.place, player: latest.players[row.seat], total: row.s.total,
+      scores: d.games.map((g) => (g ? g.players[row.seat].total : null)),
+    }));
+    const kept = d.games.filter(Boolean).length, last = d.games.findLastIndex(Boolean) + 1;
+    const hint = d.complete ? 'The three games’ scores added up; a tie goes as in one game, over the three. Open a game from its column.'
+      : kept < last ? `The history no longer holds every game of this dynasty: the totals count the ${plural(kept, 'game')} here.`
+        : `Unfinished: ${plural(kept, 'game')} of ${GAMES} played.`;
+    return section('The dynasty', `${dynastyTable(rows, heads)}<p class="h-hint">${hint}</p>`);
+  }
+
   gameView(r) {
     const [mode, table] = modeOf(r);
     const minutes = r.start ? Math.max(1, Math.round((r.end - r.start) / 60000)) : 0;
-    const rules = [r.rules.middleKingdom && 'Middle Kingdom', r.rules.harmony && 'Harmony', r.rules.snake && 'Snake opening', r.coach && `Coach: ${r.coach === 'study' ? 'Study' : 'Trainer'}`].filter(Boolean);
+    const rules = [r.dynasty && `Dynasty, game ${r.dynasty.game} of ${GAMES}`, r.rules.middleKingdom && 'Middle Kingdom', r.rules.harmony && 'Harmony', r.rules.snake && 'Snake opening', r.coach && `Coach: ${r.coach === 'study' ? 'Study' : 'Trainer'}`].filter(Boolean);
     const size = r.rules.mightyDuel ? 7 : 5;
     const rows = r.players.slice().sort((a, b) => a.place - b.place).map((p) => {
       const props = p.props.map(([terrain, n, crowns]) => `<span class="prop"><span class="chip" style="background:${TERRAIN_INFO[terrain].color}"></span>${n}&times;${crowns} = <b>${n * crowns}</b></span>`).join('');
@@ -310,7 +342,7 @@ export class HistoryView {
     const replay = data ? '<button type="button" class="royal-btn hd-replay" data-replay><span>&#9654; Replay</span></button>' : '';
     return `<div class="hd-head"><button type="button" class="ghost-btn small" data-back>&lsaquo; All games</button>
         <div class="hd-titles"><div class="hd-title">${when(r.end, { long: true })}</div><div class="hd-meta">${[mode, table, minutes && `${minutes} min`, ...rules].filter(Boolean).join(' · ')}</div></div>${replay}</div>
-      <div class="hd-rows">${rows}</div>${coach}${review}`;
+      <div class="hd-rows">${rows}</div>${r.dynasty ? this.dynastySection(r) : ''}${coach}${review}`;
   }
 
   replayHead(r) {

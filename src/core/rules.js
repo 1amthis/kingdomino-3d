@@ -181,7 +181,11 @@ export function deckSize(numPlayers, mightyDuel) {
 
 // Final ranking with the official tie-breakers: score, largest property, total crowns.
 export function rank(players, opts) {
-  const rows = players.map((p) => ({ player: p, s: p.kingdom.score(opts) }));
+  return placeRows(players.map((p) => ({ player: p, s: p.kingdom.score(opts) })));
+}
+
+// Rows of { s: { total, largest, crowns } }, sorted and given their places by those tie-breakers.
+export function placeRows(rows) {
   rows.sort((a, b) => b.s.total - a.s.total || b.s.largest - a.s.largest || b.s.crowns - a.s.crowns);
   let place = 1;
   rows.forEach((r, i) => {

@@ -8,6 +8,7 @@ import { describeTable } from '../core/search/state.js';
 import { Coach } from './coach.js';
 import { tally } from '../core/coach.js';
 import { makeRecord } from '../core/history.js';
+import { GAMES, gameNumber, isOver, addGame, standings } from '../core/dynasty.js';
 import { encodeMove, decodeMove } from '../core/moves.js';
 import { Rng } from '../core/rng.js';
 import { DominoView } from '../gfx/domino.js';
@@ -198,6 +199,9 @@ export class Controller {
     this.link = demo ? null : link;
     this.config = config;
     this.finished = false; // true from the reckoning on: leaving then loses nothing
+    // A game of a dynasty: config.dynasty holds the games before it, this.dynasty the dynasty with this
+    // one added, once it is scored (see core/dynasty.js).
+    this.dynasty = null;
     this.tw.speed = demo ? 2.4 : this.settings.speed;
     const n = config.seats.length;
     const size = config.mightyDuel ? 7 : 5;
@@ -255,12 +259,13 @@ export class Controller {
     } else this.openingOrder = deal.shuffle(this.kings.slice());
 
     if (!demo) {
-      this.hud.setPlayers(this.players, this.humans);
+      this.hud.setPlayers(this.players, this.humans, this.carried());
       this.syncCamera();
       this.hud.showHud();
-      this.hud.setRound(`Round 1 of ${this.totalRounds}`);
+      this.setRound(`Round 1 of ${this.totalRounds}`);
       this.hud.prompt('Setting up…');
       this.stage.controls.autoRotate = false;
+      if (!this.replaying) this.dynastyNews();
     }
     this.saveProgress();
     try {
@@ -542,7 +547,7 @@ export class Controller {
   }
 
   async runGame(flow) {
-    if (!this.demo) this.hud.setRound('The opening draft');
+    if (!this.demo) this.setRound('The opening draft');
     await this.drawLine(flow);
     for (const king of this.openingOrder) await this.selectPhase(flow, king);
     let round = 0;
@@ -572,7 +577,31 @@ export class Controller {
 
   setRoundLabel(r) {
     if (this.demo) return;
-    this.hud.setRound(r >= this.totalRounds ? `Final round · ${this.totalRounds} of ${this.totalRounds}` : `Round ${r} of ${this.totalRounds}`);
+    const last = this.config.dynasty ? 'Final round' : `Final round · ${this.totalRounds} of ${this.totalRounds}`;
+    this.setRound(r >= this.totalRounds ? last : `Round ${r} of ${this.totalRounds}`);
+  }
+
+  // The line over the banner's prompt; in a dynasty it starts with the game's number.
+  setRound(text) {
+    const d = this.config.dynasty;
+    this.hud.setRound(d ? `Game ${gameNumber(d)} of ${GAMES} · ${text}` : text);
+  }
+
+  // In a dynasty's second and third games, each seat's points from the games before (the score cards
+  // keep a running total), or null.
+  carried() {
+    const d = this.config.dynasty;
+    return d && d.games.length ? this.players.map((p) => d.games.reduce((a, g) => a + g[p.index].total, 0)) : null;
+  }
+
+  // A dynasty's second and third games open with where it stands.
+  dynastyNews() {
+    const d = this.config.dynasty;
+    if (!d || !d.games.length) return;
+    const [a, b] = standings(d), lead = this.players[a.seat], gap = a.s.total - b.s.total;
+    const news = !gap ? `the dynasty is level at the top, on ${a.s.total}`
+      : `${this.hud.isYou(lead) ? 'you lead' : `${this.hud.who(lead)} leads`} the dynasty by ${gap} point${gap === 1 ? '' : 's'}`;
+    this.hud.toast(`Game ${gameNumber(d)} of ${GAMES}: ${news}`, 4);
   }
 
   async drawLine(flow) {
@@ -1181,6 +1210,10 @@ export class Controller {
       return;
     }
     this.finished = true;
+    // A dynasty adds the game to its standings; after its last game, those decide who is celebrated.
+    if (this.config.dynasty) this.dynasty = addGame(this.config.dynasty, this.players.map((p) => p.kingdom.score(this.opts)));
+    const table = this.dynasty && standings(this.dynasty).map((r) => ({ ...r, player: this.players[r.seat] }));
+    const reign = table && isOver(this.dynasty) ? table : null;
     // The game goes into the history now: leaving during the reckoning loses nothing. The coach's
     // last grades can still be on their way; they join the saved game once they land.
     const rows = rank(this.players, this.opts);
@@ -1193,7 +1226,7 @@ export class Controller {
     });
     this.hud.setActions(null);
     this.hud.prompt('Final scoring', 'Each crowned property scores squares &times; crowns');
-    this.hud.setRound('Game over');
+    this.setRound(this.config.dynasty ? 'Final scoring' : 'Game over');
     // The reckoning keeps its own pace whatever the game speed: brisk, as each count stays up a while
     // after the next one is called; the winner's moment gets the time.
     this.tw.speed = 1;
@@ -1275,9 +1308,28 @@ export class Controller {
     this.hud.setActive(null);
     const o = this.overview();
     if (autoCam && !this.camHeld) { this.camKey = 'overview'; await flow.w(this.stage.flyTo(o.pos, o.target, 1500)); }
-    const winners = rows.filter((r) => r.place === 1).map((r) => r.player);
-    this.hud.prompt(winners.length > 1 ? 'It’s a tie!' : `${this.hud.wins(winners[0])}!`,
-      winners.length > 1 ? `${winners.map((w) => this.hud.who(w)).join(' and ')} &middot; ${rows[0].s.total} points each` : `${rows[0].s.total} points`);
+    // the dynasty's last game: each name plate adds the points of the games before
+    if (reign) {
+      this.hud.prompt('The dynasty', 'Adding the points of the first two games');
+      await flow.w(this.tw.wait(500));
+      // last place first, so the plates rise towards the winner
+      for (let i = 0; i < reign.length; i++) {
+        const r = reign[reign.length - 1 - i], p = r.player, before = r.s.total - r.games[GAMES - 1];
+        this.popup(this.cellWorld(p, 0, -1.2, REST + 1), `+${before}`, 'popup', 2400);
+        setPts(p, r.s.total);
+        p.plateBody.classList.add('tally');
+        this.sound.bell(79 + 2 * i, 0.2);
+        await flow.w(this.tw.wait(550));
+      }
+      await flow.w(this.tw.wait(900));
+      for (const p of this.players) p.plateBody.classList.remove('tally');
+    }
+    // the game's winner, or once a dynasty is over, the dynasty's
+    const top = reign || rows, pts = top[0].s.total;
+    const winners = top.filter((r) => r.place === 1).map((r) => r.player);
+    const what = reign ? ' the dynasty' : this.dynasty ? ` game ${this.dynasty.games.length}` : '';
+    this.hud.prompt(winners.length > 1 ? (reign ? 'The dynasty is shared!' : 'It’s a tie!') : `${this.hud.wins(winners[0])}${what}!`,
+      winners.length > 1 ? `${winners.map((w) => this.hud.who(w)).join(' and ')} &middot; ${pts} points each` : `${pts} points${reign ? ` over ${GAMES} games` : ''}`);
     this.sound.fanfare();
     for (const w of winners) { this.fx.confettiBurst(w.seat.pos.clone().setY(0.5), [w.color]); w.plateBody.classList.add('tally'); }
     // Let the fireworks play out before the results cover the table; the floating button opens them sooner.
@@ -1288,6 +1340,7 @@ export class Controller {
       coach: this.coach.summary(),
       note,
       hostDeals: !!this.link && this.link.role === 'guest',
+      dynasty: table && { game: this.dynasty.games.length, rows: table },
       onAgain: () => this.onPlayAgain && this.onPlayAgain(),
       onMenu: () => this.onMenu && this.onMenu(),
       onReview: review,

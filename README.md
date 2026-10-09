@@ -118,8 +118,10 @@ Every finished game is kept in your browser, and **History** in the main menu sh
 
 - **Stats** for each person who plays at the screen: games, wins, average and best score, a chart of the last 20
   games, the record against each AI level and against each friend, records (richest property, most crowns, longest
-  winning run, how often the bonuses come) and, with the coach on, points lost per move over time.
-- **Games**: every game with its final scores, each kingdom drawn square by square, and the coach's verdict.
+  winning run, how often the bonuses come, dynasties won) and, with the coach on, points lost per move over time.
+- **Games**: every game with its final scores, each kingdom drawn square by square, and the coach's verdict. A
+  Dynasty's games sit together under the name of its winner, and each one shows the standings over all three, with a
+  link to the other two.
 - **Replay**: a game played back move by move (step, play, or drag along the moves), every kingdom growing on its
   frame, the drafting board's two lines and what each move did.
 - **The coach's review**: once a game is over, the coach grades every move of the people at the table, yours and your
@@ -144,6 +146,10 @@ picks it up again where it was. (An online game can't be: the connection is gone
 - Connection rule (touch the castle or a matching terrain), the 5×5 limit, forced discards when nothing fits.
 - Turn order from the drafting line, final scoring with the official tie-breakers.
 - Optional **Middle Kingdom** (+10), **Harmony** (+5) and the **Mighty Duel** (2 players, 7×7, all 48 tiles).
+- Optional **Dynasty**: three games in a row at the same table, and the highest total wins. The rulebook names no
+  tie-breaker for it, so a tie goes as in a single game, over the three games added up (largest properties, then
+  crowns). Between games the results card shows the standings; during the next one, each score card keeps a running
+  total. A reload between games deals the next one.
 - House rule, off by default: the **snake opening** (3 or 4 players). Whoever picked last in the opening draft goes
   first in round 1. In the official order, the first picker wins 32% of four-player Expert games, against a fair share
   of 25%. With the snake it's 27%, and the four seats can no longer be told apart (1,200 games each way).
@@ -269,6 +275,7 @@ sub-folder works too).
 ```
 src/
   core/rules.js      tiles, Kingdom (placement rules, properties, scoring), ranking
+  core/dynasty.js    the Dynasty variant: three games' scores added up, the standings, what playing again deals
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
   core/coach.js      the coach's grades: points given up against the Expert's move, a game's tally
   core/history.js    the game history: each finished game as a record, the log in localStorage, export/import, stats
@@ -307,6 +314,7 @@ tests/
   history.test.js    records read back unchanged, imports are checked and merged once, stats count each side right
   moves.test.js      moves replay a game exactly; a record that doesn't fit its deal, or a broken save, is refused
   replay.test.js     a record plays back to the kingdoms it ended with; the review sees the positions the Expert saw
+  dynasty.test.js    three games add up, ties break as in one game; it travels saved and online; the history groups it
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering
