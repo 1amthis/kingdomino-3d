@@ -1,10 +1,14 @@
 // The main thread's side of the expert AI and the coach: a worker each, started on first use and asked
 // one position at a time, so a long analysis never holds up an AI's move. If a worker cannot start or
 // fails, the promise rejects and the caller carries on without it (the expert then plays like Hard).
+// With 3 or 4 players the expert searches twice as long. More search still pays there (2,000 → 6,000
+// simulations: about a point more final lead against Hard, scripts/bench.js), and a move still takes under
+// half a second on a laptop, hidden by the pause the table makes while an AI decides.
 const MOVE = { sims: 3000, ms: 1500 };
+const MOVE_MANY = { sims: 6000, ms: 1500 };
 const ANALYSIS = { sims: 8000, ms: 2500, min: 24 };
 
-function client(kind, budget) {
+function client(kind) {
   let worker = null, seq = 0;
   const pending = new Map();
   const start = () => {
@@ -23,7 +27,7 @@ function client(kind, budget) {
       worker = null; // the next question starts a fresh one
     };
   };
-  return (table) => new Promise((resolve, reject) => {
+  return (table, budget) => new Promise((resolve, reject) => {
     try {
       if (!worker) start();
       const id = ++seq;
@@ -33,9 +37,11 @@ function client(kind, budget) {
   });
 }
 
+const move = client('move'), analyse = client('analyse');
+
 // table: describeTable()'s output. Resolves to a slot index, a { x, y, rot } placement or null (discard).
-export const askExpert = client('move', MOVE);
+export const askExpert = (table) => move(table, table.kingdoms.length > 2 ? MOVE_MANY : MOVE);
 
 // Resolves to { player, sims, moves } with every legal move, best first: { move, visits, value, win, ev,
 // land } (see Search.analyse; moves and landing spots in the controller's terms).
-export const analysePosition = client('analyse', ANALYSIS);
+export const analysePosition = (table) => analyse(table, ANALYSIS);
