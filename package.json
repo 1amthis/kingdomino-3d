@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/search.test.js tests/coach.test.js",
-    "bench": "node scripts/bench.js"
+    "bench": "node scripts/bench.js",
+    "study": "node scripts/study.js"
   },
   "dependencies": {
     "peerjs": "^1.5.5",
