@@ -171,11 +171,12 @@ export class Kingdom {
   }
 }
 
+// Every line holds 4 dominoes. With 3 players (the 2024 rulebook) only 3 kings draft each line, and
+// the domino nobody claimed is discarded once they all have; all 48 dominoes go through, 12 lines.
 export function kingsPerPlayer(numPlayers) { return numPlayers === 2 ? 2 : 1; }
-export function lineSize(numPlayers) { return numPlayers === 3 ? 3 : 4; }
+export function lineSize() { return 4; }
 export function deckSize(numPlayers, mightyDuel) {
-  if (numPlayers === 2) return mightyDuel ? 48 : 24;
-  return numPlayers === 3 ? 36 : 48;
+  return numPlayers === 2 && !mightyDuel ? 24 : 48;
 }
 
 // Final ranking with the official tie-breakers: score, largest property, total crowns.

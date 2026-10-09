@@ -190,6 +190,7 @@
       </div>
       <div class="menu-footer">
         <button class="ghost-btn" id="menu-help">How to play</button>
+        <button class="ghost-btn" id="menu-history">History</button>
         <button class="royal-btn" id="start-btn"><span>Start game</span></button>
       </div>
     </div>
@@ -203,11 +204,13 @@
         <div class="title-crown small"><svg viewBox="0 0 64 48"><path d="M4 40 L4 12 L18 26 L32 4 L46 26 L60 12 L60 40 Z" /></svg></div>
         <h1 class="results-title">Final scores</h1>
         <div id="winner-line"></div>
+        <div id="results-note" class="hidden"></div>
       </div>
       <div id="results-table"></div>
       <div id="results-coach" class="hidden"></div>
       <div class="menu-footer">
         <button class="ghost-btn" id="res-admire">View the board</button>
+        <button class="ghost-btn hidden" id="res-review" title="Open this game in the history: play it back move by move, and let the coach review it">Review this game</button>
         <button class="ghost-btn" id="res-menu">Main menu</button>
         <button class="royal-btn" id="res-again"><span>Play again</span></button>
       </div>
@@ -299,7 +302,7 @@
           <div class="guide-art" data-art="pick"></div>
           <div class="guide-text">
             <h3>Claim a domino with your king</h3>
-            <p>New dominoes are laid out in number order. Put your king on the one you want. A <b>low number</b> lets you choose sooner next round; <b>high numbers</b> usually carry more crowns.</p>
+            <p>New dominoes are laid out in number order. Put your king on the one you want. A <b>low number</b> lets you choose sooner next round; <b>high numbers</b> usually carry more crowns. With three players, the domino nobody claims is discarded.</p>
           </div>
         </section>
         <section class="guide-page" data-tab="Place">
@@ -361,6 +364,26 @@
         <button class="ghost-btn" data-guide="prev">Back</button>
         <span class="guide-count"></span>
         <button class="royal-btn" data-guide="next"><span>Next</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History: the games finished in this browser, and the stats drawn from them -->
+  <div id="history" class="modal hidden">
+    <div class="modal-card history-card" role="dialog" aria-labelledby="history-title">
+      <button class="close-btn" data-close aria-label="Close">&times;</button>
+      <div class="history-head">
+        <h2 id="history-title">History</h2>
+        <div class="seg history-tabs" role="tablist"><button data-tab="stats" role="tab">Stats</button><button data-tab="games" role="tab">Games</button></div>
+      </div>
+      <div class="history-body" id="history-body"></div>
+      <div class="history-foot">
+        <span class="history-msg" id="history-msg" aria-live="polite"></span>
+        <span class="history-local">Kept in this browser only</span>
+        <button class="ghost-btn small" id="history-export" title="Save the history as a file, to keep a copy or open it in another browser">Export</button>
+        <button class="ghost-btn small" id="history-import" title="Add the games from an exported file">Import</button>
+        <button class="ghost-btn small" id="history-clear">Clear</button>
+        <input type="file" id="history-file" accept=".json,application/json" hidden />
       </div>
     </div>
   </div>

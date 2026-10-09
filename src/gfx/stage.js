@@ -107,7 +107,9 @@ export class Stage {
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environmentIntensity = 0.5;
 
-    this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
+    // Depth precision follows the near plane: at 0.1 the wide shots could not tell apart surfaces a hair
+    // apart, and they flickered. The orbit keeps 4 from its target, so 0.5 clips nothing it looks at.
+    this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.5, 200);
     this.camera.position.set(0, 26, 34);
 
     const c = this.controls = new OrbitControls(this.camera, r.domElement);

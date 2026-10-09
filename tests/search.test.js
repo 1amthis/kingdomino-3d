@@ -3,9 +3,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DOMINOES, Kingdom, footprint } from '../src/core/rules.js';
-import { Rng } from '../src/core/rng.js';
-import { Board } from '../src/core/search/engine.js';
-import { moveOut } from '../src/core/search/state.js';
+import { Rng, mulberry32 } from '../src/core/rng.js';
+import { Board, DONE } from '../src/core/search/engine.js';
+import { gameFrom, moveOut } from '../src/core/search/state.js';
 import { playGame } from '../scripts/headless.js';
 
 // What a placement leaves on the table: the two squares with their terrain and crowns, in either order.
@@ -68,4 +68,29 @@ test('the expert plays legal moves in every game setup', () => {
     const { ranking } = playGame({ ...setup, seed: 11 + i, budget: { sims: 80, ms: 1000 } });
     assert.equal(ranking.length, setup.types.length);
   });
+});
+
+test('three players draft lines of 4 and discard the domino nobody claims', () => {
+  const tables = [];
+  const { players, unclaimed } = playGame({ types: ['expert', 'hard', 'normal'], seed: 7, budget: { sims: 40, ms: 1000 },
+    onDecision: (table) => tables.push(structuredClone(table)) }); // (as the worker receives it)
+  // 12 lines, each leaving one domino out: every domino in the box goes through, 12 to each kingdom
+  assert.equal(unclaimed.length, 12);
+  const dealt = new Set(unclaimed);
+  for (const p of players) {
+    assert.equal(p.kingdom.placements.length + p.kingdom.discards.length, 12);
+    for (const pl of p.kingdom.placements) dealt.add(pl.id);
+    for (const id of p.kingdom.discards) dealt.add(id);
+  }
+  assert.equal(dealt.size, 48);
+  // the search knows the discarded dominoes are gone: the chest is exactly what it has not seen
+  for (const t of tables) assert.equal(48 - t.seen.length, t.left, `${t.phase} with ${t.left} left`);
+  // and plays the same game: from the opening draft to the end, every king lays 12 dominoes
+  const game = gameFrom(tables[0]), rnd = mulberry32(7);
+  game.determinize(rnd);
+  while (game.phase !== DONE) {
+    const acts = game.legal();
+    game.apply(acts[(rnd() * acts.length) | 0]);
+  }
+  for (const b of game.boards) assert.equal(b.placed + b.discards, 12);
 });

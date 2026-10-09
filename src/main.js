@@ -5,7 +5,10 @@ import { buildTable } from './gfx/table.js';
 import { Effects } from './gfx/effects.js';
 import { Sound } from './audio/sound.js';
 import { Hud } from './ui/hud.js';
-import { Controller } from './game/controller.js';
+import { HistoryView } from './ui/history.js';
+import { GameLog } from './core/history.js';
+import { SavedGame } from './core/moves.js';
+import { Controller, ReplayError } from './game/controller.js';
 import { HostSession, GuestSession, inviteCode, inviteLink, clearInvite, isLocalHost } from './net/online.js';
 
 const COLORS = ['#e2558f', '#f2c230', '#4fb34f', '#3f7fdb'];
@@ -85,6 +88,32 @@ async function main() {
   hud.setToggle('sound', settings.sfx);
   hud.on('setting', ({ key, value }) => { if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
 
+  // ---------- history ----------
+  // Every finished game is kept in this browser (localStorage), and what stands out about it shows on
+  // the results card, with a way into the history at that game. After the first one, the browser is
+  // asked once not to clear that storage when it runs short of space.
+  let storage = null; // (a browser that blocks storage throws on the mere access; nothing is kept then)
+  try { storage = window.localStorage; } catch { /* blocked */ }
+  const log = new GameLog(storage);
+  const history = new HistoryView(hud, log);
+  // An offline game in progress is saved after every move, so a reload (or a phone closing the tab
+  // while it was in the background) picks it up again where it was. It goes once the game ends or is quit.
+  const ongoing = new SavedGame(storage);
+  ctl.onProgress = (state) => ongoing.save(state);
+  let askedToKeep = false;
+  ctl.onFinished = (record) => {
+    ongoing.clear();
+    const note = history.note(record);
+    if (!log.save(record)) { hud.toast('This game could not be kept in the history: this browser does not allow it.', 3.5); return { note }; }
+    if (!askedToKeep && navigator.storage && navigator.storage.persist) {
+      askedToKeep = true;
+      navigator.storage.persisted().then((kept) => kept || navigator.storage.persist()).catch(() => {});
+    }
+    return { note, review: () => history.openGame(record.id) };
+  };
+  // the coach's last grades landed after the game was saved
+  ctl.onRegraded = (record) => log.save(record);
+
   document.addEventListener('pointerdown', () => sound.init(), { once: true });
   document.addEventListener('keydown', () => sound.init(), { once: true });
 
@@ -126,8 +155,9 @@ async function main() {
     });
   }
 
-  async function startReal(config) {
-    lastConfig = config;
+  // resume: a saved game to pick up again (see moves.js)
+  async function startReal(config, resume = null) {
+    lastConfig = { ...config, seed: undefined }; // playing again deals afresh
     inMenu = stage.calm = false;
     inGame = true;
     stage.controls.autoRotate = false;
@@ -135,8 +165,24 @@ async function main() {
     hud.hideMenu();
     hud.hideLobby();
     hud.hideResults();
+    // (an online guest can be in the history, reviewing the last game, when the host deals the next)
+    history.close();
     stage.tweener.speed = ctl.settings.speed;
-    await ctl.startGame(config, { link: session });
+    await ctl.startGame(config, { link: session, resume });
+  }
+
+  // A saved game whose moves no longer replay (a change to the game since) is let go.
+  async function resumeGame(game) {
+    try {
+      await startReal(game.config, game);
+    } catch (e) {
+      if (!(e instanceof ReplayError)) throw e;
+      console.warn('[resume]', e.message);
+      ongoing.clear();
+      ctl.clearGame();
+      showMenu();
+      hud.toast('Your last game could not be picked up again.', 3.5);
+    }
   }
 
   ctl.onPlayAgain = () => {
@@ -291,6 +337,7 @@ async function main() {
       if (speed && ctl.flow === game) stage.tweener.speed = speed;
       if (!sure || !inGame || ctl.flow !== game) return;
     }
+    if (!session) ongoing.clear();
     leaveOnline();
     ctl.clearGame();
     showMenu();
@@ -317,7 +364,9 @@ async function main() {
   await new Promise((r) => setTimeout(r, 300));
   hud.hideLoading();
   const invite = inviteCode();
+  const unfinished = !invite && ongoing.load();
   if (invite) joinTable(invite);
+  else if (unfinished) resumeGame(unfinished);
   else showMenu();
 
   // expose for debugging in the console

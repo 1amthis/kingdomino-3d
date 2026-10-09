@@ -41,13 +41,14 @@ export class Coach {
   constructor(ctl) {
     this.ctl = ctl;
     this.log = []; // this game's grades: { grade, loss, hinted }
+    this.pending = new Set(); // grades still waiting for their analysis
     this.locked = false;
   }
 
   get on() { return !this.ctl.demo && !this.locked && this.ctl.settings.coach !== 'off'; }
   get study() { return this.on && this.ctl.settings.coach === 'study'; }
 
-  reset() { this.log = []; }
+  reset() { this.log = []; this.pending.clear(); }
 
   // A decision by player p begins ('open', 'pick' or 'place' for this king, with `choices` options).
   // Returns the job the move will be judged by, or null when there is nothing to judge.
@@ -64,8 +65,17 @@ export class Coach {
   // The move is made (a slot index, or a placement or null). Once the analysis is in (and after
   // `delay` ms, for the domino to land), its grade pops up at `anchor`; after a poor move the table
   // shows what the Expert would have done.
-  async judge(job, move, anchor, delay = 0) {
+  judge(job, move, anchor, delay = 0) {
     if (!job) return;
+    const p = this.grade(job, move, anchor, delay).catch((e) => console.warn('[coach]', e));
+    this.pending.add(p);
+    p.then(() => this.pending.delete(p));
+  }
+
+  // Resolves once every move made so far has its grade (or never will).
+  settled() { return Promise.all([...this.pending]); }
+
+  async grade(job, move, anchor, delay) {
     const c = this.ctl, t0 = performance.now();
     const r = await job.ready;
     if (delay) await c.tw.wait(delay);
@@ -73,6 +83,7 @@ export class Coach {
     const v = judge(r, move, job.domino);
     if (!v) return;
     this.log.push({ grade: v.grade, loss: v.loss, hinted: job.hinted });
+    c.saveProgress();
     if (performance.now() - t0 < 1500 + delay) {
       c.popup(anchor, `<div class="grade-badge ${cls(v.grade)}"><b>${v.grade}</b>${v.grade === 'Best' ? '' : `<span>${loss(v)}</span>`}</div>`, 'popup grade-pop', 2600);
     } else {

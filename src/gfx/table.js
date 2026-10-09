@@ -76,7 +76,8 @@ export function makeMat(colorHex, name, sizeCells) {
   const S = 2 * sizeCells - 1 + 0.9;
   const g = new THREE.Group();
   const edge = new THREE.Mesh(new RoundedBoxGeometry(S + 0.12, 0.05, S + 0.12, 2, 0.05), new THREE.MeshStandardMaterial({ color: 0x1c140e, roughness: 0.6 }));
-  edge.position.y = 0.0;
+  // well below the felt: a hair apart, the dark frame flickers through it in triangles from afar
+  edge.position.y = -0.01;
   edge.receiveShadow = true;
   const felt = makeFeltTexture();
   felt.repeat.set(6, 6);
@@ -113,6 +114,7 @@ export function makeDraftBoard(n) {
   const tex = makeDraftTexture(slots, 1024, Math.round(1024 * L.D / L.W));
   const g = new THREE.Group();
   const edge = new THREE.Mesh(new RoundedBoxGeometry(L.W + 0.14, 0.06, L.D + 0.14, 2, 0.05), new THREE.MeshStandardMaterial({ color: 0x2a0a0c, roughness: 0.5 }));
+  edge.position.y = -0.01; // well below the felt, as under the kingdom mats
   edge.receiveShadow = true;
   const felt = makeFeltTexture();
   felt.repeat.set(5, 5);

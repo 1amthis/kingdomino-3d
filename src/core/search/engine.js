@@ -1,7 +1,7 @@
 // A compact Kingdomino state for tree search. rules.js stays the source of truth (the tests hold the
 // two to the same placements and scores); this one trades readability for speed, so the expert AI can
 // play thousands of games to the end on every move: kingdoms are typed arrays and moves are integers.
-import { DOMINOES, TERRAINS } from '../rules.js';
+import { DOMINOES, TERRAINS, lineSize } from '../rules.js';
 
 // Terrain codes: 0 empty, 1 castle, 2–7 the six terrains, 8 the wall around the grid.
 const CASTLE = 1, WALL = 8;
@@ -173,14 +173,14 @@ export class Game {
   // Filled in by gameFrom() (state.js) from the table the controller sees.
   constructor(n, size, middle, harmony) {
     this.n = n;
-    this.L = n === 3 ? 3 : 4;
+    this.L = lineSize(n); // dominoes per line (with 3 players, one more than there are kings)
     this.middle = middle;
     this.harmony = harmony;
     this.boards = Array.from({ length: n }, () => new Board(size));
     this.seen = new Uint8Array(48); // dominoes revealed before the search began
     this.deck = new Int8Array(48); // the chest, drawn from deck[left - 1] down
     this.left = 0;
-    this.line = null; // domino indices of the line being placed (in the opening: being drafted)
+    this.line = null; // domino indices of the line being placed, claimed slots only (in the opening: being drafted)
     this.own = null; // who holds each of its slots (-1: nobody yet)
     this.nextLine = null; // the line being drafted
     this.nextOwn = null;
@@ -250,6 +250,7 @@ export class Game {
     if (this.phase === INIT) {
       this.own[m] = this.order[this.idx++];
       if (this.idx === this.order.length) {
+        this.dropUnclaimed();
         this.nextLine = this.reveal();
         this.nextOwn = new Int8Array(this.L).fill(-1);
         this.phase = PLACE;
@@ -260,12 +261,13 @@ export class Game {
       if (m === DISCARD) b.discards++;
       else b.place(m, this.line[this.idx]);
       if (this.nextLine) this.phase = PICK;
-      else if (++this.idx === this.L) this.phase = DONE;
+      else if (++this.idx === this.line.length) this.phase = DONE;
     } else if (this.phase === PICK) {
       this.nextOwn[m] = this.own[this.idx];
-      if (++this.idx === this.L) {
+      if (++this.idx === this.line.length) {
         this.line = this.nextLine;
         this.own = this.nextOwn;
+        this.dropUnclaimed();
         if (this.left) {
           this.nextLine = this.reveal();
           this.nextOwn = new Int8Array(this.L).fill(-1);
@@ -274,6 +276,14 @@ export class Game {
       }
       this.phase = PLACE;
     }
+  }
+
+  // Once every king has claimed a domino in the line, the one nobody took (3 players) is discarded.
+  dropUnclaimed() {
+    const own = this.own;
+    if (!own.includes(-1)) return;
+    this.line = this.line.filter((_, i) => own[i] >= 0);
+    this.own = own.filter((o) => o >= 0);
   }
 
   scores() { return this.boards.map((b) => b.score(this.middle, this.harmony)); }
