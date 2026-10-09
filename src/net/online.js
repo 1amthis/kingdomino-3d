@@ -251,7 +251,7 @@ export class GuestSession extends Emitter {
       type: i === you ? 'human' : TYPES.includes(s.type) ? s.type : 'normal',
       remote: i !== you,
     }));
-    return { seats, seed: config.seed >>> 0, middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel };
+    return { seats, seed: config.seed >>> 0, middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel, snake: !!config.snake };
   }
 
   // The next move from the host's stream. If the host is gone, the table simply freezes

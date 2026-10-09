@@ -15,8 +15,8 @@ import { playGame } from '../scripts/headless.js';
 const COLORS = ['#e2558f', '#f2c230', '#4fb34f', '#3f7fdb'];
 
 // A finished game as the history keeps it. seats: [{ name, type, remote? }]; a person plays like `as`.
-function record(seats, { seed = 9, as = 'hard', mightyDuel = false, ...rest } = {}) {
-  const rules = { middleKingdom: true, harmony: true, mightyDuel };
+function record(seats, { seed = 9, as = 'hard', mightyDuel = false, snake = false, ...rest } = {}) {
+  const rules = { middleKingdom: true, harmony: true, mightyDuel, snake };
   const played = playGame({ types: seats.map((s) => (s.type === 'human' ? as : s.type)), seed, ...rules, ...rest });
   played.players.forEach((p, i) => Object.assign(p, seats[i], { color: COLORS[i], crest: i }));
   const config = { seats: seats.map((s) => ({ ...s })), ...rules };
@@ -32,6 +32,7 @@ test('a record plays back move by move, to the very kingdoms it ended with', () 
     [[{ name: 'You', type: 'human' }, { name: 'Bo', type: 'hard' }], { mightyDuel: true }],
     [[{ name: 'You', type: 'human' }, { name: 'Ann', type: 'easy' }, { name: 'Bo', type: 'normal' }], {}],
     [[{ name: 'You', type: 'human' }, { name: 'Ann', type: 'easy' }, { name: 'Bo', type: 'normal' }, { name: 'Cy', type: 'hard' }], { seed: 4 }],
+    [[{ name: 'You', type: 'human' }, { name: 'Ann', type: 'easy' }, { name: 'Bo', type: 'normal' }, { name: 'Cy', type: 'hard' }], { seed: 4, snake: true }],
   ]) {
     const { r, played } = record(seats, opts);
     assert.ok(replayable(r));
@@ -132,4 +133,17 @@ test('the review grades the people’s moves, and the verdicts join the stats', 
   assert.equal(plan[1] in junk.review, false);
   assert.equal(junk.review[plan[2]], null, 'a move the analysis had nothing on stays known');
   assert.equal(cleanRecord({ ...back, moves: undefined }).review, undefined, 'no moves, no review');
+});
+
+test('a game with the snake opening keeps its rule and plays back in its order', () => {
+  const seats = [{ name: 'You', type: 'human' }, { name: 'Ann', type: 'easy' }, { name: 'Bo', type: 'normal' }, { name: 'Cy', type: 'hard' }];
+  const { r } = record(seats, { seed: 6, snake: true });
+  assert.equal(r.rules.snake, true);
+  const { turns, frames } = replayRecord(r);
+  // the opening draft's order, then the first round's lays in reverse
+  const opening = turns.filter((t) => t.phase === 'open').map((t) => t.seat);
+  const firstLays = turns.filter((t) => t.kind === 'place').slice(0, 4).map((t) => t.seat);
+  assert.deepEqual(firstLays, opening.slice().reverse());
+  // the board still shows each line in number order
+  for (const f of frames) for (const line of [f.current, f.next]) assert.deepEqual(line.map((s) => s.id), line.map((s) => s.id).sort((a, b) => a - b));
 });

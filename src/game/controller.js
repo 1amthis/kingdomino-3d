@@ -201,7 +201,7 @@ export class Controller {
     this.tw.speed = demo ? 2.4 : this.settings.speed;
     const n = config.seats.length;
     const size = config.mightyDuel ? 7 : 5;
-    this.opts = { middleKingdom: config.middleKingdom, harmony: config.harmony, size };
+    this.opts = { middleKingdom: config.middleKingdom, harmony: config.harmony, size, snake: !!config.snake && n > 2 };
     this.rng = new Rng();
     this.startedAt = (resume && resume.start) || Date.now();
     this.moves = [];
@@ -552,6 +552,12 @@ export class Controller {
       round++;
       this.setRoundLabel(round);
       if (this.deck.length) await this.drawLine(flow);
+      // the snake opening (a house rule): the first round goes in reverse opening order
+      if (round === 1 && this.opts.snake) {
+        this.current.sort((a, b) => this.openingOrder.indexOf(b.king) - this.openingOrder.indexOf(a.king));
+        const p = this.current[0].king.player, you = this.hud.isYou(p);
+        if (!this.quiet) this.hud.toast(`Snake opening: ${you ? 'you' : this.hud.who(p)} picked last, so ${you ? 'you go' : 'goes'} first this round`, 3);
+      }
       for (const slot of this.current) {
         const king = slot.king;
         await this.placePhase(flow, king.player, slot);

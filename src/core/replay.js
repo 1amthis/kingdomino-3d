@@ -7,7 +7,7 @@ import { describeTable } from './search/state.js';
 // A history record that can be played back: kept with its seed and moves, in this version's flow.
 export const replayable = (r) => !!r && r.flow === FLOW && Number.isInteger(r.seed) && Array.isArray(r.moves) && r.moves.length > 0;
 
-const lineOf = (t, slots) => slots.map((s) => {
+const lineOf = (t, slots) => slots.slice().sort((a, b) => a.index - b.index).map((s) => {
   const seat = s.king ? s.king.player.index : -1, k = seat >= 0 && t.players[seat].kingdom;
   return { id: s.domino.id, seat, done: !!k && (k.placements.some((q) => q.id === s.domino.id) || k.discards.includes(s.domino.id)) };
 });

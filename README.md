@@ -144,6 +144,9 @@ picks it up again where it was. (An online game can't be: the connection is gone
 - Connection rule (touch the castle or a matching terrain), the 5×5 limit, forced discards when nothing fits.
 - Turn order from the drafting line, final scoring with the official tie-breakers.
 - Optional **Middle Kingdom** (+10), **Harmony** (+5) and the **Mighty Duel** (2 players, 7×7, all 48 tiles).
+- House rule, off by default: the **snake opening** (3 or 4 players). Whoever picked last in the opening draft goes
+  first in round 1. In the official order, the first picker wins 32% of four-player Expert games, against a fair share
+  of 25%. With the snake it's 27%, and the four seats can no longer be told apart (1,200 games each way).
 
 ## The AI
 
@@ -178,9 +181,9 @@ Expert against Hard, on paired deals (each deal played from both seats), 2,000 s
 `--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
 
 `npm run study` points the same search at the game itself: what each domino is worth as a first pick and what a later
-slot costs (`openings`), who wins from which seat and what winning kingdoms are made of (`selfplay`), and how to lay a
-domino (`firstplace`, `placement`). Runs save as they go and pick up where they stopped; the options are at the top of
-[`scripts/study.js`](scripts/study.js).
+slot costs (`openings`), who wins from which seat and what winning kingdoms are made of (`selfplay`, with `--snake` for
+the house rule), and how to lay a domino (`firstplace`, `placement`). Runs save as they go and pick up where they
+stopped; the options are at the top of [`scripts/study.js`](scripts/study.js).
 
 ### The coach
 

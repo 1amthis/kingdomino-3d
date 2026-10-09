@@ -41,7 +41,7 @@ export function makeRecord({ players, rows, config, seed = null, moves = null, o
     id: `${end.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     start, end,
     online, // 'host' or 'guest' for a game played online
-    rules: { middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel },
+    rules: { middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel, snake: !!config.snake },
     seed,
     ...(seed !== null && moves ? { flow: FLOW, moves: moves.slice() } : {}),
     coach, // 'trainer' or 'study' when the coach graded the game
@@ -123,7 +123,7 @@ export function cleanRecord(r) {
     v: VERSION, id: r.id,
     start: Number.isFinite(r.start) && r.start <= r.end ? r.start : null, end: r.end,
     online: r.online === 'host' || r.online === 'guest' ? r.online : null,
-    rules: { middleKingdom: !!rules.middleKingdom, harmony: !!rules.harmony, mightyDuel: !!rules.mightyDuel },
+    rules: { middleKingdom: !!rules.middleKingdom, harmony: !!rules.harmony, mightyDuel: !!rules.mightyDuel, snake: !!rules.snake },
     seed,
     // (a game from an older flow keeps its moves, though this version cannot replay them)
     ...(moves ? { flow: r.flow, moves } : {}),

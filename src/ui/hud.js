@@ -164,7 +164,7 @@ export class Hud {
       s._row.querySelector('.seat-pick').innerHTML = `${seatFace(SEAT_KINDS.find((k) => k.v === s.type))}<svg class="sp-chev" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5"/></svg>`;
     };
     seats.forEach(face);
-    const duelWrap = $('#opt-duel-wrap');
+    const duelWrap = $('#opt-duel-wrap'), snakeWrap = $('#opt-snake-wrap');
     const refresh = () => {
       const active = seats.filter((s) => s.type !== 'off').length;
       const online = seats.some((s) => s.type === 'remote');
@@ -174,6 +174,7 @@ export class Hud {
         s._row.querySelector('input').disabled = s.type === 'remote';
       });
       duelWrap.classList.toggle('disabled', active !== 2);
+      snakeWrap.classList.toggle('disabled', active < 3);
       $('#start-btn').disabled = active < 2;
       $('#start-btn').style.opacity = active < 2 ? 0.5 : 1;
       $('#start-btn span').textContent = online ? 'Invite your friends' : 'Start game';
@@ -193,6 +194,7 @@ export class Hud {
         middleKingdom: $('#opt-middle').checked,
         harmony: $('#opt-harmony').checked,
         mightyDuel: active.length === 2 && $('#opt-duel').checked,
+        snake: active.length > 2 && $('#opt-snake').checked,
       });
     };
     btn.addEventListener('click', handler);

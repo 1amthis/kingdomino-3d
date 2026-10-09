@@ -94,3 +94,25 @@ test('three players draft lines of 4 and discard the domino nobody claims', () =
   }
   for (const b of game.boards) assert.equal(b.placed + b.discards, 12);
 });
+
+test('with the snake house rule the first round goes in reverse opening order, at the table and in the search', () => {
+  const tables = [];
+  playGame({ types: ['expert', 'expert', 'expert', 'expert'], seed: 5, snake: true, budget: { sims: 30, ms: 1000 },
+    onDecision: (table) => tables.push(structuredClone(table)) });
+  const opening = tables.filter((t) => t.phase === 'open'), order = opening[0].order;
+  assert.equal(opening.length, 4);
+  // at the table: the first four dominoes are laid by the openers in reverse, each then picking
+  const placers = tables.filter((t) => t.phase !== 'open').slice(0, 8).filter((t) => t.phase === 'place').map((t) => t.own[t.idx]);
+  assert.deepEqual(placers, [...order].reverse());
+  // in the search: once the last opener has drafted, the engine plays the first round in the same order
+  const game = gameFrom(opening[3]);
+  game.determinize(mulberry32(5));
+  game.apply(game.legal()[0]);
+  assert.deepEqual([...game.own], [...order].reverse());
+  // without the rule, the first round goes in slot order (lowest domino first) as usual
+  const plain = [];
+  playGame({ types: ['expert', 'expert', 'expert', 'expert'], seed: 5, budget: { sims: 30, ms: 1000 },
+    onDecision: (table) => plain.push(structuredClone(table)) });
+  const first = plain.find((t) => t.phase === 'place');
+  assert.deepEqual(first.line, [...first.line].sort((a, b) => a - b));
+});

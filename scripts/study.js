@@ -3,7 +3,8 @@
 //     Random opening lines; the first picker's options are each searched with the same budget, so every
 //     line says what each of its dominoes is worth as a first pick, in points of expected final lead.
 //   node scripts/study.js selfplay --games 600 --sims 2000 --players 2 --out selfplay.json
-//     Expert against Expert: who wins from which seat, and what winning kingdoms are made of.
+//     Expert against Expert: who wins from which seat, and what winning kingdoms are made of. --snake plays
+//     the house rule where the first round after the opening goes in reverse opening order (3-4 players).
 //   node scripts/study.js firstplace --count 1410 --sims 2000 --out firstplace.json
 //     The first domino on an empty kingdom (two players): each of the ways to lay it, same budget each.
 //   node scripts/study.js placement --games 400 --sims 300 --players 2 --out placement.json
@@ -59,11 +60,11 @@ function opening({ seed, players, sims }) {
   return { seed, line: [...game.line].map((d) => d + 1), ev: bySlot.map((m) => m.ev), win: bySlot.map((m) => m.win) };
 }
 
-function selfplay({ seed, players, sims }) {
+function selfplay({ seed, players, sims, snake }) {
   let order = null;
   const picks = [];
   const { players: seats, ranking } = playGame({
-    types: Array(players).fill('expert'), seed, budget: { sims, ms: 1e9 },
+    types: Array(players).fill('expert'), seed, snake, budget: { sims, ms: 1e9 },
     onDecision: (table, move) => {
       if (table.phase !== 'open') return;
       order = table.order;
@@ -262,12 +263,12 @@ async function main() {
   const DEFAULTS = { openings: [3000, 5000], selfplay: [600, 2000], firstplace: [47 * 30, 2000], placement: [400, 300] };
   const players = study === 'firstplace' ? 2 : +arg('players', 2), sims = +arg('sims', DEFAULTS[study][1]);
   const count = +arg('count', arg('deals', arg('games', DEFAULTS[study][0])));
-  const first = +arg('seed', 1), out = arg('out', `${study}-${players}p.json`);
+  const first = +arg('seed', 1), out = arg('out', `${study}-${players}p.json`), snake = !!arg('snake', false);
   // a few workers by default: a long study on every core makes a laptop loud and hot
   const threads = Math.min(count, +arg('threads', Math.min(4, availableParallelism())));
 
   // pick up the records an interrupted run of the same study already saved (a torn last line is dropped)
-  const partial = `${out}.partial`, header = JSON.stringify({ study, players, sims });
+  const partial = `${out}.partial`, header = JSON.stringify({ study, players, sims, snake });
   const records = [];
   if (existsSync(partial)) {
     const [head, ...lines] = readFileSync(partial, 'utf8').split('\n').filter(Boolean);
@@ -285,7 +286,7 @@ async function main() {
   let next = 0, done = 0;
   const t0 = performance.now();
   await Promise.all(Array.from({ length: Math.min(threads, todo.length) }, () => new Promise((resolve, reject) => {
-    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { study, players, sims } });
+    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { study, players, sims, snake } });
     const feed = () => w.postMessage(next < todo.length ? todo[next++] : null);
     w.on('message', (rec) => {
       records.push(rec);
@@ -301,7 +302,7 @@ async function main() {
     feed();
   })));
   records.sort((a, b) => a.seed - b.seed);
-  const data = { study, players, sims, seconds: (performance.now() - t0) / 1000, records };
+  const data = { study, players, sims, snake, seconds: (performance.now() - t0) / 1000, records };
   writeFileSync(out, JSON.stringify(data));
   unlinkSync(partial);
   SUMMARY[study](data);
@@ -558,8 +559,8 @@ export const SUMMARY = {
     console.log(`the line's highest number is the best first pick in ${(100 * hi / records.length).toFixed(1)}% of lines; taking it always gives up ${mean(records.map((r) => Math.max(...r.ev) - r.ev[L - 1])).toFixed(2)} points on average`);
   },
 
-  selfplay({ players, sims, seconds, records }) {
-    console.log(`\nExpert against Expert, ${players} players: ${records.length} games, ${sims} simulations per move (${seconds.toFixed(0)} s)`);
+  selfplay({ players, sims, snake, seconds, records }) {
+    console.log(`\nExpert against Expert, ${players} players${snake ? ', snake house rule' : ''}: ${records.length} games, ${sims} simulations per move (${seconds.toFixed(0)} s)`);
     // seat = position in the opening draft (the first king to pick)
     const firstPos = (r, p) => r.order.indexOf(p);
     const bySeat = Array.from({ length: players }, () => ({ win: 0, games: 0, total: 0, margin: 0 }));
@@ -616,9 +617,9 @@ export const SUMMARY = {
 };
 
 if (!isMainThread) {
-  const { study, players, sims } = workerData;
+  const { study, players, sims, snake } = workerData;
   parentPort.on('message', (seed) => {
     if (seed === null) process.exit(0);
-    parentPort.postMessage(WORK[study]({ seed, players, sims }));
+    parentPort.postMessage(WORK[study]({ seed, players, sims, snake }));
   });
 } else if (resolve(process.argv[1] || '').toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()) main();
