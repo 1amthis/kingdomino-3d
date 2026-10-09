@@ -1,7 +1,12 @@
-// The history window: every game finished in this browser, and each person's stats drawn from them.
-// Everything lives in this browser's storage; export and import carry it to another one.
+// The history window: every game finished in this browser, and each person's stats drawn from them; a
+// game can be played back move by move, and reviewed by the coach. Everything lives in this browser's
+// storage; export and import carry it to another one.
 import { TERRAIN_INFO } from '../core/rules.js';
 import { decodeMap, profiles, statsFor, parseExport, highlights } from '../core/history.js';
+import { replayable, replayRecord } from '../core/replay.js';
+import { reviewedSeats, reviewPlan, reviewVerdicts, gradeOf, isPoor } from '../core/review.js';
+import { ReplayView } from './replay.js';
+import { ReviewRunner } from './review.js';
 import { esc, shieldSVG, pips, CROWN_SVG } from './hud.js';
 
 const $ = (s) => document.querySelector(s);
@@ -13,6 +18,7 @@ const ordinal = (n) => `${n}${['st', 'nd', 'rd'][n - 1] || 'th'}`; // places run
 const pct = (x) => `${Math.round(x * 100)}%`;
 const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
 const oneDecimal = (x) => (Math.round(x * 10) / 10).toFixed(1);
+const listOf = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 // "Today, 14:32", "Yesterday, 09:10", "3 Oct, 14:32", "3 Oct 2025"; long: "Friday 3 October, 14:32"
 function when(t, { long = false, time: withTime = true } = {}) {
@@ -67,19 +73,31 @@ export class HistoryView {
     this.tab = 'stats';
     this.profile = null;
     this.shown = PAGE;
+    this.view = null; // 'replay' while the open game plays back
+    this.replay = null; // its ReplayView
+    this.replays = new Map(); // game id → replayRecord()'s frames and turns, or null if it cannot be replayed
+    this.reviews = new ReviewRunner(log, (r, error) => this.reviewed(r, error));
     $('#menu-history').addEventListener('click', () => this.open());
-    this.el.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { this.tab = b.dataset.tab; this.gameId = null; this.render(); }));
+    this.el.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { this.tab = b.dataset.tab; this.gameId = null; this.view = null; this.render(); }));
     $('#history-export').addEventListener('click', () => this.exportFile());
     const file = $('#history-file');
     $('#history-import').addEventListener('click', () => file.click());
     file.addEventListener('change', () => { if (file.files[0]) this.importFile(file.files[0]); file.value = ''; });
     $('#history-clear').addEventListener('click', () => this.clear());
     this.body.addEventListener('click', (e) => this.onClick(e));
+    window.addEventListener('keydown', (e) => { if (this.replay && !this.el.classList.contains('hidden')) this.replay.key(e); });
+    // however the window closes (its button, a click beside it, Escape), the review and the replay stop
+    new MutationObserver(() => {
+      if (!this.el.classList.contains('hidden')) return;
+      if (this.reviews.job) { this.reviews.stop(); this.say(''); }
+      if (this.replay) this.replay.pause();
+    }).observe(this.el, { attributes: true, attributeFilter: ['class'] });
   }
 
   open(tab = this.tab) {
     this.tab = tab;
     this.gameId = null;
+    this.view = null;
     this.shown = PAGE;
     this.say('');
     this.render();
@@ -97,10 +115,14 @@ export class HistoryView {
     });
     $('#history-export').disabled = $('#history-clear').disabled = !records.length;
     const game = this.gameId && records.find((r) => r.id === this.gameId);
+    if (this.replay) this.replay.pause();
+    this.replay = game && this.view === 'replay' && this.replayOf(game) ? new ReplayView(game, this.replayOf(game), this.step) : null;
     this.body.innerHTML = !records.length ? this.empty()
-      : game ? this.gameView(game)
-        : this.tab === 'stats' ? this.statsView(records) : this.listView(records);
+      : this.replay ? this.replayHead(game) + this.replay.html()
+        : game ? this.gameView(game)
+          : this.tab === 'stats' ? this.statsView(records) : this.listView(records);
     this.body.scrollTop = 0;
+    if (this.replay) this.replay.mount(this.body);
     this.wireChart();
   }
 
@@ -110,12 +132,27 @@ export class HistoryView {
   }
 
   onClick(e) {
-    const t = e.target.closest('[data-game], [data-profile], [data-more], [data-back]');
+    const t = e.target.closest('[data-game], [data-profile], [data-more], [data-back], [data-back-game], [data-replay], [data-review], [data-review-stop]');
     if (!t) return;
-    if (t.dataset.game) { this.gameId = t.dataset.game; this.render(); }
-    else if (t.dataset.profile) { this.profile = t.dataset.profile; this.render(); }
-    else if (t.dataset.more != null) { this.shown += PAGE; this.render(); }
-    else if (t.dataset.back != null) { this.gameId = null; this.render(); }
+    const d = t.dataset;
+    if (d.game) { this.gameId = d.game; this.view = null; this.render(); }
+    else if (d.profile) { this.profile = d.profile; this.render(); }
+    else if (d.more != null) { this.shown += PAGE; this.render(); }
+    else if (d.back != null) { this.gameId = null; this.render(); }
+    else if (d.backGame != null) { this.view = null; this.render(); }
+    else if (d.replay != null) { this.view = 'replay'; this.step = Number(d.replay) || 0; this.render(); }
+    else if (d.review != null) { this.say(''); this.reviews.run(this.gameId); }
+    else if (d.reviewStop != null) { this.reviews.stop(); this.reviewed(this.log.all().find((r) => r.id === this.gameId)); }
+  }
+
+  // A game played back: its moves replayed with the rules (cached, they never change), or null.
+  replayOf(r) {
+    if (!this.replays.has(r.id)) {
+      let data = null;
+      try { if (replayable(r)) data = replayRecord(r); } catch (e) { console.warn('[replay]', e.message); }
+      this.replays.set(r.id, data);
+    }
+    return this.replays.get(r.id);
   }
 
   // ---------- stats ----------
@@ -255,10 +292,85 @@ export class HistoryView {
         <div class="hd-map">${kingdomSVG(p.map, { cell: size === 7 ? 9 : 12, size })}</div>
         <div class="res-total">${p.total}</div></div>`;
     }).join('');
-    const coach = r.verdict ? section('The coach’s verdict', verdict(r.verdict)) : '';
+    const data = this.replayOf(r);
+    const review = data ? this.reviewSection(r, data) : '';
+    // once the review is complete, its verdicts stand in for the one given during the game
+    const coach = r.verdict && !review.includes('data-reviewed') ? section('The coach’s verdict', verdict(r.verdict)) : '';
+    const replay = data ? '<button type="button" class="royal-btn hd-replay" data-replay><span>&#9654; Replay</span></button>' : '';
     return `<div class="hd-head"><button type="button" class="ghost-btn small" data-back>&lsaquo; All games</button>
-        <div><div class="hd-title">${when(r.end, { long: true })}</div><div class="hd-meta">${[mode, table, minutes && `${minutes} min`, ...rules].filter(Boolean).join(' · ')}</div></div></div>
-      <div class="hd-rows">${rows}</div>${coach}`;
+        <div class="hd-titles"><div class="hd-title">${when(r.end, { long: true })}</div><div class="hd-meta">${[mode, table, minutes && `${minutes} min`, ...rules].filter(Boolean).join(' · ')}</div></div>${replay}</div>
+      <div class="hd-rows">${rows}</div>${coach}${review}`;
+  }
+
+  replayHead(r) {
+    const [mode, table] = modeOf(r);
+    return `<div class="hd-head"><button type="button" class="ghost-btn small" data-back-game>&lsaquo; Final scores</button>
+      <div class="hd-titles"><div class="hd-title">Replay</div><div class="hd-meta">${[when(r.end), mode, table].join(' · ')}</div></div></div>`;
+  }
+
+  // ---------- the coach's review ----------
+  // The people's moves graded after the game: an offer to start (or carry on), the progress while it
+  // runs, then each person's verdict and the moves that cost the most.
+  reviewSection(r, data) {
+    const seats = reviewedSeats(r), plan = seats.length ? reviewPlan(r, data.turns) : [];
+    if (!plan.length) return '';
+    const review = r.review || {}, done = plan.filter((k) => k in review).length;
+    const running = this.reviews.progress(r.id);
+    let body;
+    if (running) {
+      body = `<div class="rv-run"><div class="rv-bar"><i style="width:${(running.done / running.total) * 100}%"></i></div>
+        <span class="rv-text">Grading move ${Math.min(running.done + 1, running.total)} of ${running.total}…</span>
+        <button type="button" class="ghost-btn small" data-review-stop>Stop</button></div>
+        <p class="h-hint">One move at a time, while this window stays open.</p>`;
+    } else if (done < plan.length) {
+      const people = seats.map((i) => r.players[i].name);
+      const whose = people.length === 1 && /^you$/i.test(people[0].trim()) ? 'every move you made' : `every move by ${listOf(people.map(esc))}`;
+      const minutes = Math.max(1, Math.ceil(((plan.length - done) * 2.5) / 60));
+      body = `<p class="h-hint">Now that the game is over, the coach can grade ${whose}, as it does during a game, and show where the
+        game turned. It looks at one move at a time while this window stays open: up to ${plural(minutes, 'minute')}.${r.verdict ? ' Its numbers can differ a little from the ones given during the game.' : ''}</p>
+        <button type="button" class="ghost-btn small rv-start" data-review>${done ? `Carry on (${done} of ${plan.length} moves graded)` : 'Review this game'}</button>`;
+    } else body = this.reviewResult(r, data, plan, seats);
+    return `<div class="h-sec" id="h-review"${running || done < plan.length ? '' : ' data-reviewed'}><h3>The coach’s review</h3>${body}</div>`;
+  }
+
+  reviewResult(r, data, plan, seats) {
+    const verdicts = reviewVerdicts(r, plan, data.turns);
+    const many = seats.length > 1;
+    const people = seats.filter((i) => verdicts[i]).map((i) => {
+      const p = r.players[i];
+      return `${many ? `<div class="rv-who">${shieldSVG(p.color, p.crest)}<span style="color:${p.color}">${esc(p.name)}</span></div>` : ''}${verdict(verdicts[i])}`;
+    }).join('');
+    const review = r.review, worst = plan.filter((k) => review[k] && isPoor(review[k][0])).sort((a, b) => review[b][0] - review[a][0]).slice(0, 5);
+    const moments = worst.map((k) => {
+      const t = data.turns[k], p = r.players[t.seat], loss = review[k][0], grade = gradeOf(loss), round = data.frames[k].round;
+      const what = t.kind === 'select' ? `picked domino ${t.id}` : t.value ? `laid domino ${t.id}` : `discarded domino ${t.id}`;
+      return `<button type="button" class="rv-moment" data-replay="${k + 1}">
+        <span class="grade g-${grade.toLowerCase()}">${grade}</span>
+        <span class="rv-what">${many ? `<b style="color:${p.color}">${esc(p.name)}</b> ` : ''}${what}<i>${round ? `Round ${round}` : 'Opening draft'}</i></span>
+        <span class="rv-loss">&minus;${oneDecimal(loss)}</span><span class="rv-go" aria-hidden="true">&rsaquo;</span></button>`;
+    }).join('');
+    return `<div class="rv-verdicts">${people}</div>
+      <h4 class="rv-head">Turning points</h4>
+      ${moments ? `<div class="rv-moments">${moments}</div><p class="h-hint">Open one to see it in the replay, with what the Expert would have done.</p>`
+        : '<p class="h-hint">No move gave up more than 2.5 points against the Expert’s choice.</p>'}`;
+  }
+
+  // A grade has landed (or the review stopped or ended): the open game shows it.
+  reviewed(r, error = null) {
+    if (error) this.say(error);
+    if (!r || r.id !== this.gameId || this.el.classList.contains('hidden')) return;
+    if (this.replay) { this.replay.refresh(r); return; }
+    const sec = this.body.querySelector('#h-review'), running = this.reviews.progress(r.id);
+    const bar = sec && sec.querySelector('.rv-bar i');
+    if (running && bar) {
+      // while it runs, only the bar moves, so the Stop button stays put under the pointer
+      bar.style.width = `${(running.done / running.total) * 100}%`;
+      sec.querySelector('.rv-text').textContent = `Grading move ${Math.min(running.done + 1, running.total)} of ${running.total}…`;
+      return;
+    }
+    const top = this.body.scrollTop;
+    this.render();
+    this.body.scrollTop = top;
   }
 
   // ---------- export, import, clear ----------
@@ -292,6 +404,7 @@ export class HistoryView {
     const n = this.records.length;
     const sure = await this.hud.ask('Clear the history?', `The ${plural(n, 'game')} kept in this browser will be deleted, with the stats drawn from them. Export them first to keep a copy.`, { yes: 'Clear', no: 'Keep them' });
     if (!sure) return;
+    this.reviews.stop();
     this.log.clear();
     this.gameId = null;
     this.say('The history is empty.');

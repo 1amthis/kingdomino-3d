@@ -83,6 +83,7 @@ export class Coach {
     const v = judge(r, move, job.domino);
     if (!v) return;
     this.log.push({ grade: v.grade, loss: v.loss, hinted: job.hinted });
+    c.saveProgress();
     if (performance.now() - t0 < 1500 + delay) {
       c.popup(anchor, `<div class="grade-badge ${cls(v.grade)}"><b>${v.grade}</b>${v.grade === 'Best' ? '' : `<span>${loss(v)}</span>`}</div>`, 'popup grade-pop', 2600);
     } else {

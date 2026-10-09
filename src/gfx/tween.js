@@ -25,10 +25,18 @@ export class Tweener {
   constructor() {
     this.items = [];
     this.speed = 1;
+    // A resumed game catching up: its tweens (tag 'game') jump straight to their end, so the table is
+    // set out as it was without a single frame drawn.
+    this.instant = false;
   }
 
   // update(easedT, rawT) is called every frame; resolves when finished.
   add({ duration = 500, delay = 0, ease = Ease.outCubic, update = () => {}, start, tag = 'game' } = {}) {
+    if (this.instant && tag === 'game') {
+      start && start();
+      update(ease(1), 1);
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
       this.items.push({ t: -delay, duration: Math.max(1, duration), ease, update, start, started: false, resolve, tag });
     });

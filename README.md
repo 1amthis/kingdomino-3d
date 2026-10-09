@@ -49,7 +49,8 @@ full rules engine and four levels of AI, all running in the browser with no down
   shows what every option is worth while you decide. At the end, the results card gives its verdict: points lost per
   move and how your grades split ([more](#the-coach)).
 - Set a seat to **Expert** and the coach to **Trainer** or **Study** in the menu. For fair play, the coach turns itself
-  off whenever more than one person plays.
+  off whenever more than one person plays; once the game is over, **History** can have it review every move,
+  games with friends included.
 
 ## What's on the table
 
@@ -119,11 +120,22 @@ Every finished game is kept in your browser, and **History** in the main menu sh
   games, the record against each AI level and against each friend, records (richest property, most crowns, longest
   winning run, how often the bonuses come) and, with the coach on, points lost per move over time.
 - **Games**: every game with its final scores, each kingdom drawn square by square, and the coach's verdict.
+- **Replay**: a game played back move by move (step, play, or drag along the moves), every kingdom growing on its
+  frame, the drafting board's two lines and what each move did.
+- **The coach's review**: once a game is over, the coach grades every move of the people at the table, yours and your
+  friends' (not the computer's), from the very positions they faced, as it does during a game. It shows each person's
+  verdict and the turning points; open one and the replay jumps there, with what the Expert would have done drawn
+  in blue. The grades are saved with the game (a review stopped halfway carries on later), and reviewed games count
+  in the coach's stats.
 - The results card says when a game sets a **personal best** or is a **first win over the Expert**.
 
 There is no server and no account: the history lives in this browser only (`localStorage`). Clearing the site's
 data or using a private window loses it, and other devices don't see it. **Export** saves it as a file, and
 **Import** adds a file's games to another browser's history. Online games are kept by every player who takes part.
+
+Each game is also kept move by move: with the seed that dealt it, its moves replay it exactly. A game against the
+computer or on one screen is saved after every move, so a reload, or a phone closing the tab in the background,
+picks it up again where it was. (An online game can't be: the connection is gone.)
 
 ## Rules implemented
 
@@ -169,7 +181,8 @@ Expert against Hard, on paired deals (each deal played from both seats), 2,000 s
 
 Pick it in the main menu (or in Settings during a game). While you decide, the Expert quietly analyses your position
 in a worker of its own: the same search, up to 8,000 simulations, with at least 24 for every legal move. For fair play the coach locks itself off whenever more than one
-person is at the table, on the same screen or online.
+person is at the table, on the same screen or online. Once the game is over, fair play no longer stands in the way:
+the history's **review** grades the people's moves after the fact (see [History and stats](#history-and-stats)).
 
 - **Trainer**: once you move, a badge pops up on it, from **Best** through Excellent, Good, Inaccuracy and Mistake to
   **Blunder**, by the points of expected final lead the move gives up against the Expert's choice (0.3, 1, 2.5, 5 and 9
@@ -251,6 +264,10 @@ src/
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
   core/coach.js      the coach's grades: points given up against the Expert's move, a game's tally
   core/history.js    the game history: each finished game as a record, the log in localStorage, export/import, stats
+  core/moves.js      a game's moves as short strings (they replay it with its seed), the game in progress saved
+  core/table.js      the game flow with the rules alone (deal, draft, place and pick), as a generator of decisions
+  core/replay.js     a recorded game played back: the table after every move, the position before every decision
+  core/review.js     the coach's review: which moves it grades, each grade as the record keeps it, the verdicts
   core/rng.js        seeded PRNG so every tile's diorama is stable
   core/search/       the Expert AI: engine.js (typed-array kingdoms for fast playouts), mcts.js (the tree search),
                      state.js (table ⇄ search state), worker.js + expert.js (the Web Workers, one for the Expert's
@@ -266,17 +283,21 @@ src/
   gfx/textures.js    canvas-painted wood, felt, tile backs, water normals
   audio/sound.js     synthesised SFX and generative music
   ui/hud.js          menu, lobby, player cards, prompts, tooltips, results
-  ui/history.js      the history window: stats, the chart, the list of games, a game's final scores
+  ui/history.js      the history window: stats, the chart, the list of games, a game's final scores and review
+  ui/replay.js       a game played back in the history window, move by move
+  ui/review.js       runs the coach's review, one position at a time, saving each grade as it lands
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
   game/controller.js game flow, animation choreography, camera direction, input
   game/coach.js      the coach at the table: analyses, grades, advice, study notes, the results verdict
 scripts/
-  headless.js        the game flow without the 3D, for benchmarks and tests
+  headless.js        core/table.js's flow with AI seats, for benchmarks and tests; records moves and replays them
   bench.js           Expert against a heuristic level on paired deals
 tests/
   search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
   coach.test.js      the analysis covers every move soundly; grades follow from it
   history.test.js    records read back unchanged, imports are checked and merged once, stats count each side right
+  moves.test.js      moves replay a game exactly; a record that doesn't fit its deal, or a broken save, is refused
+  replay.test.js     a record plays back to the kingdoms it ended with; the review sees the positions the Expert saw
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering

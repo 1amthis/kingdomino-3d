@@ -540,6 +540,79 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 .hd-row .shield { width: 30px; height: 34px; }
 .hd-row .res-total { min-width: 1.5em; font-size: 28px; text-align: right; }
 .res-name .tag { padding: 1px 6px; border-radius: 5px; vertical-align: 2px; font-size: 10px; font-weight: 500; letter-spacing: 1px; background: rgba(255, 255, 255, 0.08); color: var(--ink-dim); }
+.hd-titles { flex: 1; min-width: 0; }
+.royal-btn.hd-replay { padding: 9px 18px; font-size: 14px; letter-spacing: 1px; }
+
+/* a game played back move by move */
+.rp-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 6px; padding: 6px 0 10px; background: linear-gradient(var(--panel), var(--panel)), #120c08; }
+.rp-btn { flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 9px; cursor: pointer;
+  border: 1px solid rgba(240, 199, 94, 0.35); background: rgba(0, 0, 0, 0.25); transition: background 0.2s, border-color 0.2s; }
+.rp-btn:hover, .rp-btn:focus-visible { background: rgba(240, 199, 94, 0.12); border-color: var(--gold); outline: none; }
+.rp-btn svg { width: 18px; height: 18px; fill: var(--gold); stroke: var(--gold); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.rp-btn.rp-play { width: 44px; background: linear-gradient(180deg, #f6d677, #b98428); border-color: transparent; }
+.rp-btn.rp-play svg { fill: #2a1804; stroke: #2a1804; }
+.rp-range { flex: 1; min-width: 60px; accent-color: var(--gold); cursor: pointer; }
+.rp-count { flex: none; min-width: 6.5em; text-align: right; font-family: var(--caps); font-size: 12px; color: var(--ink-dim); line-height: 1.2; }
+.rp-count b { font-size: 15px; color: var(--gold-hi); }
+.rp-count span { display: block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); }
+.rp-say { min-height: 2.9em; font-size: 17px; line-height: 1.4; }
+.rp-who { font-family: var(--caps); font-size: 15px; }
+.rp-gain { font-family: var(--caps); font-weight: 700; color: var(--gold-hi); }
+.rp-end { display: block; margin-top: 2px; font-style: italic; color: var(--gold-hi); }
+.rp-coach:empty { display: none; }
+.rp-grade { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 2px 0 6px; font-size: 15px; font-style: italic; color: var(--ink-dim); }
+.rp-grade .grade-badge { box-shadow: inset 0 0 0 1.5px var(--gc); padding: 4px 11px 3px; font-style: normal; }
+.rp-grade .grade-badge b { font-size: 13px; }
+.rp-alt { flex-basis: 100%; }
+.rp-alt .rp-map { max-width: 100%; height: auto; }
+.rp-key { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 2px; vertical-align: -1px; border-radius: 3px; border: 2px solid var(--c); }
+.rp-key.dashed { border-style: dashed; }
+.rp-map { display: block; }
+/* the drafting board: this round's line, the next one, the chest */
+.rp-board { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 6px 0 12px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(120, 20, 30, 0.22); border: 1px solid rgba(240, 199, 94, 0.18); }
+.rp-line { display: flex; align-items: center; gap: 8px; }
+.rp-line > span { font-family: var(--caps); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); width: 4.6em; line-height: 1.15; }
+.rp-line > div { display: flex; gap: 5px; }
+.rp-chest { margin-left: auto; font-style: italic; font-size: 14px; color: var(--ink-dim); }
+.rp-none { color: var(--ink-dim); }
+.rp-dom { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 3px 1px; border-radius: 6px; border: 2px solid transparent; background: rgba(0, 0, 0, 0.3); vertical-align: middle; }
+.rp-dom svg { display: block; }
+.rp-dom b { font-family: var(--caps); font-size: 10px; line-height: 1.1; color: var(--ink-dim); }
+.rp-dom.owned { border-color: var(--pc); }
+.rp-dom.owned b { color: var(--ink); }
+.rp-dom.done { opacity: 0.32; }
+.rp-dom.glow { box-shadow: 0 0 0 2px var(--glow), 0 0 12px var(--glow); }
+/* the kingdoms, the one that just moved lit in its owner's colour */
+.rp-realms { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.rp-realm { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 8px 10px; border-radius: 12px; border: 1px solid rgba(240, 199, 94, 0.14); background: rgba(255, 255, 255, 0.03); transition: border-color 0.2s, box-shadow 0.2s; }
+.rp-realm.on { border-color: var(--pc); box-shadow: 0 0 14px color-mix(in srgb, var(--pc) 35%, transparent); }
+.rp-realm-head { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; font-family: var(--caps); font-size: 13px; }
+.rp-realm-head .shield { width: 16px; height: 18px; flex: none; }
+.rp-realm-head span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-realm-head b { font-size: 17px; color: var(--gold-hi); }
+.rp-realm small { font-style: italic; font-size: 13px; color: var(--ink-dim); }
+
+/* the coach's review: its progress, each person's verdict, the moves that cost the most */
+.rv-run { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rv-bar { flex: 1 1 160px; height: 8px; border-radius: 999px; background: rgba(240, 199, 94, 0.14); overflow: hidden; }
+.rv-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4fb7cf, #9fe9ff); transition: width 0.4s ease; }
+.rv-text { font-style: italic; font-size: 15px; color: var(--ink-dim); }
+.ghost-btn.rv-start { margin-top: 10px; }
+.rv-verdicts { display: grid; gap: 8px; }
+.rv-who { display: flex; align-items: center; gap: 7px; margin-top: 4px; font-family: var(--caps); font-size: 14px; }
+.rv-who .shield { width: 16px; height: 18px; }
+.modal-card h4.rv-head { margin: 18px 0 8px; font-family: var(--caps); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+.rv-moments { display: grid; gap: 5px; }
+.rv-moment { display: grid; grid-template-columns: 6.6em minmax(0, 1fr) auto auto; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(240, 199, 94, 0.14); background: rgba(255, 255, 255, 0.03); color: var(--ink); text-align: left; font-family: var(--serif); font-size: 15px; transition: background 0.2s, border-color 0.2s; }
+.rv-moment:hover, .rv-moment:focus-visible { background: rgba(240, 199, 94, 0.08); border-color: rgba(240, 199, 94, 0.45); outline: none; }
+.rv-moment .grade { justify-self: start; }
+.rv-what { min-width: 0; }
+.rv-what b { font-family: var(--caps); font-size: 13px; }
+.rv-what i { margin-left: 8px; font-size: 14px; color: var(--ink-dim); }
+.rv-loss { font-family: var(--caps); font-weight: 700; color: var(--gold-hi); }
+.rv-go { font-size: 20px; line-height: 1; color: var(--gold); }
 
 /* laptop-height windows: the menu tightens up so it fits without scrolling */
 @media (min-width: 761px) and (min-height: 501px) and (max-height: 760px) {
@@ -709,4 +782,17 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .hg-p { font-size: 14px; }
   .history-local { flex-basis: 100%; }
   .history-foot .ghost-btn { flex: 1 1 auto; }
+  .rp-bar { gap: 4px; }
+  .rp-btn { width: 32px; height: 34px; }
+  .rp-btn.rp-play { width: 40px; }
+  .rp-btn[data-rp="first"], .rp-btn[data-rp="last"] { display: none; }
+  .rp-count { min-width: 5em; }
+  .rp-say { font-size: 16px; }
+  .rp-board { gap: 6px 12px; padding: 8px 10px; }
+  .rp-chest { margin-left: 0; }
+  .rp-realms { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .rp-realm .rp-map { max-width: 100%; height: auto; }
+  .rv-moment { grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; padding: 8px 10px; }
+  .rv-moment .rv-go { display: none; }
+  .rv-what i { display: block; margin-left: 0; }
 }

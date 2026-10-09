@@ -176,7 +176,10 @@ export class Sound {
     this.tone({ t, freq: 880, dur: 0.04, gain: 0.05, type: 'triangle' });
   }
 
-  bell(midi, gain = 0.25, t = this.ctx.currentTime + 0.01) {
+  bell(midi, gain = 0.25, t = null) {
+    // (a resumed game can reach the reckoning before any tap has let the sound start)
+    if (!this.ok) return;
+    if (t === null) t = this.ctx.currentTime + 0.01;
     const f = midiHz(midi);
     for (const [ratio, g, d] of [[1, 1, 1.4], [2.01, 0.5, 0.9], [2.76, 0.35, 0.6], [5.4, 0.18, 0.3], [8.9, 0.08, 0.15]]) {
       this.tone({ t, freq: f * ratio, dur: d, gain: gain * g, attack: 0.002 });
