@@ -19,7 +19,7 @@ export function describeTable({ players, current, next, deckLeft, opening, opts,
   const t = {
     size: opts.size, middle: !!opts.middleKingdom, harmony: !!opts.harmony,
     kingdoms: players.map((p) => ({ placements: p.kingdom.placements, discards: p.kingdom.discards.length })),
-    seen: [...seen], left: deckLeft, phase,
+    seen: [...seen], left: deckLeft, phase, snake: !!opts.snake,
   };
   if (phase === 'open') {
     Object.assign(t, { line: ids(next), own: owners(next), nextLine: null, nextOwn: null });
@@ -53,6 +53,7 @@ export function gameFrom(t) {
     game.nextOwn = Int8Array.from(t.nextOwn);
   }
   game.order = t.order ? Int8Array.from(t.order) : null;
+  game.snake = !!t.snake;
   game.phase = { open: INIT, place: PLACE, pick: PICK }[t.phase];
   game.idx = t.idx;
   return game;

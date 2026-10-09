@@ -67,7 +67,7 @@ test('a record that does not fit its deal is refused', () => {
 
 test('the game in progress is saved, read back only when sound, and let go', () => {
   const seats = [{ name: 'You', type: 'human', color: '#e2558f', crest: 0 }, { name: 'Lady Aveline', type: 'expert', color: '#f2c230', crest: 1 }];
-  const config = { seats, seed: 123456789, middleKingdom: true, harmony: false, mightyDuel: false };
+  const config = { seats, seed: 123456789, middleKingdom: true, harmony: false, mightyDuel: false, snake: false };
   const state = { config, start: 1000, moves: ['1s2', '0s0', '0s3', '1s1', '0p1,0,0'], coach: [{ grade: 'Best', loss: 0, hinted: false }, { grade: 'Mistake', loss: 6.2, hinted: true }] };
   const store = new SavedGame(memoryStorage());
   assert.equal(store.load(), null);
@@ -88,6 +88,10 @@ test('the game in progress is saved, read back only when sound, and let go', () 
   assert.equal(odd.config.seats[0].name, 'iEve/i');
   assert.equal(odd.config.seats[0].color, '#999999');
   assert.equal(odd.config.mightyDuel, true);
+  // the snake opening is a rule for 3 or 4 players: a duel drops it, a bigger table keeps it
+  assert.equal(cleanSaved({ ...saved, config: { ...config, snake: true } }).config.snake, false);
+  const third = { name: 'Ulric', type: 'hard', color: '#4fb34f', crest: 2 };
+  assert.equal(cleanSaved({ ...saved, config: { ...config, seats: [...seats, third], snake: true } }).config.snake, true);
   assert.deepEqual(odd.coach, [{ grade: 'Good', loss: 2, hinted: false }]);
 
   // a browser that blocks storage keeps nothing, and says so

@@ -75,6 +75,7 @@ export function cleanSaved(g) {
     config: {
       seats, seed: c.seed,
       middleKingdom: !!c.middleKingdom, harmony: !!c.harmony, mightyDuel: seats.length === 2 && !!c.mightyDuel,
+      snake: seats.length > 2 && !!c.snake,
     },
     start: Number.isFinite(g.start) ? g.start : null,
     moves,

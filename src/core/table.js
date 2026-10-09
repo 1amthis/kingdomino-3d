@@ -2,13 +2,15 @@
 // a recorded game's replay and the coach's review. The seed deals the chest and the opening order; then
 // come the opening draft and each round's place-and-pick in slot order, with 3 players the domino nobody
 // claimed discarded from each line. The controller plays the same flow with its animations.
+// House rule `snake` (3 or 4 players, one king each): the first round after the opening goes in reverse
+// opening order, so whoever drafted last, and was left the last domino, lays and picks first.
 import { DOMINOES, Kingdom, kingsPerPlayer, lineSize, deckSize } from './rules.js';
 import { Rng } from './rng.js';
 
 // A table dealt from the seed: { players: [{ index, kingdom, kings }], deck, opening, current, next,
 // unclaimed, opts, lineN }. Lines hold slots of { domino, index, king }, as in the controller;
 // `unclaimed` keeps the ids of the dominoes discarded unclaimed.
-export function dealTable({ players: n, seed, middleKingdom = false, harmony = false, mightyDuel = false }) {
+export function dealTable({ players: n, seed, middleKingdom = false, harmony = false, mightyDuel = false, snake = false }) {
   const deal = new Rng(seed), size = mightyDuel ? 7 : 5;
   const players = Array.from({ length: n }, (_, index) => ({ index, kingdom: new Kingdom(size), kings: [] }));
   for (const p of players) for (let i = 0; i < kingsPerPlayer(n); i++) p.kings.push({ player: p });
@@ -19,7 +21,7 @@ export function dealTable({ players: n, seed, middleKingdom = false, harmony = f
     const [a, b] = deal.shuffle(players.slice());
     opening = [a.kings[0], b.kings[0], b.kings[1], a.kings[1]];
   } else opening = deal.shuffle(players.flatMap((p) => p.kings));
-  return { players, deck, opening, current: [], next: [], unclaimed: [], opts: { middleKingdom, harmony, size }, lineN: lineSize(n) };
+  return { players, deck, opening, current: [], next: [], unclaimed: [], opts: { middleKingdom, harmony, size, snake: snake && n > 2 }, lineN: lineSize(n) };
 }
 
 // Every decision of the game, in order. The generator yields { kind: 'select', phase: 'open' | 'pick',
@@ -46,9 +48,10 @@ export function* playTurns(t) {
   }
   t.next = draw();
   for (const king of t.opening) yield* select(king, 'open');
-  for (;;) {
+  for (let round = 0; ; round++) {
     for (const s of t.next) if (!s.king) t.unclaimed.push(s.domino.id);
     t.current = t.next.filter((s) => s.king);
+    if (!round && t.opts.snake) t.current.sort((a, b) => t.opening.indexOf(b.king) - t.opening.indexOf(a.king));
     t.next = t.deck.length ? draw() : [];
     for (const slot of t.current) {
       yield* place(slot);

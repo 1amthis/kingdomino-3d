@@ -290,7 +290,7 @@ export class HistoryView {
   gameView(r) {
     const [mode, table] = modeOf(r);
     const minutes = r.start ? Math.max(1, Math.round((r.end - r.start) / 60000)) : 0;
-    const rules = [r.rules.middleKingdom && 'Middle Kingdom', r.rules.harmony && 'Harmony', r.coach && `Coach: ${r.coach === 'study' ? 'Study' : 'Trainer'}`].filter(Boolean);
+    const rules = [r.rules.middleKingdom && 'Middle Kingdom', r.rules.harmony && 'Harmony', r.rules.snake && 'Snake opening', r.coach && `Coach: ${r.coach === 'study' ? 'Study' : 'Trainer'}`].filter(Boolean);
     const size = r.rules.mightyDuel ? 7 : 5;
     const rows = r.players.slice().sort((a, b) => a.place - b.place).map((p) => {
       const props = p.props.map(([terrain, n, crowns]) => `<span class="prop"><span class="chip" style="background:${TERRAIN_INFO[terrain].color}"></span>${n}&times;${crowns} = <b>${n * crowns}</b></span>`).join('');

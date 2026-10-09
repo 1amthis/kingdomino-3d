@@ -13,8 +13,9 @@ import { dealTable, playTurns } from '../src/core/table.js';
 // opening order, whoever sits where, so swapping seats replays the same game from the other side.
 // onDecision(table, move, domino), if given, sees every decision the expert makes (for tests).
 // replay: a recorded game's moves (moves.js), played in place of the seats' own; they must be legal.
-export function playGame({ types, seed = 1, middleKingdom = false, harmony = false, mightyDuel = false, budget, onDecision, replay = null }) {
-  const table = dealTable({ players: types.length, seed, middleKingdom, harmony, mightyDuel });
+// snake: the house rule of core/table.js (the first round in reverse opening order, 3 or 4 players).
+export function playGame({ types, seed = 1, middleKingdom = false, harmony = false, mightyDuel = false, snake = false, budget, onDecision, replay = null }) {
+  const table = dealTable({ players: types.length, seed, middleKingdom, harmony, mightyDuel, snake });
   const { players, opts, lineN } = table;
   players.forEach((p, i) => { p.type = types[i]; });
   const rng = new Rng(seed ^ 0x5bd1e995);

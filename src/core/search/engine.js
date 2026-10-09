@@ -185,6 +185,7 @@ export class Game {
     this.nextLine = null; // the line being drafted
     this.nextOwn = null;
     this.order = null; // the opening draft's turn order
+    this.snake = false; // house rule (one king each): the first round goes in reverse opening order
     this.phase = INIT;
     this.idx = 0; // the slot (or opening turn) being played
     this.reveals = 0;
@@ -202,6 +203,7 @@ export class Game {
     g.nextLine = this.nextLine;
     g.nextOwn = this.nextOwn && this.nextOwn.slice();
     g.order = this.order;
+    g.snake = this.snake;
     g.phase = this.phase; g.idx = this.idx; g.reveals = this.reveals;
     return g;
   }
@@ -251,6 +253,7 @@ export class Game {
       this.own[m] = this.order[this.idx++];
       if (this.idx === this.order.length) {
         this.dropUnclaimed();
+        if (this.snake) this.reverseRound();
         this.nextLine = this.reveal();
         this.nextOwn = new Int8Array(this.L).fill(-1);
         this.phase = PLACE;
@@ -284,6 +287,14 @@ export class Game {
     if (!own.includes(-1)) return;
     this.line = this.line.filter((_, i) => own[i] >= 0);
     this.own = own.filter((o) => o >= 0);
+  }
+
+  // The snake house rule: the line's kings play in reverse opening order instead of slot order.
+  reverseRound() {
+    const at = (i) => this.order.indexOf(this.own[i]);
+    const ix = Array.from(this.line, (_, i) => i).sort((a, b) => at(b) - at(a));
+    this.line = Int8Array.from(ix, (i) => this.line[i]);
+    this.own = Int8Array.from(ix, (i) => this.own[i]);
   }
 
   scores() { return this.boards.map((b) => b.score(this.middle, this.harmony)); }
