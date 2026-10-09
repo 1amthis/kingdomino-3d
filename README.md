@@ -159,7 +159,7 @@ picks it up again where it was. (An online game can't be: the connection is gone
 ```mermaid
 flowchart LR
     pos(["The position<br/>on the table"]) --> deal
-    subgraph sim ["One simulation, up to 3,000 per move (1.5 s at most)"]
+    subgraph sim ["One simulation, up to 3,000 per move, 6,000 with 3 or 4 players (1.5 s at most)"]
         direction LR
         deal["Deal the unseen<br/>dominoes afresh"] --> walk["Walk down the tree:<br/>moves that did well,<br/>or were tried little"]
         walk --> out["Play the game out<br/>with a quick heuristic"]
@@ -175,10 +175,20 @@ Expert against Hard, on paired deals (each deal played from both seats), 2,000 s
 | 2 players | 83 wins, 17 losses | +10.2 points |
 | 2 players, Middle Kingdom + Harmony | 81 wins, 19 losses | +12.4 points |
 | Mighty Duel (7×7) | 40 wins, 0 losses | +27.6 points |
-| 4 players (Expert and 3 Hard) | 24 wins in 40 games | +1.2 points over the best Hard |
+| 4 players (Expert and 3 Hard) | 453 wins, 26 ties in 800 games | +1.7 points over the best Hard, +9.2 over the average one |
+| 4 players, 6,000 simulations per move | 233 wins, 12 ties in 400 games | +2.8 points over the best Hard, +10.3 over the average one |
+
+With four players a fair share of wins is 25%, and the lead is measured against the best of three Hards, who on
+average scores 7.5 points more than a typical one: against the average Hard, the Expert's lead is close to the duel's.
+More search still pays there (about a point more lead for three times the simulations, on the same deals), so with 3
+or 4 players the game gives the Expert twice the simulations: under half a second a move on a laptop, hidden by the
+pause the table makes while an AI decides. Exploration settings, a sequential-halving root, narrower branching
+for opponents and smarter playouts were all tried and measured within a point of today's search, inside the noise.
 
 `npm run bench` replays these (`--games`, `--players`, `--vs easy|normal|hard`, `--sims`, `--middle`, `--harmony`,
-`--duel`), and `npm test` checks the search engine against the rules engine, placement for placement and score for score.
+`--duel`, `--threads`, `--seed` for the first deal) with the margin's standard error; with 4 players it takes a few
+hundred games to see a point of difference. `npm test` checks the search engine against the rules engine, placement
+for placement and score for score.
 
 `npm run study` points the same search at the game itself: what each domino is worth as a first pick and what a later
 slot costs (`openings`), who wins from which seat and what winning kingdoms are made of (`selfplay`, with `--snake` for
