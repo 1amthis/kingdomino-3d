@@ -1,6 +1,6 @@
 // The games played in this browser: a record of each finished game, and the stats drawn from them.
 // Plain data in and out (the storage is handed in), so a record could later go to a server unchanged.
-import { FLOW, cleanMoves } from './moves.js';
+import { FLOW, cleanMoves, isAction } from './moves.js';
 
 export const VERSION = 1;
 export const KEEP = 1000; // beyond this, the oldest games make way
@@ -68,6 +68,7 @@ const cleanName = (s) => String(s ?? '').replace(/[\u0000-\u001f<>]/g, '').trim(
 
 function cleanPlayer(p) {
   if (!p || typeof p !== 'object' || !KINDS.includes(p.kind)) return null;
+  const verdict = cleanVerdict(p.verdict);
   if (!int(p.place, 1, 4) || !int(p.total, 0, 999)) return null;
   const props = Array.isArray(p.props) ? p.props.filter((g) => Array.isArray(g) && LETTER[g[0]] && g[0] !== 'castle' && int(g[1], 1, 48) && int(g[2], 1, 30)) : [];
   const map = Array.isArray(p.map) && p.map.length <= 7 && p.map.every((r) => typeof r === 'string' && MAP_ROW.test(r) && r.length === p.map[0].length) ? p.map : [];
@@ -84,6 +85,8 @@ function cleanPlayer(p) {
     discards: int(p.discards, 0, 48) ? p.discards : 0,
     props: props.map((g) => [g[0], g[1], g[2]]),
     map: map.slice(),
+    // the coach's verdict from a review of the game (see review.js)
+    ...(verdict ? { verdict } : {}),
   };
 }
 
@@ -94,6 +97,19 @@ function cleanVerdict(v) {
   return { decisions: v.decisions, loss: v.loss, counts, hints: int(v.hints, 0, 999) ? v.hints : 0 };
 }
 
+// The coach's review: { [move index]: [points given up, the Expert's move] | null } (see review.js).
+function cleanReview(review, moves) {
+  if (!review || typeof review !== 'object' || Array.isArray(review)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(review)) {
+    const i = Number(k);
+    if (!int(i, 0, moves.length - 1)) continue;
+    if (v === null) out[i] = null;
+    else if (Array.isArray(v) && v[0] >= 0 && v[0] < 1000 && isAction(v[1])) out[i] = [v[0], v[1]];
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 // A record that is sound enough to show and count, copied field by field, or null.
 export function cleanRecord(r) {
   if (!r || typeof r !== 'object' || r.v !== VERSION || typeof r.id !== 'string' || !/^[\w-]{1,40}$/.test(r.id)) return null;
@@ -101,7 +117,8 @@ export function cleanRecord(r) {
   const players = r.players.map(cleanPlayer);
   if (players.some((p) => !p)) return null;
   const rules = r.rules || {};
-  const seed = int(r.seed, 0, 2 ** 32 - 1) ? r.seed : null, moves = cleanMoves(r.moves);
+  const seed = int(r.seed, 0, 2 ** 32 - 1) ? r.seed : null, moves = seed !== null && int(r.flow, 1, 99) && cleanMoves(r.moves);
+  const review = moves && cleanReview(r.review, moves);
   return {
     v: VERSION, id: r.id,
     start: Number.isFinite(r.start) && r.start <= r.end ? r.start : null, end: r.end,
@@ -109,7 +126,8 @@ export function cleanRecord(r) {
     rules: { middleKingdom: !!rules.middleKingdom, harmony: !!rules.harmony, mightyDuel: !!rules.mightyDuel },
     seed,
     // (a game from an older flow keeps its moves, though this version cannot replay them)
-    ...(seed !== null && moves && int(r.flow, 1, 99) ? { flow: r.flow, moves } : {}),
+    ...(moves ? { flow: r.flow, moves } : {}),
+    ...(review ? { review } : {}),
     coach: r.coach === 'trainer' || r.coach === 'study' ? r.coach : null,
     players,
     verdict: cleanVerdict(r.verdict),
@@ -211,10 +229,13 @@ const versus = (me, o) => (me.place < o.place ? 'won' : me.place > o.place ? 'lo
 const tallyEntry = () => ({ games: 0, won: 0, lost: 0, tied: 0 });
 const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
+// The coach's verdict on this person's play in a game: the coach's at the table, or a review's after.
+const verdictOf = (g) => g.r.verdict || g.me.verdict || null;
+
 // Points lost per move over some coached games, each move counting once.
 function coachLoss(games) {
-  const decisions = games.reduce((a, g) => a + g.r.verdict.decisions, 0);
-  return { games: games.length, decisions, loss: decisions ? games.reduce((a, g) => a + g.r.verdict.loss * g.r.verdict.decisions, 0) / decisions : 0 };
+  const decisions = games.reduce((a, g) => a + verdictOf(g).decisions, 0);
+  return { games: games.length, decisions, loss: decisions ? games.reduce((a, g) => a + verdictOf(g).loss * verdictOf(g).decisions, 0) / decisions : 0 };
 }
 
 export function statsFor(records, name) {
@@ -255,10 +276,10 @@ export function statsFor(records, name) {
     return { got: on.filter((g) => g.me[field] > 0).length, of: on.length };
   };
 
-  // the coach: all graded games, and the last five against the ones before
-  const coached = games.filter((g) => g.r.verdict);
+  // the coach: all graded games (at the table or reviewed after), and the last five against the ones before
+  const coached = games.filter(verdictOf);
   const counts = {};
-  for (const g of coached) for (const [grade, n] of Object.entries(g.r.verdict.counts)) counts[grade] = (counts[grade] || 0) + n;
+  for (const g of coached) for (const [grade, n] of Object.entries(verdictOf(g).counts)) counts[grade] = (counts[grade] || 0) + n;
 
   return {
     name: games.length ? profileName(games[games.length - 1].me.name) : profileName(name),

@@ -9,23 +9,31 @@ import { GRADES } from './coach.js';
 // older records unplayable, so it would come with a new number.
 export const FLOW = 1;
 
-const MOVE = /^([0-3])(?:s([0-3])|p(-?\d),(-?\d),([0-3])|d)$/;
-export const isMove = (s) => typeof s === 'string' && MOVE.test(s);
+// A move without its seat: 's2', 'p-1,0,3' or 'd' (how the coach's review notes the Expert's move).
+const ACTION = /^(?:s([0-3])|p(-?\d),(-?\d),([0-3])|d)$/;
+export const isAction = (s) => typeof s === 'string' && ACTION.test(s);
+export const isMove = (s) => typeof s === 'string' && /^[0-3]/.test(s) && isAction(s.slice(1));
 
 // kind: 'select' (value: a slot index) or 'place' (value: { x, y, rot }, or null to discard).
-export function encodeMove(seat, kind, value) {
-  if (kind === 'select') return `${seat}s${value}`;
-  return value ? `${seat}p${value.x},${value.y},${value.rot}` : `${seat}d`;
+export function encodeAction(kind, value) {
+  if (kind === 'select') return `s${value}`;
+  return value ? `p${value.x},${value.y},${value.rot}` : 'd';
+}
+export const encodeMove = (seat, kind, value) => `${seat}${encodeAction(kind, value)}`;
+
+// { kind, value } as encodeAction takes them, or null for anything else.
+export function decodeAction(s) {
+  const m = typeof s === 'string' && ACTION.exec(s);
+  if (!m) return null;
+  if (m[1] !== undefined) return { kind: 'select', value: Number(m[1]) };
+  if (m[2] !== undefined) return { kind: 'place', value: { x: Number(m[2]), y: Number(m[3]), rot: Number(m[4]) } };
+  return { kind: 'place', value: null };
 }
 
 // { seat, kind, value } as encodeMove takes them, or null for anything else.
 export function decodeMove(s) {
-  const m = typeof s === 'string' && MOVE.exec(s);
-  if (!m) return null;
-  const seat = Number(m[1]);
-  if (m[2] !== undefined) return { seat, kind: 'select', value: Number(m[2]) };
-  if (m[3] !== undefined) return { seat, kind: 'place', value: { x: Number(m[3]), y: Number(m[4]), rot: Number(m[5]) } };
-  return { seat, kind: 'place', value: null };
+  const a = isMove(s) && decodeAction(s.slice(1));
+  return a ? { seat: Number(s[0]), ...a } : null;
 }
 
 // A list of moves that is sound enough to replay, or null. (Its legality is checked as it replays.)

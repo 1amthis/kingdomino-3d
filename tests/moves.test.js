@@ -62,7 +62,7 @@ test('a record that does not fit its deal is refused', () => {
   assert.throws(() => playGame({ ...setup, replay: swap(0, moves[0][0] === '0' ? '1s0' : '0s0') }), /out of step/);
   assert.throws(() => playGame({ ...setup, replay: swap(place, `${moves[place][0]}p4,4,0`) }), /illegal move/);
   assert.throws(() => playGame({ ...setup, replay: [...moves, '0s0'] }), /left over/);
-  assert.throws(() => playGame({ ...setup, seed: 4, replay: moves }), /out of step|illegal|taken/, 'another seed deals another game');
+  assert.throws(() => playGame({ ...setup, seed: 4, replay: moves }), /out of step|illegal|cannot be picked/, 'another seed deals another game');
 });
 
 test('the game in progress is saved, read back only when sound, and let go', () => {
