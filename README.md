@@ -125,6 +125,10 @@ There is no server and no account: the history lives in this browser only (`loca
 data or using a private window loses it, and other devices don't see it. **Export** saves it as a file, and
 **Import** adds a file's games to another browser's history. Online games are kept by every player who takes part.
 
+Each game is also kept move by move: with the seed that dealt it, its moves replay it exactly. A game against the
+computer or on one screen is saved after every move, so a reload, or a phone closing the tab in the background,
+picks it up again where it was. (An online game can't be: the connection is gone.)
+
 ## Rules implemented
 
 - 2–4 players, any mix of humans (hot-seat or online) and AI (Easy / Normal / Hard / Expert, see [The AI](#the-ai)).
@@ -251,6 +255,7 @@ src/
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
   core/coach.js      the coach's grades: points given up against the Expert's move, a game's tally
   core/history.js    the game history: each finished game as a record, the log in localStorage, export/import, stats
+  core/moves.js      a game's moves as short strings (they replay it with its seed), the game in progress saved
   core/rng.js        seeded PRNG so every tile's diorama is stable
   core/search/       the Expert AI: engine.js (typed-array kingdoms for fast playouts), mcts.js (the tree search),
                      state.js (table ⇄ search state), worker.js + expert.js (the Web Workers, one for the Expert's
@@ -271,12 +276,13 @@ src/
   game/controller.js game flow, animation choreography, camera direction, input
   game/coach.js      the coach at the table: analyses, grades, advice, study notes, the results verdict
 scripts/
-  headless.js        the game flow without the 3D, for benchmarks and tests
+  headless.js        the game flow without the 3D, for benchmarks and tests; records moves and replays them
   bench.js           Expert against a heuristic level on paired deals
 tests/
   search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
   coach.test.js      the analysis covers every move soundly; grades follow from it
   history.test.js    records read back unchanged, imports are checked and merged once, stats count each side right
+  moves.test.js      moves replay a game exactly; a record that doesn't fit its deal, or a broken save, is refused
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering

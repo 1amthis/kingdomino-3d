@@ -8,6 +8,7 @@ import { describeTable } from '../core/search/state.js';
 import { Coach } from './coach.js';
 import { tally } from '../core/coach.js';
 import { makeRecord } from '../core/history.js';
+import { encodeMove, decodeMove } from '../core/moves.js';
 import { Rng } from '../core/rng.js';
 import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
@@ -23,6 +24,14 @@ const HOVER = 0.55;
 const UP = new THREE.Vector3(0, 1, 0);
 const XAXIS = new THREE.Vector3(1, 0, 0);
 export const CANCEL = Symbol('cancel');
+// A saved game whose moves no longer fit the table it deals (it cannot be picked up again).
+export class ReplayError extends Error {}
+
+// Stands in for the effects while a resumed game catches up: nothing to see.
+const NO_FX = new Proxy({}, { get: () => () => {} });
+
+// A placement for this domino: one of its valid spots, or a discard (null) when nothing fits.
+const isLegal = (valid, m) => (m === null ? !valid.length : !!m && valid.some((v) => v.x === m.x && v.y === m.y && v.rot === m.rot));
 
 // The expert searches; when it cannot, it plays like Hard.
 const heuristicLevel = (type) => (type === 'expert' ? 'hard' : type);
@@ -50,7 +59,7 @@ function label(html, cls) {
 
 export class Controller {
   constructor(stage, effects, sound, hud) {
-    this.stage = stage; this.fx = effects; this.sound = sound; this.hud = hud;
+    this.stage = stage; this.fx = this.effects = effects; this.sound = sound; this.hud = hud;
     this.tw = stage.tweener;
     this.views = new Map();
     this.activeViews = new Set();
@@ -64,6 +73,9 @@ export class Controller {
     this.flow = null;
     this.demo = false;
     this.link = null; // online session: remote seats' moves come from it, ours go out through it
+    this.moves = []; // every decision of the game so far, as moves.js writes them
+    this.script = []; // a resumed game's moves still to catch up on (decoded)
+    this.replaying = false;
     this.pointerNdc = new THREE.Vector2(9, 9);
     this.pointerPx = { x: 0, y: 0 };
     this.touch = matchMedia('(pointer: coarse)').matches; // hints speak of taps rather than clicks and keys
@@ -101,7 +113,10 @@ export class Controller {
     return v;
   }
 
-  sfx(name, ...args) { if (!this.demo) this.sound[name](...args); }
+  // Nothing to hear or watch go by: the menu's demo, or a resumed game catching up.
+  get quiet() { return this.demo || this.replaying; }
+
+  sfx(name, ...args) { if (!this.quiet) this.sound[name](...args); }
 
   // A human sitting at this screen (not a friend playing online).
   isLocal(p) { return p.type === 'human' && !p.remote; }
@@ -150,6 +165,7 @@ export class Controller {
 
   clearGame() {
     if (this.flow) this.flow.alive = false;
+    this.endReplay();
     if (this.mode && this.mode.reject) this.mode.reject(CANCEL);
     this.mode = null;
     this.tw.clear('game');
@@ -172,7 +188,9 @@ export class Controller {
     this.shot = null;
   }
 
-  async startGame(config, { demo = false, link = null } = {}) {
+  // resume: a saved game to pick up again ({ moves, coach, start }, see moves.js; config holds its
+  // seed). Its moves are played over again in an instant, and the game carries on from there.
+  async startGame(config, { demo = false, link = null, resume = null } = {}) {
     this.clearGame();
     const flow = this.flow = new Flow();
     this.coach.reset();
@@ -185,7 +203,14 @@ export class Controller {
     const size = config.mightyDuel ? 7 : 5;
     this.opts = { middleKingdom: config.middleKingdom, harmony: config.harmony, size };
     this.rng = new Rng();
-    this.startedAt = Date.now();
+    this.startedAt = (resume && resume.start) || Date.now();
+    this.moves = [];
+    if (resume) {
+      this.script = resume.moves.map(decodeMove);
+      this.replaying = this.tw.instant = true;
+      this.fx = NO_FX;
+      this.coach.log = resume.coach.slice();
+    }
     // Dealing has its own seeded stream so every table in an online game draws the same tiles.
     this.seed = config.seed ?? this.rng.int(0, 2 ** 32 - 1);
     const deal = new Rng(this.seed);
@@ -237,6 +262,7 @@ export class Controller {
       this.hud.prompt('Setting up…');
       this.stage.controls.autoRotate = false;
     }
+    this.saveProgress();
     try {
       await this.introAnimation(flow);
       await this.runGame(flow);
@@ -405,7 +431,7 @@ export class Controller {
   }
 
   async focus(flow, key, view, duration = 1300, own = false) {
-    if (this.demo) return;
+    if (this.quiet) return;
     this.shot = { key, view };
     if (this.settings.camera !== 'auto' || (this.camHeld && !own)) return;
     this.holdCamera(false);
@@ -492,7 +518,7 @@ export class Controller {
 
   // ---------- game flow ----------
   async introAnimation(flow) {
-    if (!this.demo) {
+    if (!this.quiet) {
       const o = this.overview();
       this.camKey = 'overview';
       this.shot = { key: 'overview', view: () => this.overview() };
@@ -584,8 +610,10 @@ export class Controller {
     this.next = this.next.filter((s) => s.king);
     for (const slot of left) {
       this.unclaimed.push(slot.domino.id);
-      const why = this.tip('unclaimed', ' &middot; with three players, each line has one domino to spare');
-      if (!this.demo) this.hud.toast(`Nobody took domino ${slot.domino.id} &mdash; it is discarded${why}`, why ? 3.4 : 2.2);
+      if (!this.quiet) {
+        const why = this.tip('unclaimed', ' &middot; with three players, each line has one domino to spare');
+        this.hud.toast(`Nobody took domino ${slot.domino.id} &mdash; it is discarded${why}`, why ? 3.4 : 2.2);
+      }
       await this.discardView(flow, slot.view, 0xd8c8a8);
     }
   }
@@ -658,6 +686,23 @@ export class Controller {
     const p = king.player;
     const options = this.next.filter((s) => !s.king);
     if (!options.length) return;
+    const recorded = this.replayed(p, 'select');
+    const slot = recorded === undefined ? await this.decidePick(flow, king, placed, options) : options.find((s) => s.index === recorded);
+    if (!slot) throw new ReplayError(`slot ${recorded} is already taken`);
+    this.logMove(p, 'select', slot.index);
+    if (!this.isLocal(p)) {
+      slot.view.setGlow(p.color, 0.9);
+      await flow.w(this.tw.wait(260));
+    }
+    slot.king = king;
+    this.sfx('select');
+    await this.moveKing(flow, king, this.kingSpot(1, slot.index));
+    slot.view.setGlow(null, 0);
+  }
+
+  // The pick, by whoever sits in this seat: the player at this screen, a friend online or the AI.
+  async decidePick(flow, king, placed, options) {
+    const p = king.player;
     const local = this.isLocal(p);
     if (!this.demo) {
       this.hud.setActive(p);
@@ -667,42 +712,67 @@ export class Controller {
       } else this.hud.prompt(`${this.hud.who(p)} is picking a domino…`, this.remoteNote(p));
     }
     const framing = this.focusPlayer(flow, p, 'select');
-    let slot;
     if (local) {
       const coach = this.coach.begin(p, placed ? 'pick' : 'open', king, options.length);
       await framing;
       this.sfx('turnChime');
-      slot = await flow.w(this.humanSelect(p, options, coach));
+      const slot = await flow.w(this.humanSelect(p, options, coach));
       this.coach.judge(coach, slot.index, this.slotPos(1, slot.index).add(new THREE.Vector3(0, 0.6, 0)));
       // looking around during one's own turn does not outlast it
       if (this.camHeld) this.holdCamera(false);
-    } else {
-      // an opponent makes up their mind while the camera finds the board
-      const decide = async () => {
-        const pick = await this.remoteMove(flow, p, 'select');
-        const remote = options.find((s) => s.index === pick);
-        if (remote) return remote;
-        const pause = this.tw.wait(420 + this.rng.float(0, 380));
-        if (p.type === 'expert') {
-          const [i] = await flow.w(Promise.all([this.expertMove(placed ? 'pick' : 'open', king), pause]));
-          const slot = options.find((s) => s.index === i);
-          if (slot) return slot;
-        }
-        await flow.w(pause);
-        const others = this.players.filter((o) => o !== p);
-        return chooseSlot(p, others, options, this.lineN, this.opts, heuristicLevel(p.type), this.rng);
-      };
-      [slot] = await Promise.all([decide(), framing]);
+      return slot;
     }
-    if (this.link) this.link.tell(p, 'select', slot.index);
-    if (!local) {
-      slot.view.setGlow(p.color, 0.9);
-      await flow.w(this.tw.wait(260));
+    // an opponent makes up their mind while the camera finds the board
+    const decide = async () => {
+      const pick = await this.remoteMove(flow, p, 'select');
+      const remote = options.find((s) => s.index === pick);
+      if (remote) return remote;
+      const pause = this.tw.wait(420 + this.rng.float(0, 380));
+      if (p.type === 'expert') {
+        const [i] = await flow.w(Promise.all([this.expertMove(placed ? 'pick' : 'open', king), pause]));
+        const slot = options.find((s) => s.index === i);
+        if (slot) return slot;
+      }
+      await flow.w(pause);
+      const others = this.players.filter((o) => o !== p);
+      return chooseSlot(p, others, options, this.lineN, this.opts, heuristicLevel(p.type), this.rng);
+    };
+    const [slot] = await Promise.all([decide(), framing]);
+    return slot;
+  }
+
+  // A resumed game catching up: the recorded move for this decision. Once the record runs out, the
+  // table comes back to life and this decision is made as usual (undefined).
+  replayed(p, kind) {
+    if (!this.replaying) return undefined;
+    const m = this.script.shift();
+    if (m === undefined) {
+      this.endReplay();
+      this.hud.toast('Picked up where you left off');
+      return undefined;
     }
-    slot.king = king;
-    this.sfx('select');
-    await this.moveKing(flow, king, this.kingSpot(1, slot.index));
-    slot.view.setGlow(null, 0);
+    if (!m || m.seat !== p.index || m.kind !== kind) throw new ReplayError(`move ${this.moves.length + 1} is out of step`);
+    return m.value;
+  }
+
+  endReplay() {
+    this.replaying = this.tw.instant = false;
+    this.script = [];
+    this.fx = this.effects;
+  }
+
+  // Every decision goes into the game's record, out to an online table, and into the saved game.
+  logMove(p, kind, value) {
+    this.moves.push(encodeMove(p.index, kind, value));
+    if (this.link) this.link.tell(p, kind, value);
+    this.saveProgress();
+  }
+
+  // An offline game is saved after every move (and every grade from the coach), so a reload can pick
+  // it up again (see moves.js).
+  saveProgress() {
+    if (this.demo || this.link || this.replaying || this.finished || !this.onProgress) return;
+    this.onProgress({ config: { ...this.config, seed: this.seed }, start: this.startedAt, moves: this.moves.slice(), coach: this.coach.log.slice() });
   }
 
   humanSelect(p, options, coach = null) {
@@ -817,49 +887,17 @@ export class Controller {
   async placePhase(flow, p, slot) {
     const domino = slot.domino;
     const view = slot.view;
-    const local = this.isLocal(p);
-    if (!this.demo) {
-      this.hud.setActive(p);
-      if (local) {
-        this.hud.prompt(`${this.yourTurn(p)}place your domino`,
-          this.tip('place', this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate'));
-      } else this.hud.prompt(`${this.hud.who(p)} is placing a domino…`, this.remoteNote(p));
-    }
-    const framing = this.focusPlayer(flow, p, 'place');
     const valid = p.kingdom.validPlacements(domino);
-    let choice;
-    if (local) {
-      const coach = this.coach.begin(p, 'place', slot.king, valid.length, domino);
-      await framing;
-      this.sfx('turnChime');
-      choice = await flow.w(this.humanPlace(flow, p, slot, valid, coach));
-      // (the grade shows once the domino has landed)
-      this.coach.judge(coach, choice, choice && this.placementTransform(p, choice, 0).pos.add(new THREE.Vector3(0, 0.4, 0)), 1300);
-      if (this.camHeld) this.holdCamera(false);
-      if (this.link) this.link.tell(p, 'place', choice);
-    } else {
-      // (deciding while the camera flies to their realm)
-      const decide = async () => {
-        const move = await this.remoteMove(flow, p, 'place');
-        // A remote move must be legal here too: one of our valid spots, or a discard when nothing fits.
-        const isLegal = (m) => (m === null ? !valid.length : !!m && valid.some((v) => v.x === m.x && v.y === m.y && v.rot === m.rot));
-        if (isLegal(move)) return move && { x: move.x, y: move.y, rot: move.rot };
-        const pause = this.tw.wait(380 + this.rng.float(0, 300));
-        if (p.type === 'expert' && valid.length > 1) {
-          const [m] = await flow.w(Promise.all([this.expertMove('place', slot.king), pause]));
-          if (m && isLegal(m)) return m;
-        }
-        await flow.w(pause);
-        return choosePlacement(p.kingdom, domino, this.opts, heuristicLevel(p.type), this.rng);
-      };
-      [choice] = await Promise.all([decide(), framing]);
-      if (this.link) this.link.tell(p, 'place', choice);
-      if (choice) {
-        const hover = this.placementTransform(p, choice, HOVER);
-        this.sfx('whoosh', 0.5);
-        await flow.w(this.tw.move(view.group, { position: view.group.position.clone().setY(REST + 0.5), duration: 220, ease: Ease.outQuad }));
-        await flow.w(this.tw.move(view.group, { position: hover.pos, quaternion: hover.quat, duration: 950, arc: 1.4, ease: Ease.inOutCubic }));
-      }
+    const recorded = this.replayed(p, 'place');
+    if (recorded !== undefined && !isLegal(valid, recorded)) throw new ReplayError(`domino ${domino.id} cannot go there`);
+    const choice = recorded === undefined ? await this.decidePlace(flow, p, slot, valid) : recorded;
+    this.logMove(p, 'place', choice);
+    // someone else's domino flies over to its spot (our own is already there, under the pointer)
+    if (choice && !this.isLocal(p)) {
+      const hover = this.placementTransform(p, choice, HOVER);
+      this.sfx('whoosh', 0.5);
+      await flow.w(this.tw.move(view.group, { position: view.group.position.clone().setY(REST + 0.5), duration: 220, ease: Ease.outQuad }));
+      await flow.w(this.tw.move(view.group, { position: hover.pos, quaternion: hover.quat, duration: 950, arc: 1.4, ease: Ease.inOutCubic }));
     }
     if (choice) {
       const before = p.kingdom.score(this.opts);
@@ -885,9 +923,49 @@ export class Controller {
       await flow.w(this.tw.wait(gain > 0 ? 650 : 250));
     } else {
       p.kingdom.discard(domino);
-      if (!this.demo) this.hud.toast(`${this.hud.who(p)} cannot place domino ${domino.id} &mdash; it is discarded.`);
+      if (!this.quiet) this.hud.toast(`${this.hud.who(p)} cannot place domino ${domino.id} &mdash; it is discarded.`);
       await this.discardView(flow, view);
     }
+  }
+
+  // Where to lay the domino, decided by whoever sits in this seat: the player at this screen, a
+  // friend online or the AI. A placement, or null to discard.
+  async decidePlace(flow, p, slot, valid) {
+    const domino = slot.domino;
+    const local = this.isLocal(p);
+    if (!this.demo) {
+      this.hud.setActive(p);
+      if (local) {
+        this.hud.prompt(`${this.yourTurn(p)}place your domino`,
+          this.tip('place', this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate'));
+      } else this.hud.prompt(`${this.hud.who(p)} is placing a domino…`, this.remoteNote(p));
+    }
+    const framing = this.focusPlayer(flow, p, 'place');
+    if (local) {
+      const coach = this.coach.begin(p, 'place', slot.king, valid.length, domino);
+      await framing;
+      this.sfx('turnChime');
+      const choice = await flow.w(this.humanPlace(flow, p, slot, valid, coach));
+      // (the grade shows once the domino has landed)
+      this.coach.judge(coach, choice, choice && this.placementTransform(p, choice, 0).pos.add(new THREE.Vector3(0, 0.4, 0)), 1300);
+      if (this.camHeld) this.holdCamera(false);
+      return choice;
+    }
+    // (deciding while the camera flies to their realm)
+    const decide = async () => {
+      const move = await this.remoteMove(flow, p, 'place');
+      // A remote move must be legal here too: one of our valid spots, or a discard when nothing fits.
+      if (isLegal(valid, move)) return move && { x: move.x, y: move.y, rot: move.rot };
+      const pause = this.tw.wait(380 + this.rng.float(0, 300));
+      if (p.type === 'expert' && valid.length > 1) {
+        const [m] = await flow.w(Promise.all([this.expertMove('place', slot.king), pause]));
+        if (m && isLegal(valid, m)) return m;
+      }
+      await flow.w(pause);
+      return choosePlacement(p.kingdom, domino, this.opts, heuristicLevel(p.type), this.rng);
+    };
+    const [choice] = await Promise.all([decide(), framing]);
+    return choice;
   }
 
   async discardView(flow, view, glow = 0xff5a4a) {
@@ -915,7 +993,7 @@ export class Controller {
   }
 
   popup(worldPos, html, cls = 'popup', life = 1900) {
-    if (this.demo) return;
+    if (this.quiet) return;
     // The CSS2D renderer places the outer element through its transform, so the (transform-based)
     // pop animation must run on an inner one or it would pin the label to the top-left corner.
     const l = label(`<div class="${cls}">${html}</div>`, 'popup-anchor');
@@ -1090,6 +1168,8 @@ export class Controller {
   }
 
   async finalScoring(flow) {
+    // (a saved game can hold every move, if the page went just before the reckoning)
+    this.endReplay();
     if (this.demo) {
       await flow.w(this.tw.wait(3000));
       return;
@@ -1206,7 +1286,7 @@ export class Controller {
   // The finished game as the history keeps it (see core/history.js).
   record(rows) {
     return makeRecord({
-      players: this.players, rows, config: this.config, seed: this.seed,
+      players: this.players, rows, config: this.config, seed: this.seed, moves: this.moves,
       online: this.link ? this.link.role : null,
       start: this.startedAt,
       ...this.coachVerdict(),

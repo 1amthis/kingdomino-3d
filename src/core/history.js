@@ -1,5 +1,6 @@
 // The games played in this browser: a record of each finished game, and the stats drawn from them.
 // Plain data in and out (the storage is handed in), so a record could later go to a server unchanged.
+import { FLOW, cleanMoves } from './moves.js';
 
 export const VERSION = 1;
 export const KEEP = 1000; // beyond this, the oldest games make way
@@ -31,8 +32,9 @@ export function decodeMap(rows) {
 }
 
 // The game just finished, as it goes into the history. players: the controller's players (with their
-// kingdoms), rows: rank()'s final ranking, config: the game's config (its seats as they were dealt).
-export function makeRecord({ players, rows, config, seed = null, online = null, coach = null, verdict = null, start = null, end = Date.now() }) {
+// kingdoms), rows: rank()'s final ranking, config: the game's config (its seats as they were dealt),
+// moves: every decision of the game (see moves.js), which with the seed replay it.
+export function makeRecord({ players, rows, config, seed = null, moves = null, online = null, coach = null, verdict = null, start = null, end = Date.now() }) {
   const rowOf = new Map(rows.map((r) => [r.player, r]));
   return {
     v: VERSION,
@@ -41,6 +43,7 @@ export function makeRecord({ players, rows, config, seed = null, online = null, 
     online, // 'host' or 'guest' for a game played online
     rules: { middleKingdom: !!config.middleKingdom, harmony: !!config.harmony, mightyDuel: !!config.mightyDuel },
     seed,
+    ...(seed !== null && moves ? { flow: FLOW, moves: moves.slice() } : {}),
     coach, // 'trainer' or 'study' when the coach graded the game
     players: players.map((p, i) => {
       const { place, s } = rowOf.get(p), seat = config.seats[i];
@@ -98,12 +101,15 @@ export function cleanRecord(r) {
   const players = r.players.map(cleanPlayer);
   if (players.some((p) => !p)) return null;
   const rules = r.rules || {};
+  const seed = int(r.seed, 0, 2 ** 32 - 1) ? r.seed : null, moves = cleanMoves(r.moves);
   return {
     v: VERSION, id: r.id,
     start: Number.isFinite(r.start) && r.start <= r.end ? r.start : null, end: r.end,
     online: r.online === 'host' || r.online === 'guest' ? r.online : null,
     rules: { middleKingdom: !!rules.middleKingdom, harmony: !!rules.harmony, mightyDuel: !!rules.mightyDuel },
-    seed: int(r.seed, 0, 2 ** 32 - 1) ? r.seed : null,
+    seed,
+    // (a game from an older flow keeps its moves, though this version cannot replay them)
+    ...(seed !== null && moves && int(r.flow, 1, 99) ? { flow: r.flow, moves } : {}),
     coach: r.coach === 'trainer' || r.coach === 'study' ? r.coach : null,
     players,
     verdict: cleanVerdict(r.verdict),

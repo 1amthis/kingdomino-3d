@@ -3,14 +3,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeRecord, cleanRecord, decodeMap, parseExport, GameLog, KEEP, profiles, statsFor, highlights } from '../src/core/history.js';
+import { FLOW } from '../src/core/moves.js';
 import { playGame } from '../scripts/headless.js';
 
 // A real finished game, seated as the menu would seat it.
 function realGame(seats, { seed = 5, middleKingdom = true, harmony = true } = {}) {
-  const { players, ranking } = playGame({ types: seats.map((s) => (s.type === 'human' ? 'hard' : s.type)), seed, middleKingdom, harmony });
+  const { players, ranking, moves } = playGame({ types: seats.map((s) => (s.type === 'human' ? 'hard' : s.type)), seed, middleKingdom, harmony });
   players.forEach((p, i) => Object.assign(p, seats[i], { color: ['#e2558f', '#f2c230', '#4fb34f', '#3f7fdb'][i], crest: i }));
   const config = { seats: seats.map((s) => ({ ...s })), middleKingdom, harmony, mightyDuel: false };
-  return { players, ranking, config };
+  return { players, ranking, config, moves };
 }
 
 // A memory stand-in for localStorage; `room` (characters) makes it refuse big writes like a full one.
@@ -36,12 +37,16 @@ function game(players, extra = {}) {
 }
 
 test('a finished game becomes a record that reads back unchanged', () => {
-  const { players, ranking, config } = realGame([
+  const { players, ranking, config, moves } = realGame([
     { name: 'You', type: 'human' }, { name: 'Lady Aveline', type: 'normal' }, { name: 'Baron Ulric', type: 'hard' },
   ]);
   const verdict = { decisions: 30, loss: 2.4, counts: { Best: 10, Good: 15, Blunder: 5 }, hints: 1 };
-  const rec = makeRecord({ players, rows: ranking, config, seed: 5, coach: 'trainer', verdict, start: 1000, end: 2000 });
+  const rec = makeRecord({ players, rows: ranking, config, seed: 5, moves, coach: 'trainer', verdict, start: 1000, end: 2000 });
   assert.deepEqual(cleanRecord(JSON.parse(JSON.stringify(rec))), rec, 'nothing is lost on the way through JSON and back');
+  // the seed and the moves replay it
+  assert.equal(rec.flow, FLOW);
+  const replay = playGame({ types: ['easy', 'easy', 'easy'], seed: rec.seed, middleKingdom: true, harmony: true, replay: rec.moves });
+  assert.deepEqual(replay.ranking.map((r) => r.s.total), ranking.map((r) => r.s.total));
   assert.deepEqual(rec.players.map((p) => p.kind), ['here', 'normal', 'hard']);
   for (const p of players) {
     const r = rec.players[p.index], row = ranking.find((x) => x.player === p);
@@ -74,6 +79,12 @@ test('only sound records are read back, and names are made safe', () => {
     { ...ok, players: [ok.players[0], { ...ok.players[1], total: -3 }] },
   ];
   for (const r of bad) assert.equal(cleanRecord(r), null, JSON.stringify(r));
+  // moves need a seed to replay from, and every one of them sound
+  assert.deepEqual(cleanRecord({ ...ok, seed: 7, flow: 1, moves: ['0s1', '1p0,1,2'] }).moves, ['0s1', '1p0,1,2']);
+  for (const extra of [{ flow: 1, moves: ['0s1'] }, { seed: 7, flow: 1, moves: ['0s1', 'oops'] }, { seed: 7, moves: ['0s1'] }]) {
+    const r = cleanRecord({ ...ok, ...extra });
+    assert.ok(r && !('moves' in r) && !('flow' in r), JSON.stringify(extra));
+  }
   const odd = cleanRecord({ ...ok, players: [{ ...ok.players[0], name: '<b>Eve</b>\u0007', color: 'red', map: ['W1F0', 'C0'], props: [['castle', 1, 1], ['forest', 3, 2]] }, ok.players[1]] });
   assert.equal(odd.players[0].name, 'bEve/b');
   assert.equal(odd.players[0].color, '#999999');
