@@ -1,4 +1,4 @@
-name: Draft Learned 300-Deal Benchmark
+name: Draft Tree-Only Independent Confirmation
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [tree, rollout, both]
+        mode: [tree]
         shard: [0, 1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
           MODE: ${{ matrix.mode }}
         run: |
           set -euo pipefail
-          SEED=$((30000 + SHARD * 50))
+          SEED=$((31000 + SHARD * 50))
           node scripts/bench-draft.js --mode "$MODE" --deals 50 --sims 2000 --ms 55 --threads 4 --seed "$SEED" > result.json
           cat result.json
       - uses: actions/upload-artifact@v4
@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [tree, rollout, both]
+        mode: [tree]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
