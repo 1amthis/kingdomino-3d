@@ -381,6 +381,25 @@ async function main() {
   else if (unfinished) resumeGame(unfinished);
   else showMenu();
 
+  // ---------- offline ----------
+  // The service worker (src/sw.js, built only for production) keeps the whole game in the browser's cache.
+  // A newer build waits until the page is in the background with no online table open, then takes over
+  // and the page reloads into it: an offline game is saved after every move, so it picks up where it was.
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      const update = () => { if (reg.waiting && document.hidden && !session) reg.waiting.postMessage('update'); };
+      document.addEventListener('visibilitychange', update);
+      reg.addEventListener('updatefound', () => reg.installing.addEventListener('statechange', update));
+      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+    }).catch((e) => console.warn('[offline]', e.message));
+    // (the first install also takes over the page, which needs nothing new for it)
+    let controlled = !!navigator.serviceWorker.controller, reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!controlled) controlled = true;
+      else if (!reloading) { reloading = true; location.reload(); }
+    });
+  }
+
   // expose for debugging in the console
   window.kingdomino = { stage, ctl, hud, sound, fx };
 }
