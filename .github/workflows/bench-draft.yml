@@ -1,4 +1,4 @@
-name: Draft Tree-Only Independent Confirmation
+name: Draft Fixed-Simulation Confirmation
 
 on:
   push:
@@ -31,8 +31,8 @@ jobs:
           MODE: ${{ matrix.mode }}
         run: |
           set -euo pipefail
-          SEED=$((31000 + SHARD * 50))
-          node scripts/bench-draft.js --mode "$MODE" --deals 50 --sims 2000 --ms 55 --threads 4 --seed "$SEED" > result.json
+          SEED=$((32000 + SHARD * 50))
+          node scripts/bench-draft.js --mode "$MODE" --deals 50 --sims 2000 --ms 1500 --threads 4 --seed "$SEED" > result.json
           cat result.json
       - uses: actions/upload-artifact@v4
         with:
