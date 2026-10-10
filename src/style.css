@@ -807,6 +807,11 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
   .h2h { grid-template-columns: 6.4em minmax(24px, 1fr) auto 2.6em; gap: 7px 8px; }
   .h2h-who, .h2h-rec, .h2h-pct { font-size: 13px; }
   .h2h-who .pips { display: none; }
+  /* one game's head: the back and replay buttons share a row, the date and the details get the full width under them */
+  .hd-head { gap: 10px; }
+  .hd-titles { order: 1; flex-basis: 100%; }
+  .royal-btn.hd-replay { margin-left: auto; padding: 8px 16px; }
+  .hd-meta { font-size: 14px; }
   .res-row.hd-row { grid-template-columns: 26px minmax(0, 1fr) auto auto; }
   .hd-row .kmap { width: 50px; height: 50px; }
   .hd-row .res-total { font-size: 24px; }
