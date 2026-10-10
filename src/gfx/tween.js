@@ -1,6 +1,10 @@
 // Promise-based tweening driven by the render loop, so game flow can simply `await` animations.
 import * as THREE from 'three';
 
+// The player's system asks for less motion: camera flights snap into place and fireworks stay away.
+const lessMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+export const reducedMotion = () => !!(lessMotion && lessMotion.matches);
+
 export const Ease = {
   linear: (t) => t,
   inQuad: (t) => t * t,

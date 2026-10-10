@@ -13,7 +13,7 @@ export class Sound {
   }
 
   init() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx) { if (this.ctx.state === 'suspended' && !document.hidden) this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ctx = this.ctx = new AC();
@@ -36,6 +36,11 @@ export class Sound {
     this.music.connect(mSend).connect(this.reverb);
     this.noise = this.makeNoise(2);
     this.startMusic();
+    // Nothing plays in a background tab; coming back picks the soundtrack up where it was.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { if (ctx.state === 'running') { this.pausedHidden = true; ctx.suspend(); } }
+      else if (this.pausedHidden) { this.pausedHidden = false; ctx.resume(); }
+    });
   }
 
   impulse(sec, decay) {
