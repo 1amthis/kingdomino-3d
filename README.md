@@ -20,6 +20,8 @@ out thousands of games before each move, with a coach that grades yours, or with
 
 Procedural miniature dioramas on every tile, a candle-lit table, animated critters, a generative lute soundtrack, a
 full rules engine and four levels of AI, all running in the browser with no download and no sign-up.
+After the first visit it plays offline too, and installs as an app (*Install* in the browser's menu, or *Add to
+Home Screen* on a phone); only online play needs a connection.
 
 ## Take on the Expert, learn from the coach
 
@@ -278,6 +280,9 @@ sub-folder works too).
   to `main`. In a fork, turn it on once in *Settings → Pages → Source: GitHub Actions*, and change the
   `https://1amthis.github.io/kingdomino-3d/` addresses in `index.html` to your own (the build writes `sitemap.xml`
   from its canonical link).
+- **Offline**: the build also writes `sw.js`, a service worker that caches every file of the build (the list and
+  its version come from `dist/` itself, so there is nothing to keep up to date). A new deploy installs in the
+  background and takes over the next time the game is in the background with no online table open.
 - **Anywhere else**: drag `dist/` onto [Netlify Drop](https://app.netlify.com/drop), or use Cloudflare Pages.
 
 ## Code map
@@ -314,6 +319,7 @@ src/
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
   game/controller.js game flow, animation choreography, camera direction, input
   game/coach.js      the coach at the table: analyses, grades, advice, study notes, the results verdict
+  sw.js              the service worker for offline play (the build fills in its file list, see vite.config.js)
 scripts/
   headless.js        core/table.js's flow with AI seats, for benchmarks and tests; records moves and replays them
   bench.js           Expert against a heuristic level on paired deals
