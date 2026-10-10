@@ -15,7 +15,7 @@ import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
 import { makeMat, makeDraftBoard, makeChest } from '../gfx/table.js';
 import { M } from '../gfx/materials.js';
-import { Ease } from '../gfx/tween.js';
+import { Ease, reducedMotion } from '../gfx/tween.js';
 import { CROWN_SVG } from '../ui/hud.js';
 import { LEFT } from '../net/online.js';
 import { t, tn } from '../i18n/index.js';
@@ -1352,7 +1352,7 @@ export class Controller {
     }
     this.hud.prompt(title, sub);
     this.sound.fanfare();
-    for (const w of winners) { this.fx.confettiBurst(w.seat.pos.clone().setY(0.5), [w.color]); w.plateBody.classList.add('tally'); }
+    for (const w of winners) { if (!reducedMotion()) this.fx.confettiBurst(w.seat.pos.clone().setY(0.5), [w.color]); w.plateBody.classList.add('tally'); }
     // Let the fireworks play out before the results cover the table; the floating button opens them sooner.
     const party = this.celebrate(flow, winners).then(() => this.tw.wait(1500));
     await flow.w(Promise.race([party, this.hud.offerResults()]));
@@ -1384,6 +1384,7 @@ export class Controller {
   }
 
   async celebrate(flow, winners) {
+    if (reducedMotion()) return;
     try {
       for (let i = 0; i < 9; i++) {
         const w = winners[i % winners.length];

@@ -8,7 +8,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { Tweener, Ease } from './tween.js';
+import { Tweener, Ease, reducedMotion } from './tween.js';
 import { updateMaterials } from './materials.js';
 import { t } from '../i18n/index.js';
 
@@ -270,6 +270,7 @@ export class Stage {
   setViewShift(target, duration = 1200) {
     const from = this.viewShift || 0;
     this.tweener.clear('camera-shift');
+    if (reducedMotion()) duration = 1;
     return this.tweener.add({
       duration, ease: Ease.inOutCubic, tag: 'camera-shift',
       update: (t) => { this.viewShift = from + (target - from) * t; this.applyViewShift(); },
@@ -348,7 +349,8 @@ export class Stage {
     const s0 = new THREE.Spherical().setFromVector3(this.camera.position.clone().sub(t0));
     const s1 = new THREE.Spherical().setFromVector3(position.clone().sub(t1));
     const turn = THREE.MathUtils.euclideanModulo(s1.theta - s0.theta + Math.PI, Math.PI * 2) - Math.PI;
-    const rise = Math.min(4, this.camera.position.distanceTo(position) * 0.12);
+    const rise = reducedMotion() ? 0 : Math.min(4, this.camera.position.distanceTo(position) * 0.12);
+    if (reducedMotion()) duration = 1;
     const s = new THREE.Spherical();
     this.flying = true;
     const id = (this.flightId = (this.flightId || 0) + 1);
@@ -390,6 +392,7 @@ export class Stage {
     for (const fn of this.frameCallbacks) fn(t, dt);
     updateMaterials(t, this.ambience.night);
     this.shaft.material.uniforms.uTime.value = t;
+    if (this.controls.autoRotate && reducedMotion()) this.controls.autoRotate = false;
     this.cameraMoved = this.controls.update(dt); // dt keeps the auto-rotation speed at any frame rate
     this.clampTarget();
   }
