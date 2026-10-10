@@ -238,14 +238,14 @@ export class Game {
   }
 
   // Legal moves; cap keeps only the most promising placements (by the playout heuristic).
-  legal(cap = 0, buf = new Int32Array(1024)) {
+  legal(cap = 0, buf = new Int32Array(1024), placementEval = null) {
     if (this.phase !== PLACE) return this.freeSlots();
     const d = this.line[this.idx], b = this.boards[this.own[this.idx]];
     const n = b.placements(d, buf);
     if (!n) return [DISCARD];
     const moves = Array.from(buf.subarray(0, n));
     if (!cap || n <= cap) return moves;
-    return moves.map((m) => [m, b.quickEval(m, d)]).sort((p, q) => q[1] - p[1]).slice(0, cap).map((p) => p[0]);
+    return moves.map((m) => [m, (placementEval ? placementEval.call(b, m, d) : b.quickEval(m, d))]).sort((p, q) => q[1] - p[1]).slice(0, cap).map((p) => p[0]);
   }
 
   apply(m) {
