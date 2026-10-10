@@ -82,3 +82,52 @@ A CI workflow performs each mode as 6 shards of 50 paired deals and
 aggregates them with duplicate/missing-seed checks and artifact reports.
 Avoid concluding strength from teacher regret alone. No learned code
 should be enabled in production without a verified head-to-head win.
+
+
+## Completed A/B results (GitHub Actions)
+
+The original 3-arm comparison used seeds 30000–30299, 300 paired deals
+(600 games) **per mode**:
+
+| Mode | Wins learned / baseline (draws) | Mean learned margin | Approximate 95% CI |
+| --- | ---: | ---: | ---: |
+| Tree-only | 298 / 281 (21) | +0.768 | [+0.228, +1.309] |
+| Rollouts only | 266 / 304 (30) | -0.100 | [-0.66, +0.46] |
+| Both | 290 / 276 (34) | +0.090 | [-0.49, +0.67] |
+
+The tree-only variant was **chosen after inspecting these results**, so the
+original tree-only confidence interval is exploratory, not a fully
+pre-specified confirmation.
+
+Two **independent seed ranges** were then tested using tree-only:
+
+| Held-out seed range | Budget | Wins learned / baseline (draws) | Mean margin | Approximate 95% CI |
+| --- | --- | ---: | ---: | ---: |
+| 31000–31299 | 2,000 sims / 55 ms | 298 / 266 (36) | +0.318 | [-0.304, +0.941] |
+| 32000–32299 | 2,000 sims / 1,500 ms | 305 / 268 (27) | +0.252 | [-0.361, +0.865] |
+
+The wider time limit in the last test lets search reach the requested
+simulation cap on non-forced turns; forced moves need zero simulations.
+
+**Pooled exploratory + confirmation**: 900 paired deals (1,800 games),
+901 wins / 815 losses / 84 score draws, +0.446 points/game, paired
+95% CI **[+0.104, +0.789]**. Bootstrap 95% CI is about
+[+0.112, +0.791]. This *looks positive*, but incorporates the
+exploratory series used to select the winning variant.
+
+**Confirmation-only**: 600 paired deals (1,200 games), +0.285 points/game,
+paired 95% CI **[-0.151, +0.721]**. That interval **includes zero**.
+Thus a reliable strength improvement has **not** been independently
+demonstrated. The real win probability also requires a more targeted
+statistical analysis, especially given tied scores and pair dependence.
+
+Source workflows with full per-seed records (Actions artifacts):
+
+- Initial 3-arm test: https://github.com/1amthis/kingdomino-3d/actions/runs/38089773926
+- Independent timed confirmation: https://github.com/1amthis/kingdomino-3d/actions/runs/38089902345
+- Independent simulation-cap confirmation: https://github.com/1amthis/kingdomino-3d/actions/runs/38090038976
+
+**Decision:** keep this implementation opt-in on the draft PR. Do **not**
+replace the default Expert until there is a consistent result on a
+larger fully independent confirmation, at the browser's actual budget,
+and ideally across game options.
