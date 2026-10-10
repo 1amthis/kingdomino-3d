@@ -11,8 +11,11 @@ An early nine-feature evaluator selected slightly better placements on held-out
 teacher labels, but made simulations much slower. The replacement reduces the
 model to **six cheap features**, fuses evaluation with the original 8-neighbour
 walk, and allocates **no temporary objects or collections per placement**.
-The pick heuristic remains unchanged. Both MCTS expansion and playouts can use
-the evaluator; placement pruning also uses it when supplied.
+The pick heuristic remains unchanged. MCTS expansion and placement pruning can
+use the evaluator via `placementEval`. Its use in rollouts is controlled
+**independently** by `playoutEval`. The latter defaults to `placementEval`
+for compatibility; explicitly pass `playoutEval: null` to keep the original
+simulation policy (tree-only experiment).
 
 The teacher still completes each simulation to a final score. This is a
 **learned action-ranking heuristic**, not a neural value network or an
@@ -23,8 +26,9 @@ AlphaZero implementation.
 ```sh
 npm test
 node scripts/train-learned.js --train-games 100 --valid-games 20 --teacher-sims 24
-node scripts/bench-learned.js --deals 100 --sims 2000 --ms 55 --threads 4 --seed 24000
-node scripts/bench-learned.js --deals 100 --sims 200 --ms 1500 --threads 4 --seed 26000
+node scripts/bench-learned.js --mode tree --deals 100 --sims 2000 --ms 55 --threads 4 --seed 24000
+node scripts/bench-learned.js --mode all --deals 100 --sims 2000 --ms 55 --threads 4 --seed 26000
+node scripts/bench-learned.js --mode tree --deals 100 --sims 200 --ms 1500 --threads 4 --seed 28000
 ```
 
 The trainer uses independent deal seeds for 100 training games (500–599)
@@ -62,7 +66,13 @@ The baseline/learned mean simulation counts in the 55ms pilot were
 expensive than the baseline (about 7% fewer simulations), even after
 removing dynamic allocations.
 
-**Neither interval excludes zero. No strength improvement is established.**
+On another independent 14-deal pilot, tree-only guided expansion with
+original rollouts led by **+1.18 points** (16–0–12, CI ~[−2.36, +4.72]),
+while guided expansion **and** learned rollouts trailed by **−2.43 points**
+(11–0–17, CI ~[−5.76, +0.91]). Neither experiment establishes superiority;
+these small batches illustrate substantial variance between deal ranges.
+
+**None of the intervals excludes zero. No strength improvement is established.**
 Do not merge this as a default Expert upgrade on the basis of these pilots.
 Benchmarks should be rerun with the actual branch scripts, several hundred
 paired deals, independent seed ranges, and a realistic device/browser budget.
@@ -73,8 +83,10 @@ Current pilot results are only a directional sanity check.
 
 - Existing `new Search()` and the browser worker continue using the exact
   previous heuristic. No change to the production playing strength or coach.
-- The learned score is applied to MCTS placement pruning, expansion and
-  simulation playouts **only on explicitly opted-in Search instances**.
+- The learned score affects MCTS placement pruning and expansion **only on
+  explicitly opted-in Search instances**. Simulation playouts use it only if
+  `playoutEval` is set (by default it follows `placementEval`); `null`
+  retains the original rollout heuristic.
 - Experimental weights trained on 2-player 5×5 without bonuses. They have **not**
   been validated for 3–4 players, 7×7 Mighty Duel, Harmony or Middle Kingdom.
 - The current trainer samples positions from a single expert policy, rather
