@@ -45,8 +45,8 @@ function landing(hist) {
 export class Search {
   // c: UCT exploration; cap / rootCap: placements kept (best by heuristic) inside the tree / at its root;
   // eps: playout randomness; sample: placements a playout compares before picking one.
-  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0 } = {}) {
-    Object.assign(this, { c, cap, rootCap, eps, sample });
+  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, draftTreeEval = null, draftRolloutEval = null } = {}) {
+    Object.assign(this, { c, cap, rootCap, eps, sample, draftTreeEval, draftRolloutEval });
     this.rnd = mulberry32(seed);
     this.carry = null; // { key, node }: the subtree under the placement just played
     this.stats = null; // while analysing: per root move, { win, margin, land } summed over its simulations
@@ -199,7 +199,7 @@ export class Search {
     let best = null, bv = -Infinity;
     for (const a of acts) {
       if (kids.has(a)) continue;
-      const v = (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : b.pickEval(line[a]) - 0.05 * a) + 0.01 * this.rnd();
+      const v = (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : (this.draftTreeEval ? this.draftTreeEval(st, a) : b.pickEval(line[a]) - 0.05 * a)) + 0.01 * this.rnd();
       if (v > bv) { bv = v; best = a; }
     }
     return best;
@@ -241,7 +241,7 @@ export class Search {
         else if (rnd() < eps) m = BUF[(rnd() * free) | 0];
         else {
           for (let i = 0; i < free; i++) {
-            const v = b.pickEval(line[BUF[i]]) - 0.05 * BUF[i];
+            const v = this.draftRolloutEval ? this.draftRolloutEval(st, BUF[i]) : b.pickEval(line[BUF[i]]) - 0.05 * BUF[i];
             if (v > bv) { bv = v; m = BUF[i]; }
           }
         }
