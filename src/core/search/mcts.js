@@ -45,8 +45,8 @@ function landing(hist) {
 export class Search {
   // c: UCT exploration; cap / rootCap: placements kept (best by heuristic) inside the tree / at its root;
   // eps: playout randomness; sample: placements a playout compares before picking one.
-  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0 } = {}) {
-    Object.assign(this, { c, cap, rootCap, eps, sample });
+  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, placementEval = null, playoutEval = placementEval } = {}) {
+    Object.assign(this, { c, cap, rootCap, eps, sample, placementEval, playoutEval });
     this.rnd = mulberry32(seed);
     this.carry = null; // { key, node }: the subtree under the placement just played
     this.stats = null; // while analysing: per root move, { win, margin, land } summed over its simulations
@@ -56,7 +56,7 @@ export class Search {
 
   // Searches until `sims` simulations or `ms` milliseconds, then plays the most visited move.
   choose(game, { sims = 2000, ms = 1500 } = {}) {
-    const acts = game.legal(this.rootCap, BUF);
+    const acts = game.legal(this.rootCap, BUF, this.placementEval);
     const carry = this.carry;
     this.carry = null;
     if (acts.length === 1) return { move: acts[0], sims: 0 };
@@ -130,7 +130,7 @@ export class Search {
       const actor = st.player;
       let acts = fixed ? node.acts : null;
       if (!acts) {
-        acts = st.legal(depth ? this.cap : this.rootCap, BUF);
+        acts = st.legal(depth ? this.cap : this.rootCap, BUF, this.placementEval);
         if (fixed) node.acts = acts;
       }
       let a = depth === 0 && forced !== null ? forced : this.untried(st, acts, node.kids);
@@ -199,7 +199,7 @@ export class Search {
     let best = null, bv = -Infinity;
     for (const a of acts) {
       if (kids.has(a)) continue;
-      const v = (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : b.pickEval(line[a]) - 0.05 * a) + 0.01 * this.rnd();
+      const v = (place ? (a === DISCARD ? 0 : (this.placementEval ? this.placementEval.call(b, a, d) : b.quickEval(a, d))) : b.pickEval(line[a]) - 0.05 * a) + 0.01 * this.rnd();
       if (v > bv) { bv = v; best = a; }
     }
     return best;
@@ -227,7 +227,7 @@ export class Search {
           }
           let bv = -Infinity;
           for (let i = 0; i < n; i++) {
-            const v = b.quickEval(BUF[i], d);
+            const v = this.playoutEval ? this.playoutEval.call(b, BUF[i], d) : b.quickEval(BUF[i], d);
             if (v > bv) { bv = v; m = BUF[i]; }
           }
         }
