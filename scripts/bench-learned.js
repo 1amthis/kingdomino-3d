@@ -1,5 +1,7 @@
 // Paired head-to-head between current Expert and the learned placement evaluator.
-// Usage: node scripts/bench-learned.js --deals 100 --sims 2000 --ms 55 --threads 4 --seed 24000
+// Usage: node scripts/bench-learned.js --mode tree --deals 100 --sims 2000 --ms 55 --threads 4 --seed 24000
+// --mode tree: trained evaluator for tree expansion and move pruning, original rollout policy
+// --mode all:  trained evaluator for both tree and simulation rollouts
 // Two-player 5x5, no optional bonuses. Each random deal is replayed from both seats.
 // No monkey-patching: different Search instances use their own placement policies.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
@@ -18,6 +20,8 @@ const deals = get('deals', 100);
 const first = get('seed', 24000);
 const sims = get('sims', 2000);
 const ms = get('ms', 55);
+const mode = process.argv.includes('--mode') ? process.argv[process.argv.indexOf('--mode') + 1] : 'tree';
+if (mode !== 'tree' && mode !== 'all') throw new Error('Unknown --mode: ' + mode);
 const threads = Math.max(1, Math.min(deals, get('threads', Math.min(4, availableParallelism()))));
 
 function setup(seed) {
@@ -39,8 +43,10 @@ function setup(seed) {
 function play(seed, learnedSeat) {
   const g = setup(seed);
   const searches = [
-    new Search({ seed: seed * 31 + 1, placementEval: learnedSeat === 0 ? fastLearnedEval : null }),
-    new Search({ seed: seed * 31 + 2, placementEval: learnedSeat === 1 ? fastLearnedEval : null }),
+    new Search({ seed: seed * 31 + 1, placementEval: learnedSeat === 0 ? fastLearnedEval : null,
+      playoutEval: learnedSeat === 0 && mode === 'all' ? fastLearnedEval : null }),
+    new Search({ seed: seed * 31 + 2, placementEval: learnedSeat === 1 ? fastLearnedEval : null,
+      playoutEval: learnedSeat === 1 && mode === 'all' ? fastLearnedEval : null }),
   ];
   const stats = { original: { sims: 0, ms: 0, moves: 0 }, learned: { sims: 0, ms: 0, moves: 0 } };
   let steps = 0;
@@ -82,7 +88,7 @@ if (!isMainThread) {
   const se = Math.sqrt(results.reduce((s, r) => s + (r.margin - mean) ** 2, 0) / ((results.length - 1) * results.length));
   const average = (type, k) => games.reduce((s, r) => s + r.stats[type][k], 0) / games.reduce((s, r) => s + r.stats[type].moves, 0);
   const output = {
-    seed: first, pairedDeals: results.length, games: games.length, budget: { sims, ms },
+    seed: first, pairedDeals: results.length, games: games.length, mode, budget: { sims, ms },
     learnedWins: games.filter(r => r.margin > 0).length,
     originalWins: games.filter(r => r.margin < 0).length,
     equalScores: games.filter(r => r.margin === 0).length,
