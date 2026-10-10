@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { perlin2, fbm2 } from './noise.js';
 import { mulberry32 } from '../core/rng.js';
+import { t } from '../i18n/index.js';
 
 function canvas(w, h) {
   const c = document.createElement('canvas');
@@ -304,8 +305,8 @@ export function makeDraftTexture(slots, W = 1024, H = 1024) {
   x.font = '700 34px Cinzel, Georgia, serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillStyle = goldGradient(x, 70, 110);
-  x.fillText('THIS ROUND', W * 0.28, 92);
-  x.fillText('NEXT ROUND', W * 0.72, 92);
+  x.fillText(t('This round').toUpperCase(), W * 0.28, 92);
+  x.fillText(t('Next round').toUpperCase(), W * 0.72, 92);
   // slot engravings (slots are given in UV space 0..1)
   x.setLineDash([14, 10]);
   x.lineWidth = 3; x.strokeStyle = 'rgba(240,200,120,0.55)';

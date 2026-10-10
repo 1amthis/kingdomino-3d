@@ -4,6 +4,7 @@
 import { analysePosition } from '../core/search/expert.js';
 import { replayRecord } from '../core/replay.js';
 import { reviewPlan, markMove, reviewVerdicts } from '../core/review.js';
+import { t } from '../i18n/index.js';
 
 export class ReviewRunner {
   // log: the GameLog the records live in; onChange(record, progress): after each grade, and at the end
@@ -33,7 +34,7 @@ export class ReviewRunner {
       plan = reviewPlan(r, turns);
     } catch (e) {
       console.warn('[review]', e.message);
-      this.finish(job, r, 'This game cannot be replayed, so the coach cannot review it.');
+      this.finish(job, r, t('This game cannot be replayed, so the coach cannot review it.'));
       return;
     }
     const review = { ...(r.review || {}) };
@@ -45,7 +46,7 @@ export class ReviewRunner {
       let analysis;
       try { analysis = await analysePosition(turns[k].table); } catch (e) {
         console.warn('[review]', e.message || e);
-        if (job.alive) this.finish(job, r, 'The coach could not run in this browser.');
+        if (job.alive) this.finish(job, r, t('The coach could not run in this browser.'));
         return;
       }
       if (!job.alive) return;

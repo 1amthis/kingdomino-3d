@@ -10,6 +10,7 @@ import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { Tweener, Ease } from './tween.js';
 import { updateMaterials } from './materials.js';
+import { t } from '../i18n/index.js';
 
 const FinishShader = {
   uniforms: {
@@ -58,15 +59,15 @@ const FinishShader = {
 
 export const AMBIENCE = {
   day: {
-    label: 'Day', sunColor: 0xfff0d8, sun: 3.4, hemiSky: 0xd8e6ff, hemiGround: 0x6a4a32, hemi: 1.0, env: 0.5,
+    label: t('Day'), sunColor: 0xfff0d8, sun: 3.4, hemiSky: 0xd8e6ff, hemiGround: 0x6a4a32, hemi: 1.0, env: 0.5,
     bg: 0x2b2019, candle: 1.4, night: 0, exposure: 1.0, sunPos: [-16, 28, 14], shaft: 0.35, lamp: 0,
   },
   dusk: {
-    label: 'Golden hour', sunColor: 0xffa35a, sun: 3.0, hemiSky: 0xffb58a, hemiGround: 0x3a2418, hemi: 0.55, env: 0.3,
+    label: t('Golden hour'), sunColor: 0xffa35a, sun: 3.0, hemiSky: 0xffb58a, hemiGround: 0x3a2418, hemi: 0.55, env: 0.3,
     bg: 0x1c120c, candle: 4, night: 0.4, exposure: 1.05, sunPos: [-28, 12, 8], shaft: 0.55, lamp: 40,
   },
   night: {
-    label: 'Night', sunColor: 0x8aa0ff, sun: 0.9, hemiSky: 0x33407a, hemiGround: 0x120c0a, hemi: 0.45, env: 0.14,
+    label: t('Night'), sunColor: 0x8aa0ff, sun: 0.9, hemiSky: 0x33407a, hemiGround: 0x120c0a, hemi: 0.45, env: 0.14,
     bg: 0x05060c, candle: 10, night: 1, exposure: 1.2, sunPos: [12, 26, -14], shaft: 0.0, lamp: 420,
   },
 };

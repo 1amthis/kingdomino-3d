@@ -3,6 +3,7 @@
 // The controller only sees two calls: choose(player, kind) for a move made elsewhere, and
 // tell(player, kind, value) for a move made here.
 import { cleanDynasty } from '../core/dynasty.js';
+import { t } from '../i18n/index.js';
 
 export const LEFT = Symbol('left');
 
@@ -100,6 +101,7 @@ export class HostSession extends Emitter {
     conn.on('error', () => this.drop(conn));
   }
 
+  // reason: in English; the guest shows it in their own language.
   refuse(conn, reason) {
     conn.send({ t: 'refused', reason });
     setTimeout(() => conn.close(), 600);
@@ -221,8 +223,8 @@ export class GuestSession extends Emitter {
     const peer = this.peer = await openPeer(Peer);
     await new Promise((resolve, reject) => {
       const done = (e) => { clearTimeout(timer); peer.off('error', onError); e ? reject(e) : resolve(); };
-      const onError = (e) => done(e.type === 'peer-unavailable' ? new Error('This game could not be found. The host may have closed it.') : e);
-      const timer = setTimeout(() => done(new Error('The host did not answer. Check the link and try again.')), 20000);
+      const onError = (e) => done(e.type === 'peer-unavailable' ? new Error(t('This game could not be found. The host may have closed it.')) : e);
+      const timer = setTimeout(() => done(new Error(t('The host did not answer. Check the link and try again.'))), 20000);
       peer.on('error', onError);
       this.conn = peer.connect(PREFIX + this.code, CONNECT_OPTS);
       this.conn.once('open', () => done());
@@ -239,7 +241,7 @@ export class GuestSession extends Emitter {
     else if (m.t === 'start') { this.box = new Mailbox(); this.n = 0; this.emit('start', this.mirror(m)); }
     else if (m.t === 'move') this.box.push(m);
     else if (m.t === 'left') this.emit('left', m.seat);
-    else if (m.t === 'refused') { this.shut(); this.emit('refused', String(m.reason || 'The host refused the connection.')); }
+    else if (m.t === 'refused') { this.shut(); this.emit('refused', t(String(m.reason || 'The host refused the connection.'))); }
     else if (m.t === 'closed') this.lost();
   }
 

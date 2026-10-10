@@ -10,14 +10,15 @@ import { GameLog } from './core/history.js';
 import { SavedGame } from './core/moves.js';
 import { isOver, nextDynasty } from './core/dynasty.js';
 import { Controller, ReplayError } from './game/controller.js';
+import { t, tn, lang, setLang, translatePage } from './i18n/index.js';
 import { HostSession, GuestSession, inviteCode, inviteLink, clearInvite, isLocalHost } from './net/online.js';
 
 const COLORS = ['#e2558f', '#f2c230', '#4fb34f', '#3f7fdb'];
 const SEATS = [
-  { name: 'You', type: 'human', color: COLORS[0] },
-  { name: 'Lady Aveline', type: 'normal', color: COLORS[1] },
-  { name: 'Sir Godfrey', type: 'normal', color: COLORS[2] },
-  { name: 'Baron Ulric', type: 'hard', color: COLORS[3] },
+  { name: t('You'), type: 'human', color: COLORS[0] },
+  { name: t('Lady Aveline'), type: 'normal', color: COLORS[1] },
+  { name: t('Sir Godfrey'), type: 'normal', color: COLORS[2] },
+  { name: t('Baron Ulric'), type: 'hard', color: COLORS[3] },
 ];
 const DEMO = {
   seats: [
@@ -36,13 +37,14 @@ const store = {
 };
 
 async function main() {
+  translatePage();
   const hud = new Hud();
-  hud.loading(0.04, 'Loading…');
+  hud.loading(0.04, t('Loading…'));
   try { await Promise.race([document.fonts.load('700 64px Cinzel'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* fonts optional */ }
 
   const stage = new Stage(document.getElementById('app'));
   createMaterials();
-  hud.loading(0.1, 'Building the table…');
+  hud.loading(0.1, t('Building the table…'));
   await tick();
   const table = buildTable(stage);
   const fx = new Effects(stage);
@@ -51,8 +53,8 @@ async function main() {
   stage.onAmbience = (a) => table.candles.forEach((c) => c.setBase(a.candle));
   stage.applyAmbience(stage.ambience);
 
-  await ctl.buildViews((p) => hud.loading(0.15 + p * 0.7, 'Building the dominoes…'));
-  hud.loading(0.9, 'Preparing graphics…');
+  await ctl.buildViews((p) => hud.loading(0.15 + p * 0.7, t('Building the dominoes…')));
+  hud.loading(0.9, t('Preparing graphics…'));
   // Pre-compile every shader variant so the first draft does not stutter.
   const warm = [...ctl.views.values()].map((v) => v.group);
   warm.forEach((g, i) => { g.position.set((i % 8) * 2.2 - 8, -30, Math.floor(i / 8) * 1.2); stage.scene.add(g); });
@@ -84,10 +86,11 @@ async function main() {
   stage.ambienceName = settings.ambience;
   stage.applyAmbience(stage.ambience);
   hud.setSeg('ambience', settings.ambience);
+  hud.setSeg('lang', lang);
   sound.sfxOn = settings.sfx; sound.musicOn = settings.music;
   hud.setToggle('music', settings.music);
   hud.setToggle('sound', settings.sfx);
-  hud.on('setting', ({ key, value }) => { if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
+  hud.on('setting', ({ key, value }) => { if (key === 'lang') { setLang(value); return; } if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
 
   // ---------- history ----------
   // Every finished game is kept in this browser (localStorage), and what stands out about it shows on
@@ -109,7 +112,7 @@ async function main() {
       ongoing.save({ config: { ...lastConfig, dynasty: ctl.dynasty, seed: (Math.random() * 2 ** 32) >>> 0 }, start: null, moves: [], coach: [] });
     }
     const note = history.note(record);
-    if (!log.save(record)) { hud.toast('This game could not be kept in the history: this browser does not allow it.', 3.5); return { note }; }
+    if (!log.save(record)) { hud.toast(t('This game could not be kept in the history: this browser does not allow it.'), 3.5); return { note }; }
     if (!askedToKeep && navigator.storage && navigator.storage.persist) {
       askedToKeep = true;
       navigator.storage.persisted().then((kept) => kept || navigator.storage.persist()).catch(() => {});
@@ -187,7 +190,7 @@ async function main() {
       ongoing.clear();
       ctl.clearGame();
       showMenu();
-      hud.toast('Your last game could not be picked up again.', 3.5);
+      hud.toast(t('Your last game could not be picked up again.'), 3.5);
     }
   }
 
@@ -217,13 +220,13 @@ async function main() {
     if (session && session.role === 'host') p.remote = false;
     p.type = 'normal';
     hud.updateTag(p);
-    hud.toast(`${hud.who(p)} left. The AI plays their kingdom from now on.`, 3.5);
+    hud.toast(t('{who} left. The AI plays their kingdom from now on.', { who: hud.who(p) }), 3.5);
   }
 
   function endOnlineGame(title, text) {
     session = null;
     if (!inGame) {
-      hud.setLobby({ sub: text, seats: null, join: null, back: 'Play offline' });
+      hud.setLobby({ sub: text, seats: null, join: null, back: t('Play offline') });
       return;
     }
     hud.setActions(null);
@@ -232,16 +235,16 @@ async function main() {
 
   function hostTable(config) {
     // the menu's default "You" reads oddly on a friend's screen
-    config.seats.forEach((st) => { if (st.type === 'human' && st.name === 'You') st.name = 'Host'; });
+    config.seats.forEach((st) => { if (st.type === 'human' && hud.isYou(st)) st.name = t('Host'); });
     const s = session = new HostSession(config);
     const refresh = () => {
       if (session !== s || inGame) return;
       const open = s.openSeats, ready = !!s.code;
       hud.setLobby({
         seats: s.lobbySeats(), host: true,
-        sub: !ready ? 'Creating the game…'
-          : open ? `Waiting for ${open === 1 ? 'a friend' : `${open} friends`} to join…` : 'Everyone has joined.',
-        begin: { enabled: ready && s.joined > 0, label: open && s.joined ? 'Start · AI fills empty seats' : 'Start game' },
+        sub: !ready ? t('Creating the game…')
+          : open ? tn(open, 'Waiting for a friend to join…', 'Waiting for {n} friends to join…') : t('Everyone has joined.'),
+        begin: { enabled: ready && s.joined > 0, label: open && s.joined ? t('Start · AI fills empty seats') : t('Start game') },
       });
     };
     hud.hideMenu();
@@ -249,7 +252,7 @@ async function main() {
       onBack: () => { leaveOnline(); showMenu(true); },
       onBegin: () => { if (session === s && s.joined) startReal(s.start()); },
     });
-    hud.setLobby({ title: 'Online game', link: null, note: '', join: null, back: 'Back to the menu' });
+    hud.setLobby({ title: t('Online game'), link: null, note: '', join: null, back: t('Back to the menu') });
     refresh();
     s.on('change', refresh);
     s.on('leave', (seat) => friendLeft(seat));
@@ -257,14 +260,14 @@ async function main() {
       if (session !== s || !code) return;
       hud.setLobby({
         link: inviteLink(code),
-        note: isLocalHost() ? 'This link only works on this computer. Put the game online first (see the README) so friends elsewhere can open it.'
-          : 'Anyone with this link can take a free seat in your game.',
+        note: isLocalHost() ? t('This link only works on this computer. Put the game online first (see the README) so friends elsewhere can open it.')
+          : t('Anyone with this link can take a free seat in your game.'),
       });
       refresh();
     }).catch((e) => {
       if (session !== s) return;
       console.error(e);
-      hud.setLobby({ sub: `Could not create the online game (${e.message || e.type}). Check your connection and try again.`, begin: null });
+      hud.setLobby({ sub: t('Could not create the online game ({error}). Check your connection and try again.', { error: e.message || e.type }), begin: null });
     });
   }
 
@@ -276,8 +279,8 @@ async function main() {
       onJoin: (name) => connect(name),
     });
     hud.setLobby({
-      title: 'Online game', sub: 'You’ve been invited to a game. Enter your name to join.',
-      link: null, note: '', join: { name: settings.name || 'Guest' }, seats: null, begin: null, back: 'Play offline',
+      title: t('Online game'), sub: t('You’ve been invited to a game. Enter your name to join.'),
+      link: null, note: '', join: { name: settings.name || t('Guest') }, seats: null, begin: null, back: t('Play offline'),
     });
 
     async function connect(name) {
@@ -286,24 +289,24 @@ async function main() {
       persist();
       if (session) session.close();
       const s = session = new GuestSession(code);
-      hud.setLobby({ sub: 'Connecting to the host…', joining: true });
+      hud.setLobby({ sub: t('Connecting to the host…'), joining: true });
       s.on('lobby', ({ seats, you }) => {
         if (session !== s || inGame) return;
         const host = seats.find((x) => x.kind === 'human');
-        hud.setLobby({ join: null, seats, you, sub: `Waiting for ${host ? host.name : 'the host'} to start…`, back: 'Leave game' });
+        hud.setLobby({ join: null, seats, you, sub: host ? t('Waiting for {name} to start…', { name: host.name }) : t('Waiting for the host to start…'), back: t('Leave game') });
       });
       s.on('start', (config) => { if (session === s) startReal(config); });
       s.on('left', (seat) => friendLeft(seat));
-      s.on('refused', (reason) => { if (session === s) endOnlineGame('Can’t join', reason); });
-      s.on('closed', () => { if (session === s) endOnlineGame('The host has left', 'The host ended the game.'); });
-      s.on('desync', () => { if (session === s) { s.close(); endOnlineGame('Out of sync', 'This game no longer matches the host’s. Start a new game.'); } });
+      s.on('refused', (reason) => { if (session === s) endOnlineGame(t('Can’t join'), reason); });
+      s.on('closed', () => { if (session === s) endOnlineGame(t('The host has left'), t('The host ended the game.')); });
+      s.on('desync', () => { if (session === s) { s.close(); endOnlineGame(t('Out of sync'), t('This game no longer matches the host’s. Start a new game.')); } });
       try {
         await s.join(name);
       } catch (e) {
         if (session !== s) return;
         s.close();
         session = null;
-        hud.setLobby({ sub: e.message || 'Could not reach the host.', join: { name }, joining: false });
+        hud.setLobby({ sub: e.message || t('Could not reach the host.'), join: { name }, joining: false });
       }
     }
   }
@@ -311,12 +314,12 @@ async function main() {
   const cycleAmbience = () => {
     const order = ['day', 'dusk', 'night'];
     apply('ambience', order[(order.indexOf(settings.ambience) + 1) % order.length]);
-    hud.toast(`Time of day: ${AMBIENCE[settings.ambience].label}`, 1.6);
+    hud.toast(t('Time of day: {label}', { label: AMBIENCE[settings.ambience].label }), 1.6);
   };
 
   const followPlay = () => {
     if (!inGame) return;
-    if (settings.camera !== 'auto') { apply('camera', 'auto'); hud.toast('Following the game again', 1.6); }
+    if (settings.camera !== 'auto') { apply('camera', 'auto'); hud.toast(t('Following the game again'), 1.6); }
     ctl.followPlay();
   };
   const showView = (name) => { if (inGame) ctl.showView(name); };
@@ -334,15 +337,15 @@ async function main() {
     // once the reckoning has begun there is nothing left to lose, so no question
     if (inGame && !ctl.finished) {
       const [title, text, yes] = !session
-        ? ['Quit this game?', ctl.config.dynasty ? 'This game will be lost, and the dynasty left unfinished.' : 'This game will be lost.', 'Quit']
+        ? [t('Quit this game?'), ctl.config.dynasty ? t('This game will be lost, and the dynasty left unfinished.') : t('This game will be lost.'), t('Quit')]
         : session.role === 'host'
-          ? ['End the game for everyone?', 'All players return to the menu.', 'End game']
-          : ['Leave this game?', 'The AI takes over your kingdom.', 'Leave'];
+          ? [t('End the game for everyone?'), t('All players return to the menu.'), t('End game')]
+          : [t('Leave this game?'), t('The AI takes over your kingdom.'), t('Leave')];
       // an offline game holds still while you decide (an online one cannot wait for one player)
       const speed = !session && stage.tweener.speed;
       if (speed) stage.tweener.speed = 0;
       const game = ctl.flow;
-      const sure = await hud.ask(title, text, { yes, no: 'Keep playing' });
+      const sure = await hud.ask(title, text, { yes, no: t('Keep playing') });
       if (speed && ctl.flow === game) stage.tweener.speed = speed;
       if (!sure || !inGame || ctl.flow !== game) return;
     }
@@ -364,12 +367,12 @@ async function main() {
     else if (k === 't') cycleAmbience();
     else if (k === 'm') hud.emit('music');
     else if (k === 'h') hud.guide.toggle();
-    else if (k === 'p') { document.body.classList.toggle('photo'); hud.toast(document.body.classList.contains('photo') ? 'Photo mode &mdash; press P to bring the interface back' : 'Interface restored', 1.6); }
+    else if (k === 'p') { document.body.classList.toggle('photo'); hud.toast(document.body.classList.contains('photo') ? t('Photo mode &mdash; press P to bring the interface back') : t('Interface restored'), 1.6); }
     else if (k === 'escape') document.querySelectorAll('.modal').forEach((m) => m.classList.add('hidden'));
   };
 
   stage.start();
-  hud.loading(1, 'Ready');
+  hud.loading(1, t('Ready'));
   await new Promise((r) => setTimeout(r, 300));
   hud.hideLoading();
   const invite = inviteCode();
@@ -384,6 +387,6 @@ async function main() {
 
 main().catch((e) => {
   console.error(e);
-  const t = document.getElementById('loading-text');
-  if (t) t.textContent = 'Something went wrong: ' + e.message;
+  const el = document.getElementById('loading-text');
+  if (el) el.textContent = `${t('Something went wrong:')} ${e.message}`;
 });
