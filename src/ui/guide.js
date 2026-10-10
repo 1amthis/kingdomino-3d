@@ -1,5 +1,6 @@
 // "How to play" as a short illustrated tour: one idea per page, each drawn in the game's own palette.
 import { TERRAIN_INFO } from '../core/rules.js';
+import { t } from '../i18n/index.js';
 
 const GOLD = '#f0c75e';
 const WOOD = '#6e4a2b';
@@ -95,8 +96,8 @@ const ART = {
       <path class="a-flow" d="M122 102C160 102 170 ${oy + 4.5 * s} ${ox + s - 6} ${oy + 4.5 * s}" fill="none" stroke="${GOLD}" stroke-width="1.6"/>
       <path d="M${ox + s - 2} ${oy + 4.5 * s}l-8 -4.5v9z" fill="${GOLD}"/>
       <g class="a-float"><g transform="rotate(-8 84 96)">${domino(52, 80, s, [0, 0, 'mine', 1], [1, 0, 'swamp', 0])}</g></g>
-      ${text(84, 142, 'one domino', 'note')}${text(84, 159, 'each round', 'note')}
-      ${text(ox + 2.5 * s, oy - 12, '5 × 5', 'cap')}`, 'A kingdom of dominoes growing around its castle');
+      ${text(84, 142, t('one domino'), 'note')}${text(84, 159, t('each round'), 'note')}
+      ${text(ox + 2.5 * s, oy - 12, '5 × 5', 'cap')}`, t('A kingdom of dominoes growing around its castle'));
   },
 
   // The draft line in number order: kings claim dominoes; a low number means an early pick next round.
@@ -115,9 +116,9 @@ const ART = {
       <g class="a-hop">${king(x + s, rows[2] + 30, PINK)}</g>
       <path d="M186 20V178" stroke="${GOLD}" stroke-opacity=".55" stroke-width="1.5"/><path d="M186 186l-5-9h10z" fill="${GOLD}" fill-opacity=".8"/>
       <circle cx="186" cy="20" r="3" fill="${GOLD}"/>
-      ${text(200, 26, 'Low number', 'cap', 'start')}${text(200, 44, 'you pick sooner next round', 'note', 'start')}
-      ${text(200, 164, 'High number', 'cap', 'start')}${text(200, 182, 'usually more crowns', 'note', 'start')}`,
-    'Four dominoes in number order, two of them claimed by kings');
+      ${text(200, 26, t('Low number'), 'cap', 'start')}${text(200, 44, t('you pick sooner next round'), 'note', 'start')}
+      ${text(200, 164, t('High number'), 'cap', 'start')}${text(200, 182, t('usually more crowns'), 'note', 'start')}`,
+    t('Four dominoes in number order, two of them claimed by kings'));
   },
 
   // Three new dominoes: next to the castle, matching a terrain, and one that matches nothing.
@@ -128,14 +129,14 @@ const ART = {
     const at = (ox, c, r) => [ox + c * s + 1.5, oy + r * s + 1.5, s - 3];
     return svg(`
       ${panel(70, (ox) => `${castle(...at(ox, 0, 1))}${domino(ox, oy, s, [1, 1, 'lake', 0], [2, 1, 'grass', 1], 'a-drop new')}
-        ${edge(ox + s, oy + s + 4, ox + s, oy + 2 * s - 4, true)}`, ok, 'next to the castle')}
+        ${edge(ox + s, oy + s + 4, ox + s, oy + 2 * s - 4, true)}`, ok, t('next to the castle'))}
       ${panel(200, (ox) => `${castle(...at(ox, 0, 0))}${domino(ox, oy, s, [1, 0, 'forest', 0], [2, 0, 'forest', 0])}
         ${domino(ox, oy, s, [2, 1, 'forest', 1], [2, 2, 'wheat', 0], 'a-drop new')}
-        ${edge(ox + 2 * s + 4, oy + s, ox + 3 * s - 4, oy + s, true)}`, ok, 'forest meets forest')}
+        ${edge(ox + 2 * s + 4, oy + s, ox + 3 * s - 4, oy + s, true)}`, ok, t('forest meets forest'))}
       ${panel(330, (ox) => `${castle(...at(ox, 0, 0))}${domino(ox, oy, s, [1, 0, 'lake', 0], [2, 0, 'lake', 0])}
         ${domino(ox, oy, s, [1, 1, 'wheat', 0], [2, 1, 'grass', 0], 'a-drop new')}
-        ${edge(ox + s + 4, oy + s, ox + 3 * s - 4, oy + s, false)}`, no, 'nothing matches')}`,
-    'Two legal placements and one illegal one');
+        ${edge(ox + s + 4, oy + s, ox + 3 * s - 4, oy + s, false)}`, no, t('nothing matches'))}`,
+    t('Two legal placements and one illegal one'));
   },
 
   // The 5 x 5 frame: a domino that would stick out is refused; one that fits nowhere is discarded.
@@ -157,11 +158,11 @@ const ART = {
       <g opacity=".85">${domino(ox, oy, s, [5, 1, 'forest', 0], [6, 1, 'lake', 0], 'a-drop')}</g>
       <rect x="${ox + 5 * s + 1}" y="${oy + s + 1}" width="${2 * s - 2}" height="${s - 2}" rx="4" fill="none" stroke="#ff7a6b" stroke-width="2" stroke-dasharray="4 3"/>
       ${no(ox + 6 * s, oy + s - 12)}
-      ${text(ox + 7 * s + 10, oy + 1.5 * s + 5, 'outside the square', 'note', 'start')}
+      ${text(ox + 7 * s + 10, oy + 1.5 * s + 5, t('outside the square'), 'note', 'start')}
       <g transform="rotate(-9 318 152)"><rect x="292" y="139" width="52" height="26" rx="4" fill="#8a5d33" stroke="#3d2715"/>
         <rect x="295" y="142" width="46" height="20" rx="3" fill="none" stroke="rgba(255,230,190,.25)"/>${text(318, 156.5, '37', 'num back')}</g>
-      ${text(318, 188, 'fits nowhere: discarded', 'note')}`,
-    'A kingdom filling its 5 by 5 frame, a domino sticking out of it, and a discarded domino');
+      ${text(318, 188, t('fits nowhere: discarded'), 'note')}`,
+    t('A kingdom filling its 5 by 5 frame, a domino sticking out of it, and a discarded domino'));
   },
 
   // A kingdom's properties and what each one scores.
@@ -187,11 +188,11 @@ const ART = {
       ${castle(ox + 2 * s + 1.5, oy + 1.5, s - 3)}
       ${dominoes.map(([a, b]) => domino(ox, oy, s, a, b)).join('')}
       ${props.map(([, cells], i) => `<g class="a-cycle" ${phase(i)}>${outline(ox, oy, s, cells, 'stroke="#fff0b8" stroke-width="3.5"')}</g>`).join('')}
-      ${text(254, 52, 'squares × crowns', 'cap', 'start')}
+      ${text(254, 52, t('squares × crowns'), 'cap', 'start')}
       ${lines}
       <path d="M228 170H372" stroke="${GOLD}" stroke-opacity=".45"/>
-      ${text(228, 192, 'Total', 'cap', 'start')}${text(372, 193, '11', 'big gold', 'end')}`,
-    'A kingdom whose forest scores 8, lake scores 3 and crownless fields score nothing');
+      ${text(228, 192, t('Total'), 'cap', 'start')}${text(372, 193, '11', 'big gold', 'end')}`,
+    t('A kingdom whose forest scores 8, lake scores 3 and crownless fields score nothing'));
   },
 };
 
@@ -245,7 +246,7 @@ export class Guide {
     });
     const last = i === this.pages.length - 1;
     this.prev.style.visibility = i ? '' : 'hidden';
-    this.next.querySelector('span').textContent = last ? 'Got it' : 'Next';
+    this.next.querySelector('span').textContent = last ? t('Got it') : t('Next');
     this.count.textContent = `${i + 1} / ${this.pages.length}`;
   }
 

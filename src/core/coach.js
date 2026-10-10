@@ -1,10 +1,16 @@
 // The coach's judgement, from an analysis of the position (analysePosition): the move the Expert
 // prefers, and what any other move gives up, in points of expected final lead over the best opponent.
 import { footprint } from './rules.js';
+import { t } from '../i18n/index.js';
 
 // Points given up → grade, as in the Python trainer. Only the Expert's own choice is "Best" outright;
 // a move within 0.3 points of it counts as best too.
 export const GRADES = [[0.3, 'Best'], [1, 'Excellent'], [2.5, 'Good'], [5, 'Inaccuracy'], [9, 'Mistake'], [Infinity, 'Blunder']];
+
+// A grade's name as shown, in the player's language (the grade itself stays English: it is data, saved
+// in records and used as the key of the grade counts).
+const GRADE_LABELS = { Best: t('Best'), Excellent: t('Excellent'), Good: t('Good'), Inaccuracy: t('Inaccuracy'), Mistake: t('Mistake'), Blunder: t('Blunder') };
+export const gradeLabel = (grade) => GRADE_LABELS[grade] || grade;
 
 // What a placement leaves on the table, so the two ways of laying a domino with identical halves match.
 export function placementKey(domino, { x, y, rot }) {

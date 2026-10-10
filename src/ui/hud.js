@@ -2,6 +2,7 @@
 import { TERRAIN_INFO } from '../core/rules.js';
 import { GAMES, newDynasty } from '../core/dynasty.js';
 import { Guide } from './guide.js';
+import { t, tn } from '../i18n/index.js';
 
 const $ = (s) => document.querySelector(s);
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -16,8 +17,8 @@ const CHARGES = [
   '<path d="M32 16 C27 22 27 28 32 32 C37 28 37 22 32 16 Z M32 32 C26 30 20 32 21 38 C24 35 28 35 31 36 Z M32 32 C38 30 44 32 43 38 C40 35 36 35 33 36 Z M26 40 L38 40 L38 43 L26 43 Z M31 32 L33 32 L33 48 L31 48 Z" fill="#fff4c8"/>',
 ];
 
-const AI_TAGS = { easy: 'Easy', normal: 'Normal', hard: 'Hard', expert: 'Expert' };
-const tagFor = (p) => (p.type === 'human' ? (p.remote ? 'Online' : 'Human') : AI_TAGS[p.type]);
+const AI_TAGS = { easy: t('Easy'), normal: t('Normal'), hard: t('Hard'), expert: t('Expert') };
+const tagFor = (p) => (p.type === 'human' ? (p.remote ? t('Online') : t('Human')) : AI_TAGS[p.type]);
 
 // Who sits in a seat, for the menu's seat picker: the computer's levels carry strength pips.
 const ICONS = {
@@ -27,19 +28,19 @@ const ICONS = {
   off: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M6.8 17.2 17.2 6.8"/></svg>',
 };
 const SEAT_KINDS = [
-  { v: 'human', name: 'Human', icon: 'human' }, { v: 'remote', name: 'Online friend', icon: 'remote' },
-  { v: 'easy', name: 'Easy', ai: 1 }, { v: 'normal', name: 'Normal', ai: 2 }, { v: 'hard', name: 'Hard', ai: 3 }, { v: 'expert', name: 'Expert', ai: 4 },
-  { v: 'off', name: 'Empty seat', icon: 'off' },
+  { v: 'human', name: t('Human'), icon: 'human' }, { v: 'remote', name: t('Online friend'), icon: 'remote' },
+  { v: 'easy', name: AI_TAGS.easy, ai: 1 }, { v: 'normal', name: AI_TAGS.normal, ai: 2 }, { v: 'hard', name: AI_TAGS.hard, ai: 3 }, { v: 'expert', name: AI_TAGS.expert, ai: 4 },
+  { v: 'off', name: t('Empty seat'), icon: 'off' },
 ];
 export const pips = (n) => `<span class="pips">${[1, 2, 3, 4].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 const seatFace = (k) => `<span class="sp-ico">${ICONS[k.icon || 'ai']}</span><span class="sp-name">${k.name}</span>${k.ai ? pips(k.ai) : ''}`;
 
 // The coach's line under its switch, for each setting and when fair play turns it off.
 const COACH_NOTES = {
-  off: 'The Expert can grade your moves',
-  trainer: 'Grades each move once you make it',
-  study: 'Also shows the values while you decide',
-  locked: 'Off while several people play, for fair play',
+  off: t('The Expert can grade your moves'),
+  trainer: t('Grades each move once you make it'),
+  study: t('Also shows the values while you decide'),
+  locked: t('Off while several people play, for fair play'),
 };
 
 export function shieldSVG(color, idx = 0) {
@@ -52,8 +53,8 @@ const ROMAN = ['I', 'II', 'III', 'IV'];
 
 // A dynasty's standings: rows of { place, player: { name, color, crest }, scores: [each game's score, or
 // null when it has not been played], total }, best first. heads: each game's column heading (html).
-export function dynastyTable(rows, heads = Array.from({ length: GAMES }, (_, k) => `<span class="long">Game </span>${k + 1}`)) {
-  return `<table class="dyn-table"><thead><tr><th colspan="2"></th>${heads.map((h) => `<th>${h}</th>`).join('')}<th>Total</th></tr></thead>
+export function dynastyTable(rows, heads = Array.from({ length: GAMES }, (_, k) => t('<span class="long">Game </span>{n}', { n: k + 1 }))) {
+  return `<table class="dyn-table"><thead><tr><th colspan="2"></th>${heads.map((h) => `<th>${h}</th>`).join('')}<th>${t('Total')}</th></tr></thead>
     <tbody>${rows.map((r) => `<tr class="${r.place === 1 ? 'first' : ''}"><td class="dyn-rank">${ROMAN[r.place - 1]}</td>
       <td class="dyn-who">${shieldSVG(r.player.color, r.player.crest)}<span style="color:${r.player.color}">${esc(r.player.name)}</span></td>
       ${r.scores.map((v) => `<td>${v ?? '<span class="dim">&ndash;</span>'}</td>`).join('')}<td class="dyn-total">${r.total}</td></tr>`).join('')}</tbody></table>`;
@@ -164,7 +165,7 @@ export class Hud {
       const row = document.createElement('div');
       row.className = 'seat-row';
       row.innerHTML = `${shieldSVG(s.color, i)}<input type="text" maxlength="18" value="${esc(s.name)}" spellcheck="false" enterkeyhint="done" />
-        <button type="button" class="seat-pick" aria-haspopup="listbox" aria-label="Who plays this seat"></button>`;
+        <button type="button" class="seat-pick" aria-haspopup="listbox" aria-label="${t('Who plays this seat')}"></button>`;
       const input = row.querySelector('input'), pick = row.querySelector('.seat-pick');
       input.addEventListener('input', () => { s.name = input.value; });
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
@@ -189,7 +190,7 @@ export class Hud {
       snakeWrap.classList.toggle('disabled', active < 3);
       $('#start-btn').disabled = active < 2;
       $('#start-btn').style.opacity = active < 2 ? 0.5 : 1;
-      $('#start-btn span').textContent = online ? 'Invite your friends' : 'Start game';
+      $('#start-btn span').textContent = online ? t('Invite your friends') : t('Start game');
       // the coach only helps someone playing alone against the computer
       this.setCoach({ locked: seats.filter((s) => s.type === 'human' || s.type === 'remote').length > 1 });
     };
@@ -199,10 +200,10 @@ export class Hud {
     const btn = $('#start-btn');
     const handler = () => {
       const active = seats.filter((s) => s.type !== 'off');
-      if (active.length < 2) { this.toast('You need at least two players.'); return; }
+      if (active.length < 2) { this.toast(t('You need at least two players.')); return; }
       btn.removeEventListener('click', handler);
       onStart({
-        seats: active.map((s) => ({ name: (s.name || 'Player').trim() || 'Player', type: s.type, color: s.color, crest: seats.indexOf(s) })),
+        seats: active.map((s) => ({ name: (s.name || t('Player')).trim() || t('Player'), type: s.type, color: s.color, crest: seats.indexOf(s) })),
         middleKingdom: $('#opt-middle').checked,
         harmony: $('#opt-harmony').checked,
         mightyDuel: active.length === 2 && $('#opt-duel').checked,
@@ -231,7 +232,7 @@ export class Hud {
       menu.setAttribute('role', 'listbox');
       document.body.appendChild(menu);
     }
-    menu.innerHTML = SEAT_KINDS.map((k) => `${k.v === 'easy' ? '<div class="sm-head">Computer</div>' : k.v === 'off' ? '<div class="sm-sep"></div>' : ''}
+    menu.innerHTML = SEAT_KINDS.map((k) => `${k.v === 'easy' ? `<div class="sm-head">${t('Computer')}</div>` : k.v === 'off' ? '<div class="sm-sep"></div>' : ''}
       <button type="button" role="option" data-v="${k.v}" aria-selected="${k.v === current}" class="${k.v === current ? 'on' : ''}">${seatFace(k)}</button>`).join('');
     menu.className = 'seat-menu';
     const r = button.getBoundingClientRect(), w = Math.max(r.width, 210), h = menu.offsetHeight;
@@ -300,14 +301,14 @@ export class Hud {
     this.el.realms.innerHTML = '';
     this.cards.clear();
     players.forEach((p, i) => {
-      const whose = humans.length === 1 && humans[0] === p ? 'your kingdom' : `${p.name}’s kingdom`;
-      const tip = `${whose[0].toUpperCase()}${whose.slice(1)} · ${i + 1}`;
+      const mine = humans.length === 1 && humans[0] === p;
+      const tip = `${mine ? t('Your kingdom') : t('{name}’s kingdom', { name: p.name })} · ${i + 1}`;
       const c = document.createElement('div');
       c.className = 'player-card';
       c.dataset.view = String(i);
       c.style.setProperty('--pc', p.color);
-      c.title = `Look at ${whose} (${i + 1})`;
-      const total = carried && `<div class="pdyn" title="Dynasty total: ${carried[i]} from the earlier games, and this one">&Sigma; <b>${carried[i]}</b></div>`;
+      c.title = `${mine ? t('Look at your kingdom') : t('Look at {name}’s kingdom', { name: p.name })} (${i + 1})`;
+      const total = carried && `<div class="pdyn" title="${t('Dynasty total: {n} from the earlier games, and this one', { n: carried[i] })}">&Sigma; <b>${carried[i]}</b></div>`;
       if (carried) c.dataset.carried = String(carried[i]);
       c.innerHTML = `${shieldSVG(p.color, p.crest)}<div class="pinfo"><div class="pname">${esc(p.name)}</div>
         <div class="pmeta"><span class="tag">${tagFor(p)}</span><span class="crowns">${CROWN_SVG} <b>0</b></span></div></div><div class="pscores"><div class="pscore">0</div>${total || ''}</div>`;
@@ -372,9 +373,9 @@ export class Hud {
   who(p) { return `<span class="who" style="color:${p.color}">${esc(p.name)}</span>`; }
 
   // The menu's default name "You" needs its own grammar: "you win", "your kingdom".
-  isYou(p) { return p.name.trim().toLowerCase() === 'you'; }
-  whose(p) { return this.isYou(p) ? `<span class="who" style="color:${p.color}">your</span>` : `${this.who(p)}’s`; }
-  wins(p) { return `${this.who(p)} ${this.isYou(p) ? 'win' : 'wins'}`; }
+  isYou(p) { const n = p.name.trim().toLowerCase(); return n === 'you' || n === t('You').toLowerCase(); }
+  whose(p) { return this.isYou(p) ? `<span class="who" style="color:${p.color}">${t('your')}</span>` : t('{who}’s', { who: this.who(p) }); }
+  wins(p) { return this.isYou(p) ? t('{who} win', { who: this.who(p) }) : t('{who} wins', { who: this.who(p) }); }
 
   setActions(state) {
     if (!state) { this.el.actions.classList.add('hidden'); return; }
@@ -415,7 +416,7 @@ export class Hud {
       const crowns = s.crowns ? ` · ${CROWN_SVG.repeat(s.crowns)}` : '';
       return `<div class="tt-row"><span class="chip" style="background:${info.color}"></span>${info.name}${crowns}</div>`;
     }).join('');
-    return `<div class="tt-title">Domino ${domino.id}</div>${rows}${extra}`;
+    return `<div class="tt-title">${t('Domino {n}', { n: domino.id })}</div>${rows}${extra}`;
   }
 
   toast(text, life = 2.6) {
@@ -430,9 +431,9 @@ export class Hud {
   passDevice(p) {
     return new Promise((resolve) => {
       $('#pass-shield').innerHTML = shieldSVG(p.color, p.crest);
-      $('#pass-title').innerHTML = `${esc(p.name)}, your turn`;
+      $('#pass-title').innerHTML = t('{name}, your turn', { name: esc(p.name) });
       $('#pass-title').style.color = p.color;
-      $('#pass-sub').textContent = this.isYou(p) ? 'Hand the device over.' : `Hand the device to ${p.name}.`;
+      $('#pass-sub').textContent = this.isYou(p) ? t('Hand the device over.') : t('Hand the device to {name}.', { name: p.name });
       this.el.pass.classList.remove('hidden');
       const b = $('#pass-go');
       const h = () => { b.removeEventListener('click', h); this.el.pass.classList.add('hidden'); resolve(); };
@@ -443,7 +444,7 @@ export class Hud {
   // While the winner is celebrated, a floating button opens the results early; resolves when pressed.
   offerResults() {
     const b = this.el.showResults;
-    b.querySelector('span').textContent = 'Show final scores';
+    b.querySelector('span').textContent = t('Show final scores');
     b.classList.remove('hidden');
     return new Promise((resolve) => { b.onclick = () => { b.onclick = null; b.classList.add('hidden'); resolve(); }; });
   }
@@ -462,26 +463,29 @@ export class Hud {
     const winners = lead.filter((r) => r.place === 1);
     const names = winners.map((w) => this.who(w.player));
     const top = winners[0].s.total;
-    const what = over ? ' the dynasty' : dynasty ? ` game ${dynasty.game}` : '';
-    $('#results-title').textContent = over ? 'The Dynasty' : dynasty ? `Game ${dynasty.game} of ${GAMES}` : 'Final scores';
+    $('#results-title').textContent = over ? t('The Dynasty') : dynasty ? t('Game {n} of {of}', { n: dynasty.game, of: GAMES }) : t('Final scores');
+    const all = t('{list} and {last}', { list: names.slice(0, -1).join(', '), last: names[names.length - 1] });
+    const you = this.isYou(winners[0].player), who = this.who(winners[0].player), game = dynasty && dynasty.game;
     $('#winner-line').innerHTML = winners.length > 1
-      ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} ${over ? 'share the dynasty' : 'tie for first place'}.`
-      : `${this.wins(winners[0].player)}${what} with ${top} point${top === 1 ? '' : 's'}.`;
+      ? (over ? t('{names} share the dynasty.', { names: all }) : t('{names} tie for first place.', { names: all }))
+      : over ? tn(top, you ? '{who} win the dynasty with {n} point.' : '{who} wins the dynasty with {n} point.', you ? '{who} win the dynasty with {n} points.' : '{who} wins the dynasty with {n} points.', { who })
+        : dynasty ? tn(top, you ? '{who} win game {game} with {n} point.' : '{who} wins game {game} with {n} point.', you ? '{who} win game {game} with {n} points.' : '{who} wins game {game} with {n} points.', { who, game })
+          : tn(top, you ? '{who} win with {n} point.' : '{who} wins with {n} point.', you ? '{who} win with {n} points.' : '{who} wins with {n} points.', { who });
     $('#results-note').innerHTML = note;
     $('#results-note').classList.toggle('hidden', !note);
     const dyn = $('#results-dynasty');
-    dyn.innerHTML = !dynasty ? '' : `<h3>${over ? 'The three games added up' : `The dynasty · after game ${dynasty.game} of ${GAMES}`}</h3>
+    dyn.innerHTML = !dynasty ? '' : `<h3>${over ? t('The three games added up') : t('The dynasty · after game {n} of {of}', { n: dynasty.game, of: GAMES })}</h3>
       ${dynastyTable(dynasty.rows.map((r) => ({ ...r, scores: Array.from({ length: GAMES }, (_, k) => r.games[k] ?? null), total: r.s.total })))}`;
     dyn.classList.toggle('hidden', !dynasty);
     if (over) table.before(dyn); else table.after(dyn);
     // (under the dynasty, the last game's own scores)
-    table.innerHTML = (over ? `<h3 class="res-sub">Game ${GAMES}</h3>` : '') + rows.map((r, i) => {
+    table.innerHTML = (over ? `<h3 class="res-sub">${t('Game {n}', { n: GAMES })}</h3>` : '') + rows.map((r, i) => {
       const props = r.s.regions.filter((g) => g.crowns > 0).sort((a, b) => b.score - a.score).map((g) => {
         const info = TERRAIN_INFO[g.terrain];
         return `<span class="prop"><span class="chip" style="background:${info.color}"></span>${g.size}&times;${g.crowns} = <b>${g.score}</b></span>`;
       }).join('');
-      const bonus = (r.s.middle ? `<span class="prop bonus">Middle Kingdom +10</span>` : '') + (r.s.harmony ? `<span class="prop bonus">Harmony +5</span>` : '');
-      const none = !props && !bonus ? '<span class="prop">No crowned property</span>' : '';
+      const bonus = (r.s.middle ? `<span class="prop bonus">${t('Middle Kingdom')} +10</span>` : '') + (r.s.harmony ? `<span class="prop bonus">${t('Harmony')} +5</span>` : '');
+      const none = !props && !bonus ? `<span class="prop">${t('No crowned property')}</span>` : '';
       return `<div class="res-row ${r.place === 1 ? 'first' : ''}" style="animation-delay:${0.15 + i * 0.12}s">
         <div class="res-rank">${ROMAN[r.place - 1]}</div>${shieldSVG(r.player.color, r.player.crest)}
         <div><div class="res-name" style="color:${r.player.color}">${esc(r.player.name)}</div><div class="res-props">${props}${bonus}${none}</div></div>
@@ -495,9 +499,9 @@ export class Hud {
     again.disabled = hostDeals;
     again.classList.toggle('waiting', hostDeals);
     const next = dynasty && !over ? dynasty.game + 1 : 0;
-    again.querySelector('span').textContent = hostDeals ? (next ? `Waiting for the host to deal game ${next}` : 'Waiting for the host to start again')
-      : next ? `Play game ${next} of ${GAMES}` : over ? 'New dynasty' : 'Play again';
-    menu.textContent = hostDeals ? 'Leave game' : 'Main menu';
+    again.querySelector('span').textContent = hostDeals ? (next ? t('Waiting for the host to deal game {n}', { n: next }) : t('Waiting for the host to start again'))
+      : next ? t('Play game {n} of {of}', { n: next, of: GAMES }) : over ? t('New dynasty') : t('Play again');
+    menu.textContent = hostDeals ? t('Leave game') : t('Main menu');
     review.classList.toggle('hidden', !onReview);
     const cleanup = () => { again.onclick = menu.onclick = admire.onclick = review.onclick = this.el.showResults.onclick = null; };
     again.onclick = () => { cleanup(); this.el.results.classList.add('hidden'); onAgain(); };
@@ -506,7 +510,7 @@ export class Hud {
     review.onclick = onReview && (() => onReview());
     admire.onclick = () => {
       this.el.results.classList.add('hidden');
-      this.el.showResults.querySelector('span').textContent = 'Show final scores';
+      this.el.showResults.querySelector('span').textContent = t('Show final scores');
       this.el.showResults.classList.remove('hidden');
       this.el.showResults.onclick = () => { this.el.showResults.classList.add('hidden'); this.el.results.classList.remove('hidden'); };
     };
@@ -529,12 +533,12 @@ export class Hud {
     link.onclick = () => link.select();
     copy.onclick = async () => {
       try { await navigator.clipboard.writeText(link.value); } catch { link.select(); document.execCommand('copy'); }
-      copy.textContent = 'Copied!';
+      copy.textContent = t('Copied!');
       clearTimeout(this.copyTimer);
-      this.copyTimer = setTimeout(() => { copy.textContent = 'Copy'; }, 1600);
+      this.copyTimer = setTimeout(() => { copy.textContent = t('Copy'); }, 1600);
     };
     share.classList.toggle('hidden', !navigator.share);
-    share.onclick = () => navigator.share({ title: 'Kingdomino', text: 'Join my game of Kingdomino!', url: link.value }).catch(() => {});
+    share.onclick = () => navigator.share({ title: 'Kingdomino', text: t('Join my game of Kingdomino!'), url: link.value }).catch(() => {});
     this.el.lobby.classList.remove('hidden');
   }
 
@@ -557,11 +561,11 @@ export class Hud {
       $('#lobby-seats-wrap').classList.toggle('hidden', !state.seats);
       $('#lobby-seats').innerHTML = (state.seats || []).map((s, i) => {
         const me = state.host ? s.kind === 'human' : i === state.you;
-        const [label, cls] = me ? ['You', 'me']
-          : s.kind === 'open' ? ['Waiting for a friend…', 'open']
-            : s.kind === 'guest' ? ['Joined', 'joined']
-              : s.kind === 'human' ? ['Host', 'joined'] : [`AI · ${AI_TAGS[s.kind]}`, 'ai'];
-        const name = s.kind === 'open' ? 'Open seat' : esc(s.name);
+        const [label, cls] = me ? [t('You'), 'me']
+          : s.kind === 'open' ? [t('Waiting for a friend…'), 'open']
+            : s.kind === 'guest' ? [t('Joined'), 'joined']
+              : s.kind === 'human' ? [t('Host'), 'joined'] : [t('AI · {level}', { level: AI_TAGS[s.kind] }), 'ai'];
+        const name = s.kind === 'open' ? t('Open seat') : esc(s.name);
         return `<div class="lobby-seat ${cls}">${shieldSVG(s.color, s.crest)}<span class="lname">${name}</span><span class="lstate">${label}</span></div>`;
       }).join('');
     }
@@ -581,7 +585,7 @@ export class Hud {
 
   // A yes/no question in the game's own style. (Native confirm() freezes the table, and some
   // browsers and embeds block it outright, which silently answers "no".) Resolves true for yes.
-  ask(title, text, { yes = 'Yes', no = 'Cancel' } = {}) {
+  ask(title, text, { yes = t('Yes'), no = t('Cancel') } = {}) {
     if (this.askDone) this.askDone(false);
     return new Promise((resolve) => {
       const el = $('#ask'), yesB = $('#ask-yes'), noB = $('#ask-no');
@@ -609,7 +613,7 @@ export class Hud {
   }
 
   // A blocking message with a single way out (e.g. the host has left the table).
-  notice(title, text, button = 'Main menu') {
+  notice(title, text, button = t('Main menu')) {
     if (this.askDone) this.askDone(false);
     return new Promise((resolve) => {
       $('#notice-title').textContent = title;

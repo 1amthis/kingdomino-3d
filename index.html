@@ -81,10 +81,10 @@
       </div>
       <div class="loading-title">Kingdomino</div>
       <div class="loading-bar"><div id="loading-fill"></div></div>
-      <div id="loading-text">Loading…</div>
+      <div data-i18n id="loading-text">Loading…</div>
       <noscript>
-        <p class="noscript">Kingdomino 3D is a free browser version of the Kingdomino tile-laying board game: claim dominoes with your king, connect matching terrains and multiply each property by its crowns. Play against four levels of AI, up to an Expert that plays out thousands of games before each move, turn on a coach that grades every move from Best to Blunder, or play with up to three friends online.</p>
-        <p class="noscript"><b>It needs JavaScript and a WebGL 2 browser.</b></p>
+        <p data-i18n class="noscript">Kingdomino 3D is a free browser version of the Kingdomino tile-laying board game: claim dominoes with your king, connect matching terrains and multiply each property by its crowns. Play against four levels of AI, up to an Expert that plays out thousands of games before each move, turn on a coach that grades every move from Best to Blunder, or play with up to three friends online.</p>
+        <p data-i18n class="noscript"><b>It needs JavaScript and a WebGL 2 browser.</b></p>
       </noscript>
     </div>
   </div>
@@ -92,8 +92,8 @@
   <!-- In-game HUD -->
   <div id="hud" class="hidden">
     <div id="banner">
-      <div id="round-label">Round 1</div>
-      <div id="prompt">Choose a domino</div>
+      <div data-i18n id="round-label">Round 1</div>
+      <div data-i18n id="prompt">Choose a domino</div>
       <div id="subprompt"></div>
     </div>
 
@@ -143,19 +143,19 @@
     <div id="actions" class="hidden">
       <button class="action-btn" data-action="rotate" title="Rotate (R / right-click / Q, E)">
         <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg>
-        <span>Rotate</span>
+        <span data-i18n>Rotate</span>
       </button>
       <button class="action-btn" data-action="hint" title="Show legal spots (G)">
         <svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
-        <span>Hints</span>
+        <span data-i18n>Hints</span>
       </button>
       <button class="action-btn" data-action="advice" title="Ask the coach for the Expert's move (A)">
         <svg viewBox="0 0 24 24"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 18.5 12 15.6 7 18.5l1.4-5.7L4 9l5.8-.7z"/></svg>
-        <span>Advice</span>
+        <span data-i18n>Advice</span>
       </button>
       <button class="action-btn danger" data-action="discard" title="Discard this domino (only when it cannot be placed)">
         <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
-        <span>Discard</span>
+        <span data-i18n>Discard</span>
       </button>
     </div>
 
@@ -169,34 +169,38 @@
       <div class="title-wrap">
         <div class="title-crown"><svg viewBox="0 0 64 48"><path d="M4 40 L4 12 L18 26 L32 4 L46 26 L60 12 L60 40 Z" /></svg></div>
         <h1 class="title">Kingdomino</h1>
-        <p class="title-tag">The board game in 3D. Play free against an Expert AI, with a coach, or online with friends.</p>
+        <p data-i18n class="title-tag">The board game in 3D. Play free against an Expert AI, with a coach, or online with friends.</p>
       </div>
       <div class="menu-section">
-        <h2>Players</h2>
+        <h2 data-i18n>Players</h2>
         <div id="seat-rows"></div>
       </div>
       <div class="menu-section options">
-        <h2>Optional rules</h2>
-        <label class="check"><input type="checkbox" id="opt-middle" checked /><span class="box"></span><span><b>Middle Kingdom</b> &mdash; +10 if your castle is in the centre</span></label>
-        <label class="check"><input type="checkbox" id="opt-harmony" checked /><span class="box"></span><span><b>Harmony</b> &mdash; +5 for a full kingdom with no discarded domino</span></label>
-        <label class="check" id="opt-duel-wrap"><input type="checkbox" id="opt-duel" /><span class="box"></span><span><b>The Mighty Duel</b> &mdash; 2 players, all 48 dominoes, 7&times;7 kingdoms</span></label>
-        <label class="check"><input type="checkbox" id="opt-dynasty" /><span class="box"></span><span><b>Dynasty</b> &mdash; three games in a row, the scores added up</span></label>
-        <label class="check" id="opt-snake-wrap"><input type="checkbox" id="opt-snake" /><span class="box"></span><span><b>Snake opening</b> &mdash; 3 or 4 players: whoever picked last in the opening draft goes first in round 1</span></label>
+        <h2 data-i18n>Optional rules</h2>
+        <label class="check"><input type="checkbox" id="opt-middle" checked /><span class="box"></span><span data-i18n><b>Middle Kingdom</b> &mdash; +10 if your castle is in the centre</span></label>
+        <label class="check"><input type="checkbox" id="opt-harmony" checked /><span class="box"></span><span data-i18n><b>Harmony</b> &mdash; +5 for a full kingdom with no discarded domino</span></label>
+        <label class="check" id="opt-duel-wrap"><input type="checkbox" id="opt-duel" /><span class="box"></span><span data-i18n><b>The Mighty Duel</b> &mdash; 2 players, all 48 dominoes, 7&times;7 kingdoms</span></label>
+        <label class="check"><input type="checkbox" id="opt-dynasty" /><span class="box"></span><span data-i18n><b>Dynasty</b> &mdash; three games in a row, the scores added up</span></label>
+        <label class="check" id="opt-snake-wrap"><input type="checkbox" id="opt-snake" /><span class="box"></span><span data-i18n><b>Snake opening</b> &mdash; 3 or 4 players: whoever picked last in the opening draft goes first in round 1</span></label>
       </div>
       <div class="menu-section">
-        <h2>Coach</h2>
+        <h2 data-i18n>Coach</h2>
         <div class="coach-opt">
-          <div class="seg" data-setting="coach"><button data-v="off">Off</button><button data-v="trainer">Trainer</button><button data-v="study">Study</button></div>
+          <div class="seg" data-setting="coach"><button data-i18n data-v="off">Off</button><button data-i18n data-v="trainer">Trainer</button><button data-i18n data-v="study">Study</button></div>
           <span class="coach-note"></span>
         </div>
       </div>
+      <div class="menu-section">
+        <h2 data-i18n>Language</h2>
+        <div class="coach-opt"><div class="seg" data-setting="lang"><button data-v="en" lang="en">English</button><button data-v="fr" lang="fr">Français</button><button data-v="de" lang="de">Deutsch</button></div></div>
+      </div>
       <div class="menu-footer">
-        <button class="ghost-btn" id="menu-help">How to play</button>
-        <button class="ghost-btn" id="menu-history">History</button>
-        <button class="royal-btn" id="start-btn"><span>Start game</span></button>
+        <button data-i18n class="ghost-btn" id="menu-help">How to play</button>
+        <button data-i18n class="ghost-btn" id="menu-history">History</button>
+        <button class="royal-btn" id="start-btn"><span data-i18n>Start game</span></button>
       </div>
     </div>
-    <div class="menu-caption">Live AI game in the background</div>
+    <div data-i18n class="menu-caption">Live AI game in the background</div>
   </div>
 
   <!-- Results -->
@@ -204,7 +208,7 @@
     <div class="results-card">
       <div class="results-head">
         <div class="title-crown small"><svg viewBox="0 0 64 48"><path d="M4 40 L4 12 L18 26 L32 4 L46 26 L60 12 L60 40 Z" /></svg></div>
-        <h1 class="results-title" id="results-title">Final scores</h1>
+        <h1 data-i18n class="results-title" id="results-title">Final scores</h1>
         <div id="winner-line"></div>
         <div id="results-note" class="hidden"></div>
       </div>
@@ -212,22 +216,22 @@
       <div id="results-dynasty" class="hidden"></div>
       <div id="results-coach" class="hidden"></div>
       <div class="menu-footer">
-        <button class="ghost-btn" id="res-admire">View the board</button>
-        <button class="ghost-btn hidden" id="res-review" title="Open this game in the history: play it back move by move, and let the coach review it">Review this game</button>
-        <button class="ghost-btn" id="res-menu">Main menu</button>
-        <button class="royal-btn" id="res-again"><span>Play again</span></button>
+        <button data-i18n class="ghost-btn" id="res-admire">View the board</button>
+        <button data-i18n class="ghost-btn hidden" id="res-review" title="Open this game in the history: play it back move by move, and let the coach review it">Review this game</button>
+        <button data-i18n class="ghost-btn" id="res-menu">Main menu</button>
+        <button class="royal-btn" id="res-again"><span data-i18n>Play again</span></button>
       </div>
     </div>
   </div>
-  <button id="show-results" class="royal-btn floating hidden"><span>Show final scores</span></button>
+  <button id="show-results" class="royal-btn floating hidden"><span data-i18n>Show final scores</span></button>
 
   <!-- Hot-seat hand-over -->
   <div id="pass" class="screen hidden">
     <div class="pass-card">
       <div class="pass-shield" id="pass-shield"></div>
-      <div class="pass-title" id="pass-title">Your turn</div>
-      <div class="pass-sub" id="pass-sub">Hand the device over.</div>
-      <button class="royal-btn" id="pass-go"><span>Start my turn</span></button>
+      <div data-i18n class="pass-title" id="pass-title">Your turn</div>
+      <div data-i18n class="pass-sub" id="pass-sub">Hand the device over.</div>
+      <button class="royal-btn" id="pass-go"><span data-i18n>Start my turn</span></button>
     </div>
   </div>
 
@@ -236,32 +240,32 @@
     <div class="menu-card lobby-card">
       <div class="title-wrap">
         <div class="title-crown small"><svg viewBox="0 0 64 48"><path d="M4 40 L4 12 L18 26 L32 4 L46 26 L60 12 L60 40 Z" /></svg></div>
-        <h1 class="results-title" id="lobby-title">Online game</h1>
+        <h1 data-i18n class="results-title" id="lobby-title">Online game</h1>
         <div class="subtitle" id="lobby-sub"></div>
       </div>
       <div class="menu-section hidden" id="lobby-invite">
-        <h2>Send this link to your friends</h2>
+        <h2 data-i18n>Send this link to your friends</h2>
         <div class="invite-row">
           <input type="text" id="lobby-link" readonly spellcheck="false" />
-          <button class="ghost-btn" id="lobby-copy">Copy</button>
-          <button class="ghost-btn hidden" id="lobby-share">Share</button>
+          <button data-i18n class="ghost-btn" id="lobby-copy">Copy</button>
+          <button data-i18n class="ghost-btn hidden" id="lobby-share">Share</button>
         </div>
         <div class="invite-note" id="lobby-note"></div>
       </div>
       <div class="menu-section hidden" id="lobby-join">
-        <h2>Your name</h2>
+        <h2 data-i18n>Your name</h2>
         <div class="invite-row">
           <input type="text" id="lobby-name" maxlength="18" spellcheck="false" enterkeyhint="go" />
-          <button class="royal-btn" id="lobby-join-btn"><span>Join</span></button>
+          <button class="royal-btn" id="lobby-join-btn"><span data-i18n>Join</span></button>
         </div>
       </div>
       <div class="menu-section hidden" id="lobby-seats-wrap">
-        <h2>Players</h2>
+        <h2 data-i18n>Players</h2>
         <div id="lobby-seats"></div>
       </div>
       <div class="menu-footer">
-        <button class="ghost-btn" id="lobby-back">Back</button>
-        <button class="royal-btn hidden" id="lobby-begin"><span>Start game</span></button>
+        <button data-i18n class="ghost-btn" id="lobby-back">Back</button>
+        <button class="royal-btn hidden" id="lobby-begin"><span data-i18n>Start game</span></button>
       </div>
     </div>
   </div>
@@ -271,7 +275,7 @@
     <div class="pass-card notice-card">
       <div class="pass-title" id="notice-title"></div>
       <div class="pass-sub" id="notice-text"></div>
-      <button class="royal-btn" id="notice-go"><span>Main menu</span></button>
+      <button class="royal-btn" id="notice-go"><span data-i18n>Main menu</span></button>
     </div>
   </div>
 
@@ -281,8 +285,8 @@
       <div class="pass-title" id="ask-title"></div>
       <div class="pass-sub" id="ask-text"></div>
       <div class="ask-buttons">
-        <button class="ghost-btn" id="ask-no">Keep playing</button>
-        <button class="royal-btn" id="ask-yes"><span>Leave</span></button>
+        <button data-i18n class="ghost-btn" id="ask-no">Keep playing</button>
+        <button class="royal-btn" id="ask-yes"><span data-i18n>Leave</span></button>
       </div>
     </div>
   </div>
@@ -291,82 +295,82 @@
   <div id="help" class="modal hidden">
     <div class="modal-card guide" role="dialog" aria-labelledby="help-title">
       <button class="close-btn" data-close aria-label="Close">&times;</button>
-      <h2 id="help-title">How to play</h2>
+      <h2 data-i18n id="help-title">How to play</h2>
       <div class="guide-tabs" role="tablist"></div>
       <div class="guide-pages">
         <section class="guide-page" data-tab="Goal">
           <div class="guide-art" data-art="goal"></div>
           <div class="guide-text">
-            <h3>Build the richest kingdom</h3>
-            <p>Everyone starts with a <b>castle</b>. Each round you claim one domino and add it to your kingdom. When the dominoes run out, the kingdom with the most points wins.</p>
+            <h3 data-i18n>Build the richest kingdom</h3>
+            <p data-i18n>Everyone starts with a <b>castle</b>. Each round you claim one domino and add it to your kingdom. When the dominoes run out, the kingdom with the most points wins.</p>
           </div>
         </section>
         <section class="guide-page" data-tab="Pick">
           <div class="guide-art" data-art="pick"></div>
           <div class="guide-text">
-            <h3>Claim a domino with your king</h3>
-            <p>New dominoes are laid out in number order. Put your king on the one you want. A <b>low number</b> lets you choose sooner next round; <b>high numbers</b> usually carry more crowns. With three players, the domino nobody claims is discarded.</p>
+            <h3 data-i18n>Claim a domino with your king</h3>
+            <p data-i18n>New dominoes are laid out in number order. Put your king on the one you want. A <b>low number</b> lets you choose sooner next round; <b>high numbers</b> usually carry more crowns. With three players, the domino nobody claims is discarded.</p>
           </div>
         </section>
         <section class="guide-page" data-tab="Place">
           <div class="guide-art" data-art="place"></div>
           <div class="guide-text">
-            <h3>Connect it</h3>
-            <p>A new domino must touch your <b>castle</b>, or touch a square of the <b>same terrain</b>. One matching side is enough.</p>
+            <h3 data-i18n>Connect it</h3>
+            <p data-i18n>A new domino must touch your <b>castle</b>, or touch a square of the <b>same terrain</b>. One matching side is enough.</p>
           </div>
         </section>
         <section class="guide-page" data-tab="5&times;5">
           <div class="guide-art" data-art="fit"></div>
           <div class="guide-text">
-            <h3>Stay within 5 &times; 5</h3>
-            <p>Your kingdom must fit in a <b>5&times;5</b> square (7&times;7 in the Mighty Duel); the glowing frame shows the room left. A domino that fits nowhere is <b>discarded</b>.</p>
+            <h3 data-i18n>Stay within 5 &times; 5</h3>
+            <p data-i18n>Your kingdom must fit in a <b>5&times;5</b> square (7&times;7 in the Mighty Duel); the glowing frame shows the room left. A domino that fits nowhere is <b>discarded</b>.</p>
           </div>
         </section>
         <section class="guide-page" data-tab="Score">
           <div class="guide-art" data-art="score"></div>
           <div class="guide-text">
-            <h3>Crowns multiply</h3>
-            <p>A <b>property</b> is a group of touching squares of one terrain. It scores <b>squares &times; crowns</b>, so without a crown it scores nothing. Optional rules add +10 for a centred castle and +5 for a full kingdom with no discard. A <b>Dynasty</b> plays three games in a row and adds up the scores.</p>
+            <h3 data-i18n>Crowns multiply</h3>
+            <p data-i18n>A <b>property</b> is a group of touching squares of one terrain. It scores <b>squares &times; crowns</b>, so without a crown it scores nothing. Optional rules add +10 for a centred castle and +5 for a full kingdom with no discard. A <b>Dynasty</b> plays three games in a row and adds up the scores.</p>
           </div>
         </section>
         <section class="guide-page guide-controls" data-tab="Controls">
-          <h3>Controls</h3>
+          <h3 data-i18n>Controls</h3>
           <div class="keys touch-keys">
-            <div><span><kbd>Tap</kbd></span><span>Pick a domino</span></div>
-            <div><span><kbd>Tap</kbd> <kbd>Tap</kbd></span><span>Show a spot, tap again to place</span></div>
-            <div><span><kbd>Rotate</kbd> <kbd>Hints</kbd></span><span>Turn the domino, show the legal spots</span></div>
-            <div><span><kbd>Advice</kbd></span><span>The Expert&rsquo;s move, with the coach on</span></div>
-            <div><span><kbd>Drag</kbd></span><span>Orbit the camera</span></div>
-            <div><span><kbd>Pinch</kbd> <kbd>Two fingers</kbd></span><span>Zoom, slide the camera</span></div>
-            <div><span>Tap a score</span><span>Look at that player&rsquo;s kingdom</span></div>
-            <div><span>Bottom-right buttons</span><span>Follow play, or see the whole table or the draft</span></div>
+            <div><span><kbd>Tap</kbd></span><span data-i18n>Pick a domino</span></div>
+            <div><span><kbd>Tap</kbd> <kbd>Tap</kbd></span><span data-i18n>Show a spot, tap again to place</span></div>
+            <div><span><kbd>Rotate</kbd> <kbd>Hints</kbd></span><span data-i18n>Turn the domino, show the legal spots</span></div>
+            <div><span><kbd>Advice</kbd></span><span data-i18n>The Expert&rsquo;s move, with the coach on</span></div>
+            <div><span><kbd>Drag</kbd></span><span data-i18n>Orbit the camera</span></div>
+            <div><span><kbd>Pinch</kbd> <kbd>Two fingers</kbd></span><span data-i18n>Zoom, slide the camera</span></div>
+            <div><span data-i18n>Tap a score</span><span data-i18n>Look at that player&rsquo;s kingdom</span></div>
+            <div><span data-i18n>Bottom-right buttons</span><span data-i18n>Follow play, or see the whole table or the draft</span></div>
           </div>
           <div class="keys mouse-keys">
-            <div><span><kbd>Click</kbd></span><span>Pick or place a domino</span></div>
-            <div><span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>Rotate (or right-click)</span></div>
-            <div><span><kbd>G</kbd></span><span>Legal-spot hints</span></div>
-            <div><span><kbd>A</kbd></span><span>Advice: the Expert&rsquo;s move, with the coach on</span></div>
-            <div><span><kbd>Drag</kbd> <kbd>Wheel</kbd></span><span>Orbit, zoom</span></div>
-            <div><span><kbd>Right-drag</kbd></span><span>Slide the camera (or Shift+drag)</span></div>
-            <div><span><kbd>1</kbd>&ndash;<kbd>4</kbd></span><span>Look at a kingdom</span></div>
-            <div><span><kbd>D</kbd> <kbd>O</kbd></span><span>Draft, whole table</span></div>
-            <div><span><kbd>F</kbd></span><span>Follow play again</span></div>
-            <div><span><kbd>C</kbd></span><span>Seat view &harr; overview</span></div>
-            <div><span><kbd>T</kbd></span><span>Time of day</span></div>
-            <div><span><kbd>M</kbd></span><span>Music on/off</span></div>
-            <div><span><kbd>P</kbd></span><span>Photo mode</span></div>
-            <div><span><kbd>Arrows</kbd> <kbd>Enter</kbd></span><span>Move, drop the domino</span></div>
+            <div><span><kbd>Click</kbd></span><span data-i18n>Pick or place a domino</span></div>
+            <div><span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span data-i18n>Rotate (or right-click)</span></div>
+            <div><span><kbd>G</kbd></span><span data-i18n>Legal-spot hints</span></div>
+            <div><span><kbd>A</kbd></span><span data-i18n>Advice: the Expert&rsquo;s move, with the coach on</span></div>
+            <div><span><kbd>Drag</kbd> <kbd>Wheel</kbd></span><span data-i18n>Orbit, zoom</span></div>
+            <div><span><kbd>Right-drag</kbd></span><span data-i18n>Slide the camera (or Shift+drag)</span></div>
+            <div><span><kbd>1</kbd>&ndash;<kbd>4</kbd></span><span data-i18n>Look at a kingdom</span></div>
+            <div><span><kbd>D</kbd> <kbd>O</kbd></span><span data-i18n>Draft, whole table</span></div>
+            <div><span><kbd>F</kbd></span><span data-i18n>Follow play again</span></div>
+            <div><span><kbd>C</kbd></span><span data-i18n>Seat view &harr; overview</span></div>
+            <div><span><kbd>T</kbd></span><span data-i18n>Time of day</span></div>
+            <div><span><kbd>M</kbd></span><span data-i18n>Music on/off</span></div>
+            <div><span><kbd>P</kbd></span><span data-i18n>Photo mode</span></div>
+            <div><span><kbd>Arrows</kbd> <kbd>Enter</kbd></span><span data-i18n>Move, drop the domino</span></div>
           </div>
-          <h3>The coach</h3>
-          <p>Pick it in the main menu. <b>Trainer</b> grades each of your moves, from Best to Blunder, by the points of final lead it gives up against the Expert&rsquo;s choice. <b>Study</b> also shows the values while you decide. <b>Advice</b> shows the Expert&rsquo;s move. For fair play it stays off when more than one person plays.</p>
-          <h3>Playing online</h3>
-          <p>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
+          <h3 data-i18n>The coach</h3>
+          <p data-i18n>Pick it in the main menu. <b>Trainer</b> grades each of your moves, from Best to Blunder, by the points of final lead it gives up against the Expert&rsquo;s choice. <b>Study</b> also shows the values while you decide. <b>Advice</b> shows the Expert&rsquo;s move. For fair play it stays off when more than one person plays.</p>
+          <h3 data-i18n>Playing online</h3>
+          <p data-i18n>Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.</p>
         </section>
       </div>
       <div class="guide-nav">
-        <button class="ghost-btn" data-guide="prev">Back</button>
+        <button data-i18n class="ghost-btn" data-guide="prev">Back</button>
         <span class="guide-count"></span>
-        <button class="royal-btn" data-guide="next"><span>Next</span></button>
+        <button class="royal-btn" data-guide="next"><span data-i18n>Next</span></button>
       </div>
     </div>
   </div>
@@ -376,16 +380,16 @@
     <div class="modal-card history-card" role="dialog" aria-labelledby="history-title">
       <button class="close-btn" data-close aria-label="Close">&times;</button>
       <div class="history-head">
-        <h2 id="history-title">History</h2>
-        <div class="seg history-tabs" role="tablist"><button data-tab="stats" role="tab">Stats</button><button data-tab="games" role="tab">Games</button></div>
+        <h2 data-i18n id="history-title">History</h2>
+        <div class="seg history-tabs" role="tablist"><button data-i18n data-tab="stats" role="tab">Stats</button><button data-i18n data-tab="games" role="tab">Games</button></div>
       </div>
       <div class="history-body" id="history-body"></div>
       <div class="history-foot">
         <span class="history-msg" id="history-msg" aria-live="polite"></span>
-        <span class="history-local">Kept in this browser only</span>
-        <button class="ghost-btn small" id="history-export" title="Save the history as a file, to keep a copy or open it in another browser">Export</button>
-        <button class="ghost-btn small" id="history-import" title="Add the games from an exported file">Import</button>
-        <button class="ghost-btn small" id="history-clear">Clear</button>
+        <span data-i18n class="history-local">Kept in this browser only</span>
+        <button data-i18n class="ghost-btn small" id="history-export" title="Save the history as a file, to keep a copy or open it in another browser">Export</button>
+        <button data-i18n class="ghost-btn small" id="history-import" title="Add the games from an exported file">Import</button>
+        <button data-i18n class="ghost-btn small" id="history-clear">Clear</button>
         <input type="file" id="history-file" accept=".json,application/json" hidden />
       </div>
     </div>
@@ -395,21 +399,21 @@
   <div id="settings" class="modal hidden">
     <div class="modal-card">
       <button class="close-btn" data-close>&times;</button>
-      <h2>Settings</h2>
-      <div class="setting"><span>Graphics</span>
-        <div class="seg" data-setting="quality"><button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button></div></div>
-      <div class="setting"><span>Game speed</span>
-        <div class="seg" data-setting="speed"><button data-v="1">Normal</button><button data-v="1.6">Fast</button><button data-v="2.6">Very fast</button></div></div>
-      <div class="setting"><span>Camera</span>
-        <div class="seg" data-setting="camera"><button data-v="auto">Follow play</button><button data-v="free">Free</button></div></div>
-      <div class="setting"><span>Time of day</span>
-        <div class="seg" data-setting="ambience"><button data-v="day">Day</button><button data-v="dusk">Golden hour</button><button data-v="night">Night</button></div></div>
-      <div class="setting"><span>Tilt-shift miniature lens</span>
-        <div class="seg" data-setting="tilt"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
-      <div class="setting"><span>Hints for legal spots</span>
-        <div class="seg" data-setting="hints"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
-      <div class="setting"><span>Coach<small class="coach-note"></small></span>
-        <div class="seg" data-setting="coach"><button data-v="off">Off</button><button data-v="trainer">Trainer</button><button data-v="study">Study</button></div></div>
+      <h2 data-i18n>Settings</h2>
+      <div class="setting"><span data-i18n>Graphics</span>
+        <div class="seg" data-setting="quality"><button data-i18n data-v="low">Low</button><button data-i18n data-v="medium">Medium</button><button data-i18n data-v="high">High</button></div></div>
+      <div class="setting"><span data-i18n>Game speed</span>
+        <div class="seg" data-setting="speed"><button data-i18n data-v="1">Normal</button><button data-i18n data-v="1.6">Fast</button><button data-i18n data-v="2.6">Very fast</button></div></div>
+      <div class="setting"><span data-i18n>Camera</span>
+        <div class="seg" data-setting="camera"><button data-i18n data-v="auto">Follow play</button><button data-i18n data-v="free">Free</button></div></div>
+      <div class="setting"><span data-i18n>Time of day</span>
+        <div class="seg" data-setting="ambience"><button data-i18n data-v="day">Day</button><button data-i18n data-v="dusk">Golden hour</button><button data-i18n data-v="night">Night</button></div></div>
+      <div class="setting"><span data-i18n>Tilt-shift miniature lens</span>
+        <div class="seg" data-setting="tilt"><button data-i18n data-v="on">On</button><button data-i18n data-v="off">Off</button></div></div>
+      <div class="setting"><span data-i18n>Hints for legal spots</span>
+        <div class="seg" data-setting="hints"><button data-i18n data-v="on">On</button><button data-i18n data-v="off">Off</button></div></div>
+      <div class="setting"><span data-i18n>Coach<small class="coach-note"></small></span>
+        <div class="seg" data-setting="coach"><button data-i18n data-v="off">Off</button><button data-i18n data-v="trainer">Trainer</button><button data-i18n data-v="study">Study</button></div></div>
     </div>
   </div>
 

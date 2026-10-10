@@ -4,10 +4,16 @@
 import { TERRAIN_INFO, dominoById, footprint } from '../core/rules.js';
 import { decodeAction } from '../core/moves.js';
 import { gradeOf, isPoor } from '../core/review.js';
+import { gradeLabel } from '../core/coach.js';
 import { esc, shieldSVG } from './hud.js';
+import { t, tn, locale } from '../i18n/index.js';
 
 const EXPERT = '#6fe3ff', LAST = '#ffe08a';
 const cls = (grade) => `g-${grade.toLowerCase()}`;
+const oneDecimal = (x) => x.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+// The menu's default name ("You", or its translation): the captions then speak to the player.
+const isYou = (name) => { const n = String(name).trim().toLowerCase(); return n === 'you' || n === t('You').toLowerCase(); };
+const nameOf = (name) => (isYou(name) ? t('You') : name);
 
 // Every square of a kingdom from its placements: 'x,y' → { terrain, crowns, id }, the castle included.
 function cellsOf(placements) {
@@ -90,10 +96,10 @@ export class ReplayView {
     const button = (name, label) => `<button type="button" class="rp-btn" data-rp="${name}" aria-label="${label}" title="${label}">${icon(name)}</button>`;
     return `<div class="rp">
       <div class="rp-bar">
-        ${button('first', 'Start')}${button('prev', 'Previous move (←)')}
-        <button type="button" class="rp-btn rp-play" data-rp="play" aria-label="Play (space)" title="Play (space)">${icon('play')}</button>
-        ${button('next', 'Next move (→)')}${button('last', 'End')}
-        <input type="range" class="rp-range" min="0" max="${total}" value="${this.k}" aria-label="Move" />
+        ${button('first', t('Start'))}${button('prev', t('Previous move (←)'))}
+        <button type="button" class="rp-btn rp-play" data-rp="play" aria-label="${t('Play (space)')}" title="${t('Play (space)')}">${icon('play')}</button>
+        ${button('next', t('Next move (→)'))}${button('last', t('End'))}
+        <input type="range" class="rp-range" min="0" max="${total}" value="${this.k}" aria-label="${t('Move')}" />
         <span class="rp-count"></span>
       </div>
       <div class="rp-say" aria-live="polite"></div>
@@ -134,14 +140,14 @@ export class ReplayView {
     if (this.k >= this.turns.length) this.go(0);
     this.timer = setInterval(() => { if (this.k >= this.turns.length) this.pause(); else this.go(this.k + 1); }, 1100);
     this.el.play.innerHTML = icon('pause');
-    this.el.play.setAttribute('aria-label', 'Pause (space)');
+    this.el.play.setAttribute('aria-label', t('Pause (space)'));
   }
 
   pause() {
     if (!this.timer) return;
     clearInterval(this.timer);
     this.timer = null;
-    if (this.el) { this.el.play.innerHTML = icon('play'); this.el.play.setAttribute('aria-label', 'Play (space)'); }
+    if (this.el) { this.el.play.innerHTML = icon('play'); this.el.play.setAttribute('aria-label', t('Play (space)')); }
   }
 
   // The record again, with the coach's grades that have landed since.
@@ -149,17 +155,17 @@ export class ReplayView {
 
   who(seat) {
     const p = this.r.players[seat];
-    return `<b class="rp-who" style="color:${p.color}">${esc(p.name)}</b>`;
+    return `<b class="rp-who" style="color:${p.color}">${esc(nameOf(p.name))}</b>`;
   }
 
-  // "picks" or, for the menu's default "You", "pick"
-  verb(seat, word) { return /^you$/i.test(this.r.players[seat].name.trim()) ? word : `${word}s`; }
+  // A caption about a seat: `you` (said to the menu's default "You": "You pick…") or `other` ("Mia picks…").
+  say(seat, you, other, vars = {}) { return t(isYou(this.r.players[seat].name) ? you : other, { who: this.who(seat), ...vars }); }
 
   go(k) {
     this.k = k = Math.max(0, Math.min(k, this.turns.length));
     const frame = this.frames[k], before = k ? this.frames[k - 1] : null, turn = k ? this.turns[k - 1] : null;
     this.el.range.value = k;
-    const label = k === this.turns.length ? 'Game over' : frame.round ? `Round ${frame.round} of ${this.rounds}` : 'Opening draft';
+    const label = k === this.turns.length ? t('Game over') : frame.round ? t('Round {n} of {total}', { n: frame.round, total: this.rounds }) : t('Opening draft');
     this.el.count.innerHTML = `<b>${k}</b>/${this.turns.length}<span>${label}</span>`;
     this.el.say.innerHTML = this.caption(k, frame, before, turn);
     this.el.coach.innerHTML = turn ? this.coachNote(k - 1, turn, before) : '';
@@ -168,20 +174,24 @@ export class ReplayView {
   }
 
   caption(k, frame, before, turn) {
-    if (!turn) return `The dominoes are dealt. ${this.who(frame.mover)} ${this.verb(frame.mover, 'open')} the draft.`;
-    const { seat } = turn;
+    if (!turn) return this.say(frame.mover, 'The dominoes are dealt. {who} open the draft.', 'The dominoes are dealt. {who} opens the draft.');
+    const { seat } = turn, id = turn.id;
     let say;
-    if (turn.kind === 'select') say = `${this.who(seat)} ${this.verb(seat, 'pick')} domino ${turn.id}${turn.phase === 'open' ? ' in the opening draft' : ''}.`;
-    else if (!turn.value) say = `${this.who(seat)} cannot place domino ${turn.id}: it fits nowhere and is discarded.`;
+    if (turn.kind === 'select') {
+      say = turn.phase === 'open' ? this.say(seat, '{who} pick domino {id} in the opening draft.', '{who} picks domino {id} in the opening draft.', { id })
+        : this.say(seat, '{who} pick domino {id}.', '{who} picks domino {id}.', { id });
+    } else if (!turn.value) say = this.say(seat, '{who} cannot place domino {id}: it fits nowhere and is discarded.', '{who} cannot place domino {id}: it fits nowhere and is discarded.', { id });
     else {
       const gain = frame.kingdoms[seat].score - before.kingdoms[seat].score;
-      say = `${this.who(seat)} ${this.verb(seat, 'lay')} domino ${turn.id}${gain > 0 ? ` <span class="rp-gain">+${gain}</span>` : ''}.`;
+      say = this.say(seat, '{who} lay domino {id}{gain}.', '{who} lays domino {id}{gain}.', { id, gain: gain > 0 ? ` <span class="rp-gain">+${gain}</span>` : '' });
     }
-    for (const id of frame.unclaimed.slice(before.unclaimed.length)) say += ` Nobody took domino ${id}: it is discarded.`;
+    for (const lost of frame.unclaimed.slice(before.unclaimed.length)) say += ` ${t('Nobody took domino {id}: it is discarded.', { id: lost })}`;
     if (k === this.turns.length) {
-      const first = this.r.players.filter((p) => p.place === 1);
-      say += first.length > 1 ? ` <span class="rp-end">A tie at ${first[0].total} points.</span>`
-        : ` <span class="rp-end">${esc(first[0].name)} ${this.verb(this.r.players.indexOf(first[0]), 'win')} with ${first[0].total} points.</span>`;
+      const first = this.r.players.filter((p) => p.place === 1), n = first[0].total;
+      const end = first.length > 1 ? tn(n, 'A tie at {n} point.', 'A tie at {n} points.')
+        : isYou(first[0].name) ? tn(n, '{who} win with {n} point.', '{who} win with {n} points.', { who: esc(nameOf(first[0].name)) })
+          : tn(n, '{who} wins with {n} point.', '{who} wins with {n} points.', { who: esc(first[0].name) });
+      say += ` <span class="rp-end">${end}</span>`;
     }
     return say;
   }
@@ -192,21 +202,21 @@ export class ReplayView {
     const mark = this.r.review && this.r.review[i];
     if (!mark) return '';
     const [loss, best] = mark, grade = gradeOf(loss);
-    const badge = `<span class="grade-badge ${cls(grade)}"><b>${grade}</b>${grade === 'Best' ? '' : `<span>−${loss.toFixed(1)}</span>`}</span>`;
+    const badge = `<span class="grade-badge ${cls(grade)}"><b>${gradeLabel(grade)}</b>${grade === 'Best' ? '' : `<span>−${oneDecimal(loss)}</span>`}</span>`;
     if (!isPoor(loss)) {
-      const text = grade === 'Best' ? (loss ? 'As good as the Expert’s choice.' : 'The Expert’s choice too.') : `${loss.toFixed(1)} points of final lead given up against the Expert’s choice.`;
+      const text = grade === 'Best' ? (loss ? t('As good as the Expert’s choice.') : t('The Expert’s choice too.')) : t('{n} points of final lead given up against the Expert’s choice.', { n: oneDecimal(loss) });
       return `<div class="rp-grade">${badge}<span>${text}</span></div>`;
     }
     const alt = decodeAction(best);
     if (turn.kind === 'select') {
       const id = turn.line[alt.value];
-      return `<div class="rp-grade">${badge}<span>The Expert would have picked domino ${id}</span>${dominoChip(id, { glow: EXPERT })}</div>`;
+      return `<div class="rp-grade">${badge}<span>${t('The Expert would have picked domino {id}', { id })}</span>${dominoChip(id, { glow: EXPERT })}</div>`;
     }
-    if (!alt.value) return `<div class="rp-grade">${badge}<span>The Expert would have discarded it.</span></div>`;
+    if (!alt.value) return `<div class="rp-grade">${badge}<span>${t('The Expert would have discarded it.')}</span></div>`;
     const placements = before.kingdoms[turn.seat].placements, domino = dominoById(turn.id);
     const marks = [{ domino, at: alt.value, color: EXPERT }, ...(turn.value ? [{ domino, at: turn.value, color: LAST, dashed: true }] : [])];
     const frame = frameOf([...squaresOf(placements), ...marks.flatMap((m) => footprint(m.at.x, m.at.y, m.at.rot))], this.size);
-    return `<div class="rp-grade">${badge}<span>The Expert would have laid it <i class="rp-key" style="--c:${EXPERT}"></i>here, not <i class="rp-key dashed" style="--c:${LAST}"></i>there.</span>
+    return `<div class="rp-grade">${badge}<span>${t('The Expert would have laid it {here}here, not {there}there.', { here: `<i class="rp-key" style="--c:${EXPERT}"></i>`, there: `<i class="rp-key dashed" style="--c:${LAST}"></i>` })}</span>
       <div class="rp-alt">${realmSVG(placements, frame, { cell: 20, marks })}</div></div>`;
   }
 
@@ -215,18 +225,18 @@ export class ReplayView {
     const color = (seat) => (seat >= 0 ? this.r.players[seat].color : null);
     const line = (slots) => (slots.length ? slots.map((s) => dominoChip(s.id, { color: color(s.seat), done: s.done, glow: turn && turn.kind === 'select' && s.id === turn.id ? LAST : null })).join('')
       : '<span class="rp-none">—</span>');
-    return `<div class="rp-line"><span>This round</span><div>${line(frame.current)}</div></div>
-      <div class="rp-line"><span>Next round</span><div>${line(frame.next)}</div></div>
-      <div class="rp-chest">${frame.left ? `${frame.left} in the chest` : 'Chest empty'}</div>`;
+    return `<div class="rp-line"><span>${t('This round')}</span><div>${line(frame.current)}</div></div>
+      <div class="rp-line"><span>${t('Next round')}</span><div>${line(frame.next)}</div></div>
+      <div class="rp-chest">${frame.left ? t('{n} in the chest', { n: frame.left }) : t('Chest empty')}</div>`;
   }
 
   realms(frame, turn) {
     return this.r.players.map((p, seat) => {
       const k = frame.kingdoms[seat], moved = turn && turn.seat === seat;
       const marks = moved && turn.kind === 'place' && turn.value ? [{ id: turn.id, color: LAST }] : [];
-      const discards = k.discards.length ? `<small>${k.discards.length} discarded</small>` : '';
+      const discards = k.discards.length ? `<small>${t('{n} discarded', { n: k.discards.length })}</small>` : '';
       return `<div class="rp-realm${moved ? ' on' : ''}${frame.mover === seat ? ' next' : ''}" style="--pc:${p.color}">
-        <div class="rp-realm-head">${shieldSVG(p.color, p.crest)}<span>${esc(p.name)}</span><b>${k.score}</b></div>
+        <div class="rp-realm-head">${shieldSVG(p.color, p.crest)}<span>${esc(nameOf(p.name))}</span><b>${k.score}</b></div>
         ${realmSVG(k.placements, this.boxes[seat], { cell: this.size === 7 ? 15 : 20, marks })}${discards}</div>`;
     }).join('');
   }

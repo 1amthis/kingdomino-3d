@@ -1,0 +1,81 @@
+// The How-to-play tour (src/ui/guide.js and index.html #help) and online refusals (src/net/online.js).
+export default {
+  // tabs
+  'Goal': 'Ziel',
+  'Pick': 'Wählen',
+  'Place': 'Anlegen',
+  'Score': 'Wertung',
+  'Controls': 'Steuerung',
+  // pictures
+  'one domino': 'ein Domino',
+  'each round': 'pro Runde',
+  'A kingdom of dominoes growing around its castle': 'Ein Königreich aus Dominos, das um sein Schloss wächst',
+  'Low number': 'Niedrige Zahl',
+  'you pick sooner next round': 'du wählst nächste Runde früher',
+  'High number': 'Hohe Zahl',
+  'usually more crowns': 'meist mehr Kronen',
+  'Four dominoes in number order, two of them claimed by kings': 'Vier Dominos nach Zahl sortiert, zwei davon von Königen besetzt',
+  'next to the castle': 'neben dem Schloss',
+  'forest meets forest': 'Wald an Wald',
+  'nothing matches': 'nichts passt',
+  'Two legal placements and one illegal one': 'Zwei erlaubte und ein unerlaubtes Anlegen',
+  'outside the square': 'außerhalb des Quadrats',
+  'fits nowhere: discarded': 'passt nirgends: abgeworfen',
+  'A kingdom filling its 5 by 5 frame, a domino sticking out of it, and a discarded domino': 'Ein Königreich füllt seinen 5-mal-5-Rahmen, ein Domino ragt heraus, ein anderes wird abgeworfen',
+  'squares × crowns': 'Felder × Kronen',
+  'A kingdom whose forest scores 8, lake scores 3 and crownless fields score nothing': 'Ein Königreich: Der Wald bringt 8, der See 3 und die Felder ohne Krone nichts',
+  'Next': 'Weiter',
+  'Got it': 'Verstanden',
+  // pages
+  'Build the richest kingdom': 'Baue das reichste Königreich',
+  'Everyone starts with a <b>castle</b>. Each round you claim one domino and add it to your kingdom. When the dominoes run out, the kingdom with the most points wins.':
+    'Alle beginnen mit einem <b>Schloss</b>. In jeder Runde wählst du ein Domino und legst es an dein Königreich an. Sind die Dominos aufgebraucht, gewinnt das Königreich mit den meisten Punkten.',
+  'Claim a domino with your king': 'Wähle ein Domino mit deinem König',
+  'New dominoes are laid out in number order. Put your king on the one you want. A <b>low number</b> lets you choose sooner next round; <b>high numbers</b> usually carry more crowns. With three players, the domino nobody claims is discarded.':
+    'Neue Dominos werden nach Zahl sortiert ausgelegt. Stell deinen König auf das gewünschte. Mit einer <b>niedrigen Zahl</b> wählst du in der nächsten Runde früher; <b>hohe Zahlen</b> tragen meist mehr Kronen. Zu dritt wird das Domino, das niemand wählt, abgeworfen.',
+  'Connect it': 'Leg es an',
+  'A new domino must touch your <b>castle</b>, or touch a square of the <b>same terrain</b>. One matching side is enough.':
+    'Ein neues Domino muss dein <b>Schloss</b> oder ein Feld der <b>gleichen Landschaft</b> berühren. Eine passende Seite genügt.',
+  'Stay within 5 &times; 5': 'Bleib in 5 &times; 5',
+  'Your kingdom must fit in a <b>5&times;5</b> square (7&times;7 in the Mighty Duel); the glowing frame shows the room left. A domino that fits nowhere is <b>discarded</b>.':
+    'Dein Königreich muss in ein Quadrat aus <b>5&times;5</b> Feldern passen (7&times;7 im großen Duell); der leuchtende Rahmen zeigt den restlichen Platz. Ein Domino, das nirgends passt, wird <b>abgeworfen</b>.',
+  'Crowns multiply': 'Kronen multiplizieren',
+  'A <b>property</b> is a group of touching squares of one terrain. It scores <b>squares &times; crowns</b>, so without a crown it scores nothing. Optional rules add +10 for a centred castle and +5 for a full kingdom with no discard. A <b>Dynasty</b> plays three games in a row and adds up the scores.':
+    'Ein <b>Gebiet</b> ist eine Gruppe zusammenhängender Felder einer Landschaft. Es bringt <b>Felder &times; Kronen</b>, ohne Krone also nichts. Optionale Regeln geben +10 für ein Schloss in der Mitte und +5 für ein volles Königreich ohne Abwurf. Eine <b>Dynastie</b> sind drei Partien hintereinander, deren Punkte addiert werden.',
+  // controls
+  'Pick a domino': 'Domino wählen',
+  'Show a spot, tap again to place': 'Platz zeigen, erneut tippen zum Anlegen',
+  'Turn the domino, show the legal spots': 'Domino drehen, erlaubte Plätze zeigen',
+  'The Expert&rsquo;s move, with the coach on': 'Zug des Experten, bei aktivem Coach',
+  'Orbit the camera': 'Kamera schwenken',
+  'Zoom, slide the camera': 'Zoomen, Kamera verschieben',
+  'Tap a score': 'Punktestand antippen',
+  'Look at that player&rsquo;s kingdom': 'Königreich dieser Person ansehen',
+  'Bottom-right buttons': 'Tasten unten rechts',
+  'Follow play, or see the whole table or the draft': 'Dem Spiel folgen, den ganzen Tisch oder die Auslage zeigen',
+  'Pick or place a domino': 'Domino wählen oder anlegen',
+  'Rotate (or right-click)': 'Drehen (oder Rechtsklick)',
+  'Legal-spot hints': 'Hinweise auf erlaubte Plätze',
+  'Advice: the Expert&rsquo;s move, with the coach on': 'Tipp: Zug des Experten, bei aktivem Coach',
+  'Orbit, zoom': 'Schwenken, zoomen',
+  'Slide the camera (or Shift+drag)': 'Kamera verschieben (oder Umschalt+Ziehen)',
+  'Look at a kingdom': 'Ein Königreich ansehen',
+  'Draft, whole table': 'Auslage, ganzer Tisch',
+  'Follow play again': 'Wieder dem Spiel folgen',
+  'Seat view &harr; overview': 'Platzansicht &harr; Übersicht',
+  'Music on/off': 'Musik an/aus',
+  'Photo mode': 'Fotomodus',
+  'Move, drop the domino': 'Bewegen, Domino ablegen',
+  'The coach': 'Der Coach',
+  'Pick it in the main menu. <b>Trainer</b> grades each of your moves, from Best to Blunder, by the points of final lead it gives up against the Expert&rsquo;s choice. <b>Study</b> also shows the values while you decide. <b>Advice</b> shows the Expert&rsquo;s move. For fair play it stays off when more than one person plays.':
+    'Du wählst ihn im Hauptmenü. <b>Trainer</b> bewertet jeden deiner Züge, von „Bester Zug“ bis „Patzer“, danach, wie viele Punkte Vorsprung am Ende er gegenüber der Wahl des Experten kostet. <b>Studie</b> zeigt zusätzlich die Werte, während du überlegst. <b>Tipp</b> zeigt den Zug des Experten. Aus Fairness bleibt er aus, wenn mehr als eine Person spielt.',
+  'Playing online': 'Online spielen',
+  'Set a seat to <b>Online friend</b>, press <b>Invite your friends</b> and send the link. Each friend who opens it takes a free seat; press <b>Start game</b> once everyone has joined.':
+    'Stell einen Platz auf <b>Online-Freund</b>, drück <b>Freunde einladen</b> und schick den Link. Jeder, der ihn öffnet, nimmt einen freien Platz; drück <b>Spiel starten</b>, sobald alle da sind.',
+  // online
+  'This game has already started.': 'Diese Partie hat schon begonnen.',
+  'This game is full.': 'Diese Partie ist voll.',
+  'The host refused the connection.': 'Der Gastgeber hat die Verbindung abgelehnt.',
+  'This game could not be found. The host may have closed it.': 'Partie nicht gefunden. Vielleicht hat der Gastgeber sie geschlossen.',
+  'The host did not answer. Check the link and try again.': 'Der Gastgeber antwortet nicht. Prüf den Link und versuch es noch einmal.',
+};

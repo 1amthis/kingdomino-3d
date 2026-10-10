@@ -1,16 +1,17 @@
 // Pure game logic for Kingdomino: tiles, kingdoms, placement rules and scoring.
 // Nothing in here knows about rendering, so the AI can simulate freely.
+import { t } from '../i18n/index.js';
 
 export const TERRAINS = ['wheat', 'forest', 'lake', 'grass', 'swamp', 'mine'];
 
 export const TERRAIN_INFO = {
-  wheat:  { name: 'Wheat Fields', short: 'Fields',    color: '#e7bf3c', ink: '#5a4308' },
-  forest: { name: 'Forest',       short: 'Forest',    color: '#2e6b37', ink: '#e4f5dd' },
-  lake:   { name: 'Lake',         short: 'Lake',      color: '#2f86cf', ink: '#e6f3ff' },
-  grass:  { name: 'Grassland',    short: 'Grassland', color: '#8fcd4c', ink: '#243d0b' },
-  swamp:  { name: 'Swamp',        short: 'Swamp',     color: '#7c7043', ink: '#f3edd3' },
-  mine:   { name: 'Mines',        short: 'Mines',     color: '#4a4750', ink: '#f0eef5' },
-  castle: { name: 'Castle',       short: 'Castle',    color: '#b9b2a4', ink: '#222' },
+  wheat:  { name: t('Wheat Fields'), short: t('Fields'),    color: '#e7bf3c', ink: '#5a4308' },
+  forest: { name: t('Forest'),       short: t('Forest'),    color: '#2e6b37', ink: '#e4f5dd' },
+  lake:   { name: t('Lake'),         short: t('Lake'),      color: '#2f86cf', ink: '#e6f3ff' },
+  grass:  { name: t('Grassland'),    short: t('Grassland'), color: '#8fcd4c', ink: '#243d0b' },
+  swamp:  { name: t('Swamp'),        short: t('Swamp'),     color: '#7c7043', ink: '#f3edd3' },
+  mine:   { name: t('Mines'),        short: t('Mines'),     color: '#4a4750', ink: '#f0eef5' },
+  castle: { name: t('Castle'),       short: t('Castle'),    color: '#b9b2a4', ink: '#222' },
 };
 
 const W = 'wheat', F = 'forest', L = 'lake', G = 'grass', S = 'swamp', M = 'mine';

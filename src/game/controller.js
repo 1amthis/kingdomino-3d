@@ -18,6 +18,7 @@ import { M } from '../gfx/materials.js';
 import { Ease } from '../gfx/tween.js';
 import { CROWN_SVG } from '../ui/hud.js';
 import { LEFT } from '../net/online.js';
+import { t, tn } from '../i18n/index.js';
 
 const SURFACE = 0.032;
 const REST = SURFACE + TILE_H;
@@ -262,8 +263,8 @@ export class Controller {
       this.hud.setPlayers(this.players, this.humans, this.carried());
       this.syncCamera();
       this.hud.showHud();
-      this.setRound(`Round 1 of ${this.totalRounds}`);
-      this.hud.prompt('Setting up…');
+      this.setRound(t('Round {n} of {total}', { n: 1, total: this.totalRounds }));
+      this.hud.prompt(t('Setting up…'));
       this.stage.controls.autoRotate = false;
       if (!this.replaying) this.dynastyNews();
     }
@@ -369,7 +370,7 @@ export class Controller {
 
   updateChest() {
     this.chest.userData.setCount(this.deck.length, this.deckTotal);
-    this.chestLabel.element.textContent = this.deck.length ? `${this.deck.length} dominoes left` : 'No dominoes left';
+    this.chestLabel.element.textContent = this.deck.length ? tn(this.deck.length, '{n} domino left', '{n} dominoes left') : t('No dominoes left');
   }
 
   // ---------- positions ----------
@@ -452,8 +453,8 @@ export class Controller {
   holdCamera(on) {
     if (on && !this.camHeld && !this.holdHinted && this.settings.camera === 'auto' && !this.demo) {
       this.holdHinted = true;
-      this.hud.toast(this.touch ? 'Free camera &middot; tap the crosshair to follow the game again'
-        : 'Free camera &middot; press <kbd>F</kbd> to follow the game again', 3.2);
+      this.hud.toast(this.touch ? t('Free camera &middot; tap the crosshair to follow the game again')
+        : t('Free camera &middot; press <kbd>F</kbd> to follow the game again'), 3.2);
     }
     this.camHeld = on;
     if (!on) this.viewName = null;
@@ -547,7 +548,7 @@ export class Controller {
   }
 
   async runGame(flow) {
-    if (!this.demo) this.setRound('The opening draft');
+    if (!this.demo) this.setRound(t('The opening draft'));
     await this.drawLine(flow);
     for (const king of this.openingOrder) await this.selectPhase(flow, king);
     let round = 0;
@@ -561,7 +562,8 @@ export class Controller {
       if (round === 1 && this.opts.snake) {
         this.current.sort((a, b) => this.openingOrder.indexOf(b.king) - this.openingOrder.indexOf(a.king));
         const p = this.current[0].king.player, you = this.hud.isYou(p);
-        if (!this.quiet) this.hud.toast(`Snake opening: ${you ? 'you' : this.hud.who(p)} picked last, so ${you ? 'you go' : 'goes'} first this round`, 3);
+        if (!this.quiet) this.hud.toast(you ? t('Snake opening: you picked last, so you go first this round')
+          : t('Snake opening: {who} picked last, so goes first this round', { who: this.hud.who(p) }), 3);
       }
       for (const slot of this.current) {
         const king = slot.king;
@@ -577,14 +579,15 @@ export class Controller {
 
   setRoundLabel(r) {
     if (this.demo) return;
-    const last = this.config.dynasty ? 'Final round' : `Final round · ${this.totalRounds} of ${this.totalRounds}`;
-    this.setRound(r >= this.totalRounds ? last : `Round ${r} of ${this.totalRounds}`);
+    const total = this.totalRounds;
+    const last = this.config.dynasty ? t('Final round') : t('Final round · {n} of {total}', { n: total, total });
+    this.setRound(r >= total ? last : t('Round {n} of {total}', { n: r, total }));
   }
 
   // The line over the banner's prompt; in a dynasty it starts with the game's number.
   setRound(text) {
     const d = this.config.dynasty;
-    this.hud.setRound(d ? `Game ${gameNumber(d)} of ${GAMES} · ${text}` : text);
+    this.hud.setRound(d ? t('Game {n} of {total} · {text}', { n: gameNumber(d), total: GAMES, text }) : text);
   }
 
   // In a dynasty's second and third games, each seat's points from the games before (the score cards
@@ -599,9 +602,10 @@ export class Controller {
     const d = this.config.dynasty;
     if (!d || !d.games.length) return;
     const [a, b] = standings(d), lead = this.players[a.seat], gap = a.s.total - b.s.total;
-    const news = !gap ? `the dynasty is level at the top, on ${a.s.total}`
-      : `${this.hud.isYou(lead) ? 'you lead' : `${this.hud.who(lead)} leads`} the dynasty by ${gap} point${gap === 1 ? '' : 's'}`;
-    this.hud.toast(`Game ${gameNumber(d)} of ${GAMES}: ${news}`, 4);
+    const news = !gap ? t('the dynasty is level at the top, on {n}', { n: a.s.total })
+      : this.hud.isYou(lead) ? tn(gap, 'you lead the dynasty by {n} point', 'you lead the dynasty by {n} points')
+        : tn(gap, '{who} leads the dynasty by {n} point', '{who} leads the dynasty by {n} points', { who: this.hud.who(lead) });
+    this.hud.toast(t('Game {n} of {total}: {news}', { n: gameNumber(d), total: GAMES, news }), 4);
   }
 
   async drawLine(flow) {
@@ -609,7 +613,7 @@ export class Controller {
     this.updateChest();
     this.next = drawn.map((domino, index) => ({ domino, index, king: null, view: this.getView(domino) }));
     const mouth = this.chest.localToWorld(this.chest.userData.mouth.clone());
-    if (!this.demo) this.hud.prompt('Drawing new dominoes');
+    if (!this.demo) this.hud.prompt(t('Drawing new dominoes'));
     // the camera heads for the board while the first tiles leave the chest
     const { key, view } = this.draftShot();
     const framing = this.focus(flow, key, view, 1150);
@@ -646,8 +650,8 @@ export class Controller {
     for (const slot of left) {
       this.unclaimed.push(slot.domino.id);
       if (!this.quiet) {
-        const why = this.tip('unclaimed', ' &middot; with three players, each line has one domino to spare');
-        this.hud.toast(`Nobody took domino ${slot.domino.id} &mdash; it is discarded${why}`, why ? 3.4 : 2.2);
+        const why = this.tip('unclaimed', ` &middot; ${t('with three players, each line has one domino to spare')}`);
+        this.hud.toast(t('Nobody took domino {id} &mdash; it is discarded', { id: slot.domino.id }) + why, why ? 3.4 : 2.2);
       }
       await this.discardView(flow, slot.view, 0xd8c8a8);
     }
@@ -706,11 +710,17 @@ export class Controller {
     return askExpert(this.tableFor(phase, king)).catch(() => undefined);
   }
 
-  remoteNote(p) { return p.remote && p.type === 'human' ? 'Playing online' : ''; }
+  remoteNote(p) { return p.remote && p.type === 'human' ? t('Playing online now') : ''; }
 
-  // The one player at this screen reads "Your turn"; players sharing a screen are called by name.
-  yourTurn(p) {
-    return this.humans.length === 1 ? `<span class="who" style="color:${p.color}">Your turn</span> &middot; ` : `${this.hud.who(p)}, `;
+  // The one player at this screen reads "Your turn · pick a domino"; players sharing a screen are
+  // called by name ("Ann, pick a domino"). act: 'pick' or 'place'.
+  yourTurn(p, act) {
+    if (this.humans.length === 1) {
+      const what = act === 'pick' ? t('pick a domino') : t('place your domino');
+      return `<span class="who" style="color:${p.color}">${t('Your turn')}</span> &middot; ${what}`;
+    }
+    const who = this.hud.who(p);
+    return act === 'pick' ? t('{who}, pick a domino', { who }) : t('{who}, place your domino', { who });
   }
 
   // A tip under the prompt helps the first turns along, then steps aside.
@@ -742,9 +752,9 @@ export class Controller {
     if (!this.demo) {
       this.hud.setActive(p);
       if (local) {
-        this.hud.prompt(placed ? 'Now pick your next domino' : `${this.yourTurn(p)}pick a domino`,
-          this.tip('select', 'Low numbers pick first next round · high numbers have more crowns'));
-      } else this.hud.prompt(`${this.hud.who(p)} is picking a domino…`, this.remoteNote(p));
+        this.hud.prompt(placed ? t('Now pick your next domino') : this.yourTurn(p, 'pick'),
+          this.tip('select', t('Low numbers pick first next round · high numbers have more crowns')));
+      } else this.hud.prompt(t('{who} is picking a domino…', { who: this.hud.who(p) }), this.remoteNote(p));
     }
     const framing = this.focusPlayer(flow, p, 'select');
     if (local) {
@@ -783,7 +793,7 @@ export class Controller {
     const m = this.script.shift();
     if (m === undefined) {
       this.endReplay();
-      this.hud.toast('Picked up where you left off');
+      this.hud.toast(t('Picked up where you left off'));
       return undefined;
     }
     if (!m || m.seat !== p.index || m.kind !== kind) throw new ReplayError(`move ${this.moves.length + 1} is out of step`);
@@ -835,7 +845,7 @@ export class Controller {
   }
 
   slotTip(m, slot, x = this.pointerPx.x, y = this.pointerPx.y) {
-    const turn = `<div class="tt-row" style="margin-top:6px;font-style:italic;color:#cbbd9c">Slot ${slot.index + 1} of ${this.lineN} &middot; ${slot.index === 0 ? 'you pick first next round' : slot.index === this.lineN - 1 ? 'you pick last next round' : 'middle of the turn order'}</div>`;
+    const turn = `<div class="tt-row" style="margin-top:6px;font-style:italic;color:#cbbd9c">${t('Slot {n} of {total}', { n: slot.index + 1, total: this.lineN })} &middot; ${slot.index === 0 ? t('you pick first next round') : slot.index === this.lineN - 1 ? t('you pick last next round') : t('middle of the turn order')}</div>`;
     this.hud.tooltip(this.hud.dominoTooltip(slot.domino, turn + this.coach.slotNote(m, slot)), x, y);
   }
 
@@ -958,7 +968,7 @@ export class Controller {
       await flow.w(this.tw.wait(gain > 0 ? 650 : 250));
     } else {
       p.kingdom.discard(domino);
-      if (!this.quiet) this.hud.toast(`${this.hud.who(p)} cannot place domino ${domino.id} &mdash; it is discarded.`);
+      if (!this.quiet) this.hud.toast(t('{who} cannot place domino {id} &mdash; it is discarded.', { who: this.hud.who(p), id: domino.id }));
       await this.discardView(flow, view);
     }
   }
@@ -971,9 +981,9 @@ export class Controller {
     if (!this.demo) {
       this.hud.setActive(p);
       if (local) {
-        this.hud.prompt(`${this.yourTurn(p)}place your domino`,
-          this.tip('place', this.touch ? 'Tap a spot, then tap it again to place' : 'Click to place · R or right-click to rotate'));
-      } else this.hud.prompt(`${this.hud.who(p)} is placing a domino…`, this.remoteNote(p));
+        this.hud.prompt(this.yourTurn(p, 'place'),
+          this.tip('place', this.touch ? t('Tap a spot, then tap it again to place') : t('Click to place · R or right-click to rotate')));
+      } else this.hud.prompt(t('{who} is placing a domino…', { who: this.hud.who(p) }), this.remoteNote(p));
     }
     const framing = this.focusPlayer(flow, p, 'place');
     if (local) {
@@ -1040,9 +1050,9 @@ export class Controller {
   explainInvalid(p, domino, x, y, rot) {
     const k = p.kingdom;
     const fp = footprint(x, y, rot);
-    if (fp.some(([cx, cy]) => k.has(cx, cy))) return 'Those squares are already taken.';
-    if (!k.fits(fp)) return `Your kingdom must fit within ${k.size}&times;${k.size} squares.`;
-    return 'It must touch your castle or a matching terrain.';
+    if (fp.some(([cx, cy]) => k.has(cx, cy))) return t('Those squares are already taken.');
+    if (!k.fits(fp)) return t('Your kingdom must fit within {n}&times;{n} squares.', { n: k.size });
+    return t('It must touch your castle or a matching terrain.');
   }
 
   humanPlace(flow, p, slot, valid, coach = null) {
@@ -1059,7 +1069,7 @@ export class Controller {
     p.root.add(this.hintMesh);
     this.placeActions();
     if (!valid.length) {
-      this.hud.prompt('This domino fits nowhere', 'Discard it to carry on');
+      this.hud.prompt(t('This domino fits nowhere'), t('Discard it to carry on'));
       this.sfx('error');
     }
     p.guides.mat.opacity = 0.95;
@@ -1156,7 +1166,7 @@ export class Controller {
     const ok = m.valid.some((v) => v.x === m.cell.x && v.y === m.cell.y && v.rot === m.rot);
     if (ok) { m.resolve({ x: m.cell.x, y: m.cell.y, rot: m.rot }); return; }
     this.sfx('error');
-    if (!m.valid.length) { this.hud.toast('This domino cannot be placed anywhere &mdash; discard it.'); return; }
+    if (!m.valid.length) { this.hud.toast(t('This domino cannot be placed anywhere &mdash; discard it.')); return; }
     this.hud.toast(this.explainInvalid(m.player, m.domino, m.cell.x, m.cell.y, m.rot));
     const g = m.view.group;
     const x0 = g.position.x;
@@ -1225,8 +1235,8 @@ export class Controller {
       if (flow.alive && this.coach.log.length > graded && this.onRegraded) this.onRegraded({ ...record, ...this.coachVerdict() });
     });
     this.hud.setActions(null);
-    this.hud.prompt('Final scoring', 'Each crowned property scores squares &times; crowns');
-    this.setRound(this.config.dynasty ? 'Final scoring' : 'Game over');
+    this.hud.prompt(t('Final scoring'), t('Each crowned property scores squares &times; crowns'));
+    this.setRound(this.config.dynasty ? t('Final scoring') : t('Game over'));
     // The reckoning keeps its own pace whatever the game speed: brisk, as each count stays up a while
     // after the next one is called; the winner's moment gets the time.
     this.tw.speed = 1;
@@ -1241,7 +1251,8 @@ export class Controller {
       const s = p.kingdom.score(this.opts);
       const regions = s.regions.filter((r) => r.crowns > 0).sort((a, b) => a.score - b.score);
       this.hud.setActive(p);
-      this.hud.prompt(`Scoring ${this.hud.whose(p)} kingdom`, 'Each crowned property scores squares &times; crowns');
+      this.hud.prompt(this.hud.isYou(p) ? t('Scoring your kingdom') : t('Scoring {who}’s kingdom', { who: this.hud.who(p) }),
+        t('Each crowned property scores squares &times; crowns'));
       if (autoCam && !this.camHeld) { const v = this.realmView(p); this.camKey = 'realm' + p.index; await flow.w(this.stage.flyTo(v.pos, v.target, 900)); }
       await flow.w(this.tw.wait(100));
       // bonuses float one row beyond the castle (up the screen), clear of its name plate
@@ -1249,7 +1260,7 @@ export class Controller {
       let running = 0;
       const highlights = [];
       if (!regions.length) {
-        this.popup(aboveCastle(1.2), 'No crowned property', 'popup small', 2200);
+        this.popup(aboveCastle(1.2), t('No crowned property'), 'popup small', 2200);
         await flow.w(this.tw.wait(800));
       }
       // the small properties tick by (quicker still when there are many); the richest comes last and
@@ -1274,7 +1285,7 @@ export class Controller {
       }
       if (s.middle) {
         running += s.middle;
-        this.popup(aboveCastle(1.2), '+10 Middle Kingdom', 'popup bonus', 2400);
+        this.popup(aboveCastle(1.2), t('+10 Middle Kingdom'), 'popup bonus', 2400);
         this.fx.ring(this.cellWorld(p, 0, 0, REST), { color: p.color, radius: 1.4 });
         this.sound.bell(84, 0.2);
         this.hud.updatePlayer(p, running, s.crowns);
@@ -1283,7 +1294,7 @@ export class Controller {
       }
       if (s.harmony) {
         running += s.harmony;
-        this.popup(aboveCastle(s.middle ? 2.2 : 1.2), '+5 Harmony', 'popup bonus', 2400);
+        this.popup(aboveCastle(s.middle ? 2.2 : 1.2), t('+5 Harmony'), 'popup bonus', 2400);
         this.fx.ring(this.cellWorld(p, 0, 0, REST), { color: 0xffe08a, radius: 3, count: 90 });
         this.sound.bell(88, 0.2);
         this.hud.updatePlayer(p, running, s.crowns);
@@ -1297,10 +1308,10 @@ export class Controller {
       p.plateBody.classList.add('tally');
       this.sound.tally();
       const n = regions.length;
-      const parts = [n ? `${n} crowned propert${n === 1 ? 'y' : 'ies'}` : 'No crowned property'];
-      if (s.middle) parts.push('Middle Kingdom +10');
-      if (s.harmony) parts.push('Harmony +5');
-      this.hud.prompt(`${this.hud.who(p)} &middot; ${s.total} point${s.total === 1 ? '' : 's'}`, parts.join(' &middot; '));
+      const parts = [n ? tn(n, '{n} crowned property', '{n} crowned properties') : t('No crowned property')];
+      if (s.middle) parts.push(t('Middle Kingdom +10'));
+      if (s.harmony) parts.push(t('Harmony +5'));
+      this.hud.prompt(tn(s.total, '{who} &middot; {n} point', '{who} &middot; {n} points', { who: this.hud.who(p) }), parts.join(' &middot; '));
       await flow.w(this.tw.wait(1100));
       p.plateBody.classList.remove('tally');
       highlights.forEach((h) => h.remove());
@@ -1310,7 +1321,7 @@ export class Controller {
     if (autoCam && !this.camHeld) { this.camKey = 'overview'; await flow.w(this.stage.flyTo(o.pos, o.target, 1500)); }
     // the dynasty's last game: each name plate adds the points of the games before
     if (reign) {
-      this.hud.prompt('The dynasty', 'Adding the points of the first two games');
+      this.hud.prompt(t('The dynasty'), t('Adding the points of the first two games'));
       await flow.w(this.tw.wait(500));
       // last place first, so the plates rise towards the winner
       for (let i = 0; i < reign.length; i++) {
@@ -1327,9 +1338,19 @@ export class Controller {
     // the game's winner, or once a dynasty is over, the dynasty's
     const top = reign || rows, pts = top[0].s.total;
     const winners = top.filter((r) => r.place === 1).map((r) => r.player);
-    const what = reign ? ' the dynasty' : this.dynasty ? ` game ${this.dynasty.games.length}` : '';
-    this.hud.prompt(winners.length > 1 ? (reign ? 'The dynasty is shared!' : 'It’s a tie!') : `${this.hud.wins(winners[0])}${what}!`,
-      winners.length > 1 ? `${winners.map((w) => this.hud.who(w)).join(' and ')} &middot; ${pts} points each` : `${pts} points${reign ? ` over ${GAMES} games` : ''}`);
+    let title, sub;
+    if (winners.length > 1) {
+      title = reign ? t('The dynasty is shared!') : t('It’s a tie!');
+      const names = winners.map((w) => this.hud.who(w)).join(` ${t('and')} `);
+      sub = tn(pts, '{names} &middot; {n} point each', '{names} &middot; {n} points each', { names });
+    } else {
+      const w = winners[0], you = this.hud.isYou(w), vars = { who: this.hud.who(w), n: this.dynasty && this.dynasty.games.length };
+      title = reign ? (you ? t('You win the dynasty!') : t('{who} wins the dynasty!', vars))
+        : this.dynasty ? (you ? t('You win game {n}!', vars) : t('{who} wins game {n}!', vars))
+          : (you ? t('You win!') : t('{who} wins!', vars));
+      sub = reign ? tn(pts, '{n} point over {games} games', '{n} points over {games} games', { games: GAMES }) : tn(pts, '{n} point', '{n} points');
+    }
+    this.hud.prompt(title, sub);
     this.sound.fanfare();
     for (const w of winners) { this.fx.confettiBurst(w.seat.pos.clone().setY(0.5), [w.color]); w.plateBody.classList.add('tally'); }
     // Let the fireworks play out before the results cover the table; the floating button opens them sooner.
@@ -1470,7 +1491,7 @@ export class Controller {
         const key = `${m.cell.x},${m.cell.y},${m.rot}`;
         if (m.touchKey !== key) {
           m.touchKey = key;
-          if (!this.touchHinted) { this.touchHinted = true; this.hud.toast('Tap the same spot again to place it'); }
+          if (!this.touchHinted) { this.touchHinted = true; this.hud.toast(t('Tap the same spot again to place it')); }
           return;
         }
       }
