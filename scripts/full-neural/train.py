@@ -5,28 +5,31 @@ both input boards AND spatial placement targets, and exports portable JS weights
 
 python scripts/full-neural/train.py --data shards --out model.json --epochs 12
 """
-import argparse, json, math, random, copy, os, pathlib
+import argparse, json, math, random, copy, os, pathlib, gzip
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-C, A, BOARD, OPTIONS = 16, 106, 81, 329
+A, BOARD, OPTIONS = 106, 81, 329
 class FullNet(nn.Module):
-    def __init__(self):
+    def __init__(self,channels=16,blocks=2,aux_width=32):
         super().__init__()
-        self.stem=nn.Conv2d(24,C,3,padding=1)
-        for block in range(2):
-            setattr(self,f'res{block}a',nn.Conv2d(C,C,3,padding=1))
-            setattr(self,f'res{block}b',nn.Conv2d(C,C,3,padding=1))
-        self.place=nn.Conv2d(C,4,1)
-        self.aux_fc=nn.Linear(A,32)
-        self.draft=nn.Linear(48,4)
-        self.discard=nn.Linear(48,1)
-        self.value=nn.Linear(48,1)
+        self.channels=channels
+        self.blocks=blocks
+        self.aux_width=aux_width
+        self.stem=nn.Conv2d(24,channels,3,padding=1)
+        for block in range(blocks):
+            setattr(self,f'res{block}a',nn.Conv2d(channels,channels,3,padding=1))
+            setattr(self,f'res{block}b',nn.Conv2d(channels,channels,3,padding=1))
+        self.place=nn.Conv2d(channels,4,1)
+        self.aux_fc=nn.Linear(A,aux_width)
+        self.draft=nn.Linear(channels+aux_width,4)
+        self.discard=nn.Linear(channels+aux_width,1)
+        self.value=nn.Linear(channels+aux_width,1)
     def forward(self,board,aux):
         h=F.relu(self.stem(board))
-        for i in range(2):
+        for i in range(self.blocks):
             z=F.relu(getattr(self,f'res{i}a')(h))
             h=F.relu(h+getattr(self,f'res{i}b')(z))
         pooled=torch.cat((h.mean((2,3)),F.relu(self.aux_fc(aux))),dim=1)
@@ -78,12 +81,12 @@ def encode(sample,kind=0):
     return planes,aux,target,mask,np.float32(sample['value'])
 
 def files(path):
-    return list(pathlib.Path(path).rglob('*.json'))
+    return list(pathlib.Path(path).rglob('*.json')) + list(pathlib.Path(path).rglob('*.json.gz'))
 
 def load(root,validation_seed):
     train,valid=[],[];seen=set()
     for path in files(root):
-        data=json.loads(path.read_text())
+        data=json.loads(gzip.open(path,'rt').read() if path.name.endswith('.gz') else path.read_text())
         if data.get('format')!='full-neural-selfplay-v1':continue
         for episode in data['episodes']:
             seed=episode['seed']
@@ -117,9 +120,9 @@ def evaluate(net,samples,device,batch_size=64):
     return {'policyCE':t_ce/n,'valueMSE':t_mse/n,'topVisitAccuracy':t_best/n,'examples':n}
 
 def export(net,path):
-    obj={'version':2,'channels':16,'aux':106}
+    obj={'version':3,'channels':net.channels,'blocks':net.blocks,'auxWidth':net.aux_width,'aux':106}
     state=net.cpu().state_dict()
-    for prefix in ['stem','res0a','res0b','res1a','res1b','place','aux_fc','draft','discard','value']:
+    for prefix in ['stem']+[f'res{i}{t}' for i in range(net.blocks) for t in 'ab']+['place','aux_fc','draft','discard','value']:
         obj[prefix+'W']=state[prefix+'.weight'].contiguous().reshape(-1).tolist()
         obj[prefix+'B']=state[prefix+'.bias'].contiguous().reshape(-1).tolist()
     pathlib.Path(path).write_text(json.dumps(obj,separators=(',',':')))
@@ -134,18 +137,21 @@ def main():
     ap.add_argument('--lr',type=float,default=0.0007)
     ap.add_argument('--seed',type=int,default=507)
     ap.add_argument('--valid-seed',type=int,default=900000)
+    ap.add_argument('--channels',type=int,default=16)
+    ap.add_argument('--blocks',type=int,default=2)
+    ap.add_argument('--aux-width',type=int,default=32)
     ap.add_argument('--init',default=None,help='Existing version-2 exported weights for replay-buffer fine-tuning')
     args=ap.parse_args()
     random.seed(args.seed);np.random.seed(args.seed);torch.manual_seed(args.seed)
     torch.set_num_threads(min(4,os.cpu_count() or 1))
     train,valid,games=load(args.data,args.valid_seed)
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    net=FullNet().to(device)
+    net=FullNet(args.channels,args.blocks,args.aux_width).to(device)
     if args.init:
         previous=json.loads(pathlib.Path(args.init).read_text())
-        if previous.get('version')!=2 or previous.get('channels')!=C or previous.get('aux')!=A:
-            raise ValueError('Invalid initial checkpoint')
-        layer_names=['stem','res0a','res0b','res1a','res1b','place','aux_fc','draft','discard','value']
+        if previous.get('aux')!=A or previous.get('channels')!=args.channels or previous.get('blocks',2)!=args.blocks or previous.get('auxWidth',32)!=args.aux_width:
+            raise ValueError('Initial checkpoint does not match requested network dimensions')
+        layer_names=['stem']+[f'res{i}{t}' for i in range(args.blocks) for t in 'ab']+['place','aux_fc','draft','discard','value']
         state={}
         for layer in layer_names:
             for suffix,ext in [('weight','W'),('bias','B')]:
@@ -173,8 +179,9 @@ def main():
     net.load_state_dict(weights);output=export(net,args.out)
     report={'games':games,'trainExamples':len(train),'validExamples':len(valid),
         'bestEpoch':best_epoch,'validation':history[best_epoch-1]['valid'],
-        'architecture':'24x9x9 -> 16ch residual2, 4x9x9 placement, 4 draft, discard, signed value',
+        'architecture':f'24x9x9 -> {args.channels}ch residual{args.blocks}, 4x9x9 placement, 4 draft, discard, signed value',
         'device':str(device),'initialCheckpoint':args.init,
+        'channels':args.channels,'blocks':args.blocks,'auxWidth':args.aux_width,
         'parameterCount':sum(p.numel() for p in net.parameters()),
         'trainingHistory':history}
     report_path=args.out.replace('.json','.report.json')
