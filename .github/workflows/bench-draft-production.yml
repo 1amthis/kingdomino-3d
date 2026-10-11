@@ -6,6 +6,7 @@ on:
       - experiment/learned-draft
     paths:
       - '.github/workflows/bench-draft-production.yml'
+      - 'scripts/compare-draft-scenarios.js'
 
 permissions:
   contents: read
