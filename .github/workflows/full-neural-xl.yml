@@ -1,0 +1,306 @@
+name: Massive Full-Neural XL Self-Play and Arena
+
+on:
+  push:
+    branches: [experiment/full-neural-xl]
+    paths: ['.github/workflows/full-neural-xl.yml']
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collect:
+    name: XL self-play ${{ matrix.split }} shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 24
+      matrix:
+        include:
+          - { split: train, shard: 0, first: 370000, games: 32 }
+          - { split: train, shard: 1, first: 370032, games: 32 }
+          - { split: train, shard: 2, first: 370064, games: 32 }
+          - { split: train, shard: 3, first: 370096, games: 32 }
+          - { split: train, shard: 4, first: 370128, games: 32 }
+          - { split: train, shard: 5, first: 370160, games: 32 }
+          - { split: train, shard: 6, first: 370192, games: 32 }
+          - { split: train, shard: 7, first: 370224, games: 32 }
+          - { split: train, shard: 8, first: 370256, games: 32 }
+          - { split: train, shard: 9, first: 370288, games: 32 }
+          - { split: train, shard: 10, first: 370320, games: 32 }
+          - { split: train, shard: 11, first: 370352, games: 32 }
+          - { split: train, shard: 12, first: 370384, games: 32 }
+          - { split: train, shard: 13, first: 370416, games: 32 }
+          - { split: train, shard: 14, first: 370448, games: 32 }
+          - { split: train, shard: 15, first: 370480, games: 32 }
+          - { split: train, shard: 16, first: 370512, games: 32 }
+          - { split: train, shard: 17, first: 370544, games: 32 }
+          - { split: train, shard: 18, first: 370576, games: 32 }
+          - { split: train, shard: 19, first: 370608, games: 32 }
+          - { split: train, shard: 20, first: 370640, games: 32 }
+          - { split: train, shard: 21, first: 370672, games: 32 }
+          - { split: train, shard: 22, first: 370704, games: 32 }
+          - { split: train, shard: 23, first: 370736, games: 32 }
+          - { split: train, shard: 24, first: 370768, games: 32 }
+          - { split: train, shard: 25, first: 370800, games: 32 }
+          - { split: train, shard: 26, first: 370832, games: 32 }
+          - { split: train, shard: 27, first: 370864, games: 32 }
+          - { split: train, shard: 28, first: 370896, games: 32 }
+          - { split: train, shard: 29, first: 370928, games: 32 }
+          - { split: train, shard: 30, first: 370960, games: 32 }
+          - { split: train, shard: 31, first: 370992, games: 32 }
+          - { split: train, shard: 32, first: 371024, games: 32 }
+          - { split: train, shard: 33, first: 371056, games: 32 }
+          - { split: train, shard: 34, first: 371088, games: 32 }
+          - { split: train, shard: 35, first: 371120, games: 32 }
+          - { split: train, shard: 36, first: 371152, games: 32 }
+          - { split: train, shard: 37, first: 371184, games: 32 }
+          - { split: train, shard: 38, first: 371216, games: 32 }
+          - { split: train, shard: 39, first: 371248, games: 32 }
+          - { split: train, shard: 40, first: 371280, games: 32 }
+          - { split: train, shard: 41, first: 371312, games: 32 }
+          - { split: train, shard: 42, first: 371344, games: 32 }
+          - { split: train, shard: 43, first: 371376, games: 32 }
+          - { split: train, shard: 44, first: 371408, games: 32 }
+          - { split: train, shard: 45, first: 371440, games: 32 }
+          - { split: train, shard: 46, first: 371472, games: 32 }
+          - { split: train, shard: 47, first: 371504, games: 32 }
+          - { split: train, shard: 48, first: 371536, games: 32 }
+          - { split: train, shard: 49, first: 371568, games: 32 }
+          - { split: train, shard: 50, first: 371600, games: 32 }
+          - { split: train, shard: 51, first: 371632, games: 32 }
+          - { split: train, shard: 52, first: 371664, games: 32 }
+          - { split: train, shard: 53, first: 371696, games: 32 }
+          - { split: train, shard: 54, first: 371728, games: 32 }
+          - { split: train, shard: 55, first: 371760, games: 32 }
+          - { split: train, shard: 56, first: 371792, games: 32 }
+          - { split: train, shard: 57, first: 371824, games: 32 }
+          - { split: train, shard: 58, first: 371856, games: 32 }
+          - { split: train, shard: 59, first: 371888, games: 32 }
+          - { split: train, shard: 60, first: 371920, games: 32 }
+          - { split: train, shard: 61, first: 371952, games: 32 }
+          - { split: train, shard: 62, first: 371984, games: 32 }
+          - { split: train, shard: 63, first: 372016, games: 32 }
+          - { split: train, shard: 64, first: 372048, games: 32 }
+          - { split: train, shard: 65, first: 372080, games: 32 }
+          - { split: train, shard: 66, first: 372112, games: 32 }
+          - { split: train, shard: 67, first: 372144, games: 32 }
+          - { split: train, shard: 68, first: 372176, games: 32 }
+          - { split: train, shard: 69, first: 372208, games: 32 }
+          - { split: train, shard: 70, first: 372240, games: 32 }
+          - { split: train, shard: 71, first: 372272, games: 32 }
+          - { split: train, shard: 72, first: 372304, games: 32 }
+          - { split: train, shard: 73, first: 372336, games: 32 }
+          - { split: train, shard: 74, first: 372368, games: 32 }
+          - { split: train, shard: 75, first: 372400, games: 32 }
+          - { split: train, shard: 76, first: 372432, games: 32 }
+          - { split: train, shard: 77, first: 372464, games: 32 }
+          - { split: train, shard: 78, first: 372496, games: 32 }
+          - { split: train, shard: 79, first: 372528, games: 32 }
+          - { split: train, shard: 80, first: 372560, games: 32 }
+          - { split: train, shard: 81, first: 372592, games: 32 }
+          - { split: train, shard: 82, first: 372624, games: 32 }
+          - { split: train, shard: 83, first: 372656, games: 32 }
+          - { split: train, shard: 84, first: 372688, games: 32 }
+          - { split: train, shard: 85, first: 372720, games: 32 }
+          - { split: train, shard: 86, first: 372752, games: 32 }
+          - { split: train, shard: 87, first: 372784, games: 32 }
+          - { split: train, shard: 88, first: 372816, games: 32 }
+          - { split: train, shard: 89, first: 372848, games: 32 }
+          - { split: train, shard: 90, first: 372880, games: 32 }
+          - { split: train, shard: 91, first: 372912, games: 32 }
+          - { split: train, shard: 92, first: 372944, games: 32 }
+          - { split: train, shard: 93, first: 372976, games: 32 }
+          - { split: train, shard: 94, first: 373008, games: 32 }
+          - { split: train, shard: 95, first: 373040, games: 32 }
+          - { split: train, shard: 96, first: 373072, games: 32 }
+          - { split: train, shard: 97, first: 373104, games: 32 }
+          - { split: train, shard: 98, first: 373136, games: 32 }
+          - { split: train, shard: 99, first: 373168, games: 32 }
+          - { split: train, shard: 100, first: 373200, games: 32 }
+          - { split: train, shard: 101, first: 373232, games: 32 }
+          - { split: train, shard: 102, first: 373264, games: 32 }
+          - { split: train, shard: 103, first: 373296, games: 32 }
+          - { split: train, shard: 104, first: 373328, games: 32 }
+          - { split: train, shard: 105, first: 373360, games: 32 }
+          - { split: train, shard: 106, first: 373392, games: 32 }
+          - { split: train, shard: 107, first: 373424, games: 32 }
+          - { split: train, shard: 108, first: 373456, games: 32 }
+          - { split: train, shard: 109, first: 373488, games: 32 }
+          - { split: train, shard: 110, first: 373520, games: 32 }
+          - { split: train, shard: 111, first: 373552, games: 32 }
+          - { split: train, shard: 112, first: 373584, games: 32 }
+          - { split: train, shard: 113, first: 373616, games: 32 }
+          - { split: train, shard: 114, first: 373648, games: 32 }
+          - { split: train, shard: 115, first: 373680, games: 32 }
+          - { split: train, shard: 116, first: 373712, games: 32 }
+          - { split: train, shard: 117, first: 373744, games: 32 }
+          - { split: train, shard: 118, first: 373776, games: 32 }
+          - { split: train, shard: 119, first: 373808, games: 32 }
+          - { split: train, shard: 120, first: 373840, games: 32 }
+          - { split: train, shard: 121, first: 373872, games: 32 }
+          - { split: train, shard: 122, first: 373904, games: 32 }
+          - { split: train, shard: 123, first: 373936, games: 32 }
+          - { split: train, shard: 124, first: 373968, games: 32 }
+          - { split: train, shard: 125, first: 374000, games: 32 }
+          - { split: train, shard: 126, first: 374032, games: 32 }
+          - { split: train, shard: 127, first: 374064, games: 32 }
+          - { split: valid, shard: 0, first: 970000, games: 32 }
+          - { split: valid, shard: 1, first: 970032, games: 32 }
+          - { split: valid, shard: 2, first: 970064, games: 32 }
+          - { split: valid, shard: 3, first: 970096, games: 32 }
+          - { split: valid, shard: 4, first: 970128, games: 32 }
+          - { split: valid, shard: 5, first: 970160, games: 32 }
+          - { split: valid, shard: 6, first: 970192, games: 32 }
+          - { split: valid, shard: 7, first: 970224, games: 32 }
+          - { split: valid, shard: 8, first: 970256, games: 32 }
+          - { split: valid, shard: 9, first: 970288, games: 32 }
+          - { split: valid, shard: 10, first: 970320, games: 32 }
+          - { split: valid, shard: 11, first: 970352, games: 32 }
+          - { split: valid, shard: 12, first: 970384, games: 32 }
+          - { split: valid, shard: 13, first: 970416, games: 32 }
+          - { split: valid, shard: 14, first: 970448, games: 32 }
+          - { split: valid, shard: 15, first: 970480, games: 32 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: full-neural-v2-weights
+          path: teacher
+          run-id: 38121490568
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate compressed MCTS-policy replay, both actions and actual outcomes
+        env:
+          FIRST: ${{ matrix.first }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          set -euo pipefail
+          node scripts/full-neural/collect.js --first "$FIRST" --games "$GAMES" --sims 1024 --place-sims 512 --model teacher/full-model-v2.json --leaf-every 0 --out shard.json.gz
+          test -s shard.json.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl-data-${{ matrix.split }}-${{ matrix.shard }}
+          path: shard.json.gz
+          retention-days: 45
+
+  train:
+    name: Train 48-channel 4-block residual policy/value on 5344 games
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: full-data-*
+          path: data/initial
+          run-id: 38121247728
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: full-scale-*
+          path: data/previous
+          run-id: 38121490568
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: xl-data-*
+          path: data/xl
+      - name: Install optimized CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy==2.3.3
+          python -m pip install torch==2.8.0+cpu --index-url https://download.pytorch.org/whl/cpu
+      - name: Train max-size accessible 48x4 residual network on complete replay
+        run: |
+          python scripts/full-neural/train.py --data data --out xl-model.json --channels 48 --blocks 4 --aux-width 64 --epochs 24 --max-train-minutes 290 --batch 64 --lr 0.00045 --seed 509
+          python -c 'import json;d=json.load(open("xl-model.report.json"));assert d["games"]==5344 and d["trainExamples"]>140000 and d["validExamples"]>16000'
+          python -c 'import json,os;d=json.load(open("xl-model.report.json"));open(os.environ["GITHUB_STEP_SUMMARY"],"a").write("## XL result\n\n"+json.dumps({k:d[k] for k in ["games","trainExamples","validExamples","parameterCount","bestEpoch","validation","trainingElapsedMinutes"]})+"\n")'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl-trained-checkpoint
+          path: |
+            xl-model.json
+            xl-model.report.json
+          retention-days: 90
+
+  arena:
+    name: XL ${{ matrix.case }} ${{ matrix.rules }} shard ${{ matrix.shard }}
+    needs: train
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 24
+      matrix:
+        case: [policy-original, policy-uncapped, value-original]
+        rules: [plain, middle, harmony, both]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: xl-trained-checkpoint
+          path: model
+      - name: Independent paired Expert comparison, frozen checkpoint
+        env:
+          CASE: ${{ matrix.case }}
+          RULES: ${{ matrix.rules }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          case "$RULES" in
+            plain) RID=0; MID=0; HAR=0 ;;
+            middle) RID=1; MID=1; HAR=0 ;;
+            harmony) RID=2; MID=0; HAR=1 ;;
+            both) RID=3; MID=1; HAR=1 ;;
+            *) exit 1 ;;
+          esac
+          MODE="${CASE%%-*}"
+          BASELINE="${CASE#*-}"
+          SEED=$((450000 + RID * 2000 + SHARD * 25))
+          node scripts/full-neural/bench.js --model model/xl-model.json --mode "$MODE" --baseline "$BASELINE" --leaf-every 512 --first "$SEED" --deals 25 --sims 3000 --ms 1500 --middle "$MID" --harmony "$HAR" --threads 2 --out result.json
+          test -s result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl-arena-${{ matrix.case }}-${{ matrix.rules }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 45
+
+  summarize:
+    name: Aggregate 4800 completely played XL arena games
+    needs: arena
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: xl-arena-*
+          path: arena
+      - name: Verify 96 shards and calculate within-pair uncertainty
+        run: |
+          node scripts/full-neural/aggregate-xl.js arena xl-arena-results.json
+          cat xl-arena-results.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl-final-arena-and-confidence
+          path: |
+            xl-arena-results.json
+            xl-arena-results.md
+          retention-days: 90

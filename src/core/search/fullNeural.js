@@ -3,7 +3,7 @@
 // logits, 4 draft logits, 1 discard logit, and tanh game outcome value.
 // Weight order is PyTorch contiguous [out,in,ky,kx]. JSON schema version 2.
 import { rawFullObservation, spatialFull, moveIndex, FULL_AUX, FULL_SPATIAL_CHANNELS } from './fullObservation.js';
-const SIZE=9, AREA=81, CHANNELS=16;
+const SIZE=9, AREA=81;
 function asArray(a,length,label){
   if(!Array.isArray(a)||a.length!==length)throw Error('Bad weight '+label+' expected '+length);
   const result=Float32Array.from(a);
@@ -42,16 +42,24 @@ function dense(input,w,b,rows,cols){
 }
 export class FullNeuralNet {
   constructor(json){
-    if(json.version!==2||json.channels!==CHANNELS||json.aux!==FULL_AUX)throw Error('Unsupported spatial network format');
+    if (![2,3].includes(json.version) || json.aux!==FULL_AUX)
+      throw Error('Unsupported spatial network format');
+    this.channels=json.version===2?16:json.channels;
+    this.blocks=json.version===2?2:json.blocks;
+    this.auxWidth=json.version===2?32:json.auxWidth;
+    if(!Number.isInteger(this.channels)||this.channels<8||this.channels>128||
+       !Number.isInteger(this.blocks)||this.blocks<1||this.blocks>12||
+       !Number.isInteger(this.auxWidth)||this.auxWidth<8||this.auxWidth>128)
+      throw Error('Invalid network dimensions');
     this.w={};
-    const dims={
-      stem:[CHANNELS,FULL_SPATIAL_CHANNELS,3],
-      res0a:[CHANNELS,CHANNELS,3],res0b:[CHANNELS,CHANNELS,3],
-      res1a:[CHANNELS,CHANNELS,3],res1b:[CHANNELS,CHANNELS,3],
-      place:[4,CHANNELS,1],
-      aux_fc:[32,FULL_AUX,0],
-      draft:[4,48,0],discard:[1,48,0],value:[1,48,0],
-    };
+    const CH=this.channels, pool=CH+this.auxWidth;
+    const dims={stem:[CH,FULL_SPATIAL_CHANNELS,3],place:[4,CH,1],
+      aux_fc:[this.auxWidth,FULL_AUX,0],
+      draft:[4,pool,0],discard:[1,pool,0],value:[1,pool,0]};
+    for(let i=0;i<this.blocks;i++){
+      dims['res'+i+'a']=[CH,CH,3];
+      dims['res'+i+'b']=[CH,CH,3];
+    }
     for(const [key,[rows,cols,k]] of Object.entries(dims)){
       this.w[key+'W']=asArray(json[key+'W'],rows*cols*(k?k*k:1),key+'W');
       this.w[key+'B']=asArray(json[key+'B'],rows,key+'B');
@@ -59,25 +67,25 @@ export class FullNeuralNet {
   }
   forward(board,aux){
     if(aux.length!==FULL_AUX)throw Error('Invalid aux length');
-    const w=this.w,spatial=spatialFull(board,aux);
-    let h=relu(convolution(spatial,w.stemW,w.stemB,FULL_SPATIAL_CHANNELS,CHANNELS));
-    for(let block=0;block<2;block++){
-      const id='res'+block,a=relu(convolution(h,w[id+'aW'],w[id+'aB'],CHANNELS,CHANNELS)),
-      b=convolution(a,w[id+'bW'],w[id+'bB'],CHANNELS,CHANNELS);
+    const w=this.w,spatial=spatialFull(board,aux),CH=this.channels;
+    let h=relu(convolution(spatial,w.stemW,w.stemB,FULL_SPATIAL_CHANNELS,CH));
+    for(let block=0;block<this.blocks;block++){
+      const id='res'+block,a=relu(convolution(h,w[id+'aW'],w[id+'aB'],CH,CH)),
+      b=convolution(a,w[id+'bW'],w[id+'bB'],CH,CH);
       for(let i=0;i<h.length;i++)h[i]=Math.max(0,h[i]+b[i]);
     }
-    const p=convolution(h,w.placeW,w.placeB,CHANNELS,4,1),pooled=new Float32Array(48);
-    for(let c=0;c<CHANNELS;c++){
+    const p=convolution(h,w.placeW,w.placeB,CH,4,1),pooled=new Float32Array(CH+this.auxWidth);
+    for(let c=0;c<CH;c++){
       let v=0;for(let i=0;i<AREA;i++)v+=h[c*AREA+i];
       pooled[c]=v/AREA;
     }
-    const a=relu(dense(aux,w.aux_fcW,w.aux_fcB,32,FULL_AUX));
-    pooled.set(a,16);
+    const a=relu(dense(aux,w.aux_fcW,w.aux_fcB,this.auxWidth,FULL_AUX));
+    pooled.set(a,CH);
     return {
       place:p,
-      draft:dense(pooled,w.draftW,w.draftB,4,48),
-      discard:dense(pooled,w.discardW,w.discardB,1,48)[0],
-      value:Math.tanh(dense(pooled,w.valueW,w.valueB,1,48)[0]),
+      draft:dense(pooled,w.draftW,w.draftB,4,pooled.length),
+      discard:dense(pooled,w.discardW,w.discardB,1,pooled.length)[0],
+      value:Math.tanh(dense(pooled,w.valueW,w.valueB,1,pooled.length)[0]),
     };
   }
   evaluate(game,moves=null){

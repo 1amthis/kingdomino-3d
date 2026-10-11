@@ -1,0 +1,49 @@
+name: Full Neural XL Smoke and Throughput Profile
+
+on:
+  push:
+    branches: [experiment/full-neural-xl]
+    paths: ['.github/workflows/full-neural-xl-smoke.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: XL residual inference and training smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: Baseline and XL inference tests
+        run: npm test
+      - run: python -m py_compile scripts/full-neural/train.py
+      - name: Check compressed mixed-policy self-play
+        run: |
+          node scripts/full-neural/collect.js --first 351000 --games 4 --sims 128 --place-sims 64 --out train.json.gz
+          node scripts/full-neural/collect.js --first 950000 --games 2 --sims 128 --place-sims 64 --out valid.json.gz
+          mkdir -p smoke/train smoke/valid
+          mv train.json.gz smoke/train/
+          mv valid.json.gz smoke/valid/
+      - name: Install PyTorch CPU
+        run: |
+          python -m pip install numpy==2.3.3
+          python -m pip install torch==2.8.0+cpu --index-url https://download.pytorch.org/whl/cpu
+      - name: Train and export larger spatial model for one epoch
+        run: |
+          python scripts/full-neural/train.py --data smoke --out xl-smoke.json --epochs 1 --batch 16 --channels 24 --blocks 3 --aux-width 48
+      - name: Numerically compare PyTorch and JavaScript spatial outputs
+        run: |
+          python scripts/full-neural/parity-reference.py xl-smoke.json reference.json
+          node scripts/full-neural/check-parity.js xl-smoke.json reference.json
+      - name: Check JS inference of exported PyTorch checkpoint
+        run: |
+          node --input-type=module -e 'import {FullNeuralNet} from "./src/core/search/fullNeural.js"; import {Game} from "./src/core/search/engine.js"; import {readFileSync} from "node:fs"; const net=new FullNeuralNet(JSON.parse(readFileSync("xl-smoke.json","utf8"))); const g=new Game(2,5,false,false);g.line=new Int8Array([0,1,2,3]);g.own=new Int8Array(4).fill(-1);g.order=new Int8Array([0,1,1,0]);g.left=20;const o=net.evaluate(g);if(o.priors.size!==4||!Number.isFinite(o.value))process.exit(1);console.log("XL checkpoint loaded and inferred successfully");'
