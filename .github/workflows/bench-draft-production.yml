@@ -1,0 +1,107 @@
+name: Draft Real Expert Budget and Rule Variants
+
+on:
+  push:
+    branches:
+      - experiment/learned-draft
+    paths:
+      - '.github/workflows/bench-draft-production.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: ${{ matrix.rules }} shard ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rules: [plain, middle, harmony, both]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Play 50 paired deals at Expert's 3000 sims / 1500ms
+        env:
+          SHARD: ${{ matrix.shard }}
+          RULES: ${{ matrix.rules }}
+        run: |
+          set -euo pipefail
+          case "$RULES" in
+            plain) RID=0; MIDDLE=0; HARMONY=0 ;;
+            middle) RID=1; MIDDLE=1; HARMONY=0 ;;
+            harmony) RID=2; MIDDLE=0; HARMONY=1 ;;
+            both) RID=3; MIDDLE=1; HARMONY=1 ;;
+            *) exit 1 ;;
+          esac
+          SEED=$((41000 + RID * 1000 + SHARD * 50))
+          node scripts/bench-draft.js --mode tree --deals 50 --sims 3000 --ms 1500 --threads 4 --seed "$SEED" --middle "$MIDDLE" --harmony "$HARMONY" > result.json
+          cat result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prod-${{ matrix.rules }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 30
+
+  aggregate:
+    name: Aggregate ${{ matrix.rules }}
+    needs: benchmark
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rules: [plain, middle, harmony, both]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prod-${{ matrix.rules }}-*
+          path: shards
+      - name: Calculate paired confidence interval
+        env:
+          RULES: ${{ matrix.rules }}
+        run: |
+          node scripts/aggregate-draft.js shards "prod-${RULES}.json"
+          node -e 'const r=require("./prod-"+process.env.RULES+".json");if(r.pairedDeals!==200||r.games!==400||r.budget.sims!==3000||r.budget.ms!==1500)process.exit(1)'
+          cat "prod-${RULES}.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prod-${{ matrix.rules }}-report
+          path: |
+            prod-${{ matrix.rules }}.json
+            prod-${{ matrix.rules }}.md
+          retention-days: 30
+
+  compare:
+    name: Summarize all four rule configurations
+    needs: aggregate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prod-*-report
+          path: reports
+      - name: Verify and combine result tables
+        run: |
+          node scripts/compare-draft-scenarios.js reports draft-production-results.json draft-production-results.md
+          cat draft-production-results.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft-production-comparison
+          path: |
+            draft-production-results.json
+            draft-production-results.md
+          retention-days: 30
