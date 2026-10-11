@@ -99,3 +99,73 @@ True `Bitter Lesson` progress calls for a bigger network on GPU,
 distributed self-play, broader decision-state coverage, rigorous
 information-set value training, and statistically validated promotion
 against the incumbent. No large-scale GPU training is claimed here.
+
+
+## Results: complete model and replay-scaled second generation
+
+All metrics below are from actual GitHub Actions runs using the project's
+JavaScript rules/search engine, with independent deal seeds and seat-swapped
+games. None of the models is enabled by default.
+
+### Initial spatial model
+
+[GitHub Actions #38121247728](https://github.com/1amthis/kingdomino-3d/actions/runs/38121247728)
+generated the initial 160 games, trained the model, and completed a
+paired arena at 3,000 simulations / 1,500 milliseconds maximum per move.
+
+- 128 training games, 32 held-out training-validation games.
+- 4,923 training decision examples, 1,231 validation examples.
+- 16,538 learned parameters (two spatial residual blocks, shared
+  draft/placement policy and value heads).
+- Validation policy cross-entropy 1.6334 and accuracy for the most
+  MCTS-visited action 29.98%; this is imitation, not game strength.
+
+| Arena mode | Paired deals / games | Model W / Expert W (ties) | Model mean margin | Approximate 95% CI |
+| --- | ---: | --- | ---: | ---: |
+| Full neural policy priors | 200 / 400 | 179 / 200 (21) | −0.47 | [−1.15, +0.20] |
+| Policy + neural leaf cutoffs (1/128) | 200 / 400 | 175 / 205 (20) | −0.60 | [−1.34, +0.13] |
+
+Mode comparisons share deal seeds; **not** 400 independent paired deals.
+
+### Expanded two-generation replay model
+
+[GitHub Actions #38121490568](https://github.com/1amthis/kingdomino-3d/actions/runs/38121490568)
+generated 576 additional games, retaining one-quarter unguided
+trajectories and training on both generations; 384 MCTS simulations
+per draft decision and 192 per placement in the new data.
+
+- **608 training games**, **128 separate validation games**
+  (736 total; disjoint from both arenas).
+- **23,410 training decisions** and **4,939 validation decisions**.
+- Warm start from the first PyTorch model followed by 16 fine-tuning epochs.
+- Best epoch 16: held-out policy cross-entropy **1.5967**, value
+  MSE **1.0670**, most-visited-action accuracy **36.91%**.
+- The validation pools differ from the initial run, so their values
+  are not a controlled ablation proving predictive improvement.
+
+| Arena mode | Paired deals / games | Model W / Expert W (ties) | Model mean margin | Approximate 95% CI |
+| --- | ---: | --- | ---: | ---: |
+| Full neural policy priors | 200 / 400 | 181 / 201 (18) | +0.12 | [−0.62, +0.86] |
+| Policy + neural leaf cutoffs (1/128) | 200 / 400 | 175 / 202 (23) | −0.48 | [−1.28, +0.32] |
+
+One rule-specific V2 policy result (Harmony only) was +1.91 points
+with an unadjusted 95% CI [+0.41, +3.41] on 50 paired deals.
+The full four-rule aggregate contains zero, and this is one of many
+explored comparisons; it cannot justify shipping a Harmony-specific
+model without a new pre-registered holdout.
+
+### Decision
+
+**Neither generation demonstrates a reproducible overall advantage
+over the unchanged Expert.** Trained weights and validation metrics
+are available as GitHub Actions artifacts for the corresponding runs,
+with finite retention. The current neural outcome head remains
+insufficiently reliable to replace full-game simulations.
+
+Do **not** merge this PR into the player-facing Expert, or treat
+its small initial CNN as a fully scaled AlphaZero-level implementation.
+The infrastructure covers the action space and leaf values,
+but further improvement calls for more than extra epochs:
+larger GPU-trained spatial models, improved information-set
+training, stronger joint draft/placement search policies,
+value calibration, and an independent arena promotion gate.
