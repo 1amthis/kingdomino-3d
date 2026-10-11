@@ -5,7 +5,7 @@ both input boards AND spatial placement targets, and exports portable JS weights
 
 python scripts/full-neural/train.py --data shards --out model.json --epochs 12
 """
-import argparse, json, math, random, copy, os, pathlib, gzip
+import argparse, json, math, random, copy, os, pathlib, gzip, time
 import numpy as np
 import torch
 from torch import nn
@@ -140,6 +140,7 @@ def main():
     ap.add_argument('--channels',type=int,default=16)
     ap.add_argument('--blocks',type=int,default=2)
     ap.add_argument('--aux-width',type=int,default=32)
+    ap.add_argument('--max-train-minutes',type=float,default=0,help='Graceful wall-time training cap checked after full epochs')
     ap.add_argument('--init',default=None,help='Existing version-2 exported weights for replay-buffer fine-tuning')
     args=ap.parse_args()
     random.seed(args.seed);np.random.seed(args.seed);torch.manual_seed(args.seed)
@@ -160,7 +161,7 @@ def main():
                 state[name]=torch.tensor(previous[layer+ext],dtype=torch.float32).reshape(current.shape)
         net.load_state_dict(state)
     opt=torch.optim.AdamW(net.parameters(),lr=args.lr,weight_decay=1e-5)
-    best=float('inf');weights=None;best_epoch=0;history=[]
+    best=float('inf');weights=None;best_epoch=0;history=[];started=time.monotonic()
     for epoch in range(args.epochs):
         order=list(range(len(train)));random.shuffle(order);net.train()
         for lo in range(0,len(order),args.batch):
@@ -175,7 +176,10 @@ def main():
         if v['policyCE']<best:
             best=v['policyCE'];best_epoch=epoch+1
             weights={k:t.detach().cpu().clone() for k,t in net.state_dict().items()}
-        print(json.dumps({'epoch':epoch+1,'validation':v}),flush=True)
+        print(json.dumps({'epoch':epoch+1,'validation':v,'elapsedMinutes':round((time.monotonic()-started)/60,2)}),flush=True)
+        if args.max_train_minutes>0 and (time.monotonic()-started)/60>=args.max_train_minutes:
+            print('Stopping after full epoch due to configured wall-clock budget',flush=True)
+            break
     net.load_state_dict(weights);output=export(net,args.out)
     report={'games':games,'trainExamples':len(train),'validExamples':len(valid),
         'bestEpoch':best_epoch,'validation':history[best_epoch-1]['valid'],
@@ -183,6 +187,7 @@ def main():
         'device':str(device),'initialCheckpoint':args.init,
         'channels':args.channels,'blocks':args.blocks,'auxWidth':args.aux_width,
         'parameterCount':sum(p.numel() for p in net.parameters()),
+        'trainingElapsedMinutes':(time.monotonic()-started)/60,
         'trainingHistory':history}
     report_path=args.out.replace('.json','.report.json')
     pathlib.Path(report_path).write_text(json.dumps(report,indent=2))
