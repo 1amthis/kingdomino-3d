@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { Game, DONE } from '../src/core/search/engine.js';
 import { Search } from '../src/core/search/mcts.js';
 import { learnedDraftEval } from '../src/core/search/learnedDraft.js';
+import { learnedDraftV2 } from '../src/core/search/learnedDraftV2.js';
 import { mulberry32 } from '../src/core/rng.js';
 
 const get = (name, fallback) => {
@@ -24,6 +25,10 @@ const ms = get('ms', 55);
 const middle = get('middle', 0) === 1;
 const harmony = get('harmony', 0) === 1;
 const mode = process.argv.includes('--mode') ? process.argv[process.argv.indexOf('--mode') + 1] : 'rollout';
+const policy = process.argv.includes('--policy') ? process.argv[process.argv.indexOf('--policy') + 1] : 'v1';
+const opponent = process.argv.includes('--opponent') ? process.argv[process.argv.indexOf('--opponent') + 1] : 'original';
+if (!['v1','v2'].includes(policy) || !['original','v1'].includes(opponent) ||
+    (policy === 'v1' && opponent === 'v1')) throw Error('Invalid candidate/opponent combination');
 if (mode !== 'tree' && mode !== 'rollout' && mode !== 'both') throw new Error('Unknown --mode: ' + mode);
 const threads = Math.max(1, Math.min(deals, get('threads', Math.min(4, availableParallelism()))));
 
@@ -45,11 +50,18 @@ function setup(seed) {
 
 function play(seed, learnedSeat) {
   const g = setup(seed);
-  const searches = Array.from({ length: 2 }, (_, player) => new Search({
-    seed: seed * 31 + player + 1,
-    draftTreeEval: player === learnedSeat && (mode === 'tree' || mode === 'both') ? learnedDraftEval : null,
-    draftRolloutEval: player === learnedSeat && (mode === 'rollout' || mode === 'both') ? learnedDraftEval : null,
-  }));
+  const candidateEval = policy === 'v2' ? learnedDraftV2 : learnedDraftEval;
+  const searches = Array.from({ length: 2 }, (_, player) => {
+    const ours = player === learnedSeat;
+    const evalFn = ours ? candidateEval : opponent === 'v1' ? learnedDraftEval : null;
+    return new Search({
+      seed: seed * 31 + player + 1,
+      draftTreeEval: ours
+        ? (mode === 'tree' || mode === 'both' ? evalFn : null)
+        : evalFn,
+      draftRolloutEval: ours && (mode === 'rollout' || mode === 'both') ? evalFn : null,
+    });
+  });
   const stats = { original: { sims: 0, ms: 0, moves: 0 }, learned: { sims: 0, ms: 0, moves: 0 } };
   let steps = 0;
   while (g.phase !== DONE && steps++ < 60) {
@@ -90,7 +102,7 @@ if (!isMainThread) {
   const se = Math.sqrt(results.reduce((s, r) => s + (r.margin - mean) ** 2, 0) / ((results.length - 1) * results.length));
   const average = (type, k) => games.reduce((s, r) => s + r.stats[type][k], 0) / games.reduce((s, r) => s + r.stats[type].moves, 0);
   const output = {
-    seed: first, pairedDeals: results.length, games: games.length, mode,
+    seed: first, pairedDeals: results.length, games: games.length, mode, policy, opponent,
     rules: { players: 2, size: 5, middle, harmony }, budget: { sims, ms },
     learnedWins: games.filter(r => r.margin > 0).length,
     originalWins: games.filter(r => r.margin < 0).length,
