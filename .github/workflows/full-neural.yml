@@ -36,7 +36,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: MCTS self-play: all placement and draft visit distributions
+      - name: "MCTS self-play: all placement and draft visit distributions"
         env:
           FIRST: ${{ matrix.first }}
           GAMES: ${{ matrix.games }}
