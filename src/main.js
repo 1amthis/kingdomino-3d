@@ -11,6 +11,7 @@ import { SavedGame } from './core/moves.js';
 import { isOver, nextDynasty } from './core/dynasty.js';
 import { Controller, ReplayError } from './game/controller.js';
 import { t, tn, lang, setLang, translatePage } from './i18n/index.js';
+import { skin, setSkin } from './skins/index.js';
 import { HostSession, GuestSession, inviteCode, inviteLink, clearInvite, isLocalHost } from './net/online.js';
 
 const COLORS = ['#e2558f', '#f2c230', '#4fb34f', '#3f7fdb'];
@@ -87,10 +88,11 @@ async function main() {
   stage.applyAmbience(stage.ambience);
   hud.setSeg('ambience', settings.ambience);
   hud.setSeg('lang', lang);
+  hud.setSeg('skin', skin);
   sound.sfxOn = settings.sfx; sound.musicOn = settings.music;
   hud.setToggle('music', settings.music);
   hud.setToggle('sound', settings.sfx);
-  hud.on('setting', ({ key, value }) => { if (key === 'lang') { setLang(value); return; } if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
+  hud.on('setting', ({ key, value }) => { if (key === 'lang') { setLang(value); return; } if (key === 'skin') { setSkin(value); return; } if (key === 'quality') settings.qualityPicked = true; apply(key, value); });
 
   // ---------- history ----------
   // Every finished game is kept in this browser (localStorage), and what stands out about it shows on

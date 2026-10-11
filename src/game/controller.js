@@ -15,6 +15,7 @@ import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
 import { makeMat, makeDraftBoard, makeChest } from '../gfx/table.js';
 import { M } from '../gfx/materials.js';
+import { FESTIVE } from '../gfx/effects.js';
 import { Ease, reducedMotion } from '../gfx/tween.js';
 import { CROWN_SVG } from '../ui/hud.js';
 import { LEFT } from '../net/online.js';
@@ -1390,7 +1391,7 @@ export class Controller {
         const w = winners[i % winners.length];
         const from = w.seat.pos.clone().add(new THREE.Vector3(this.rng.float(-4, 4), 0.2, this.rng.float(-4, 4)));
         const to = from.clone().add(new THREE.Vector3(this.rng.float(-1, 1), this.rng.float(6, 9), this.rng.float(-1, 1)));
-        this.fx.launch(from, to, i % 2 ? w.color : 0xffd46a);
+        this.fx.launch(from, to, i % 2 ? w.color : FESTIVE[(i >> 1) % FESTIVE.length]);
         setTimeout(() => this.sound.ok && this.sound.noiseBurst({ t: this.sound.ctx.currentTime, type: 'lowpass', freq: 600, gain: 0.25, dur: 0.5 }), 520);
         await flow.w(this.tw.wait(450 + this.rng.float(0, 400)));
       }

@@ -5,6 +5,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { GeoBuilder, P } from './geo.js';
 import { M, playerMaterial, flatPlayerMaterial } from './materials.js';
 import { Rng } from '../core/rng.js';
+import { halloween } from '../skins/index.js';
+import { pumpkin, circlingBats } from '../skins/halloween.js';
 
 export const TILE_H = 0.16;
 
@@ -169,10 +171,12 @@ export function buildCastle(colorHex, seed = 1) {
   b.add('solid', P.cyl5, '#3a2a1a', { pos: [sx, y0 + sh + 0.2, sz], scale: [0.004, 0.12, 0.004] });
   // hedges and trees around the walls
   for (const [hx, hz] of [[-0.41, 0.2], [0.41, -0.15], [-0.4, -0.38], [0.39, 0.36], [0.2, 0.42], [-0.22, 0.42]]) {
-    b.add('sway', P.ico1, rng.pick(['#3f7a2e', '#4f8a35', '#2f6a2a']), { pos: [hx, y0 + 0.03, hz], scale: [0.04, 0.045, 0.04] });
+    b.add('sway', P.ico1, rng.pick(halloween ? ['#a0522d', '#8a4a1e', '#b8652a'] : ['#3f7a2e', '#4f8a35', '#2f6a2a']), { pos: [hx, y0 + 0.03, hz], scale: [0.04, 0.045, 0.04] });
   }
+  // a jack-o'-lantern either side of the drawbridge
+  if (halloween) for (const dx of [-0.12, 0.12]) pumpkin(b, rng, dx, y0, half + 0.1, 0.032, { carved: true, rotY: -dx });
   const mats = {
-    ground: M.flat, solid: M.flat, sway: M.sway, window: M.window,
+    ground: M.flat, solid: M.flat, sway: M.sway, window: M.window, lantern: M.lantern,
     roof: flatPlayerMaterial(colorHex),
   };
   group.add(b.build(mats));
@@ -190,8 +194,15 @@ export function buildCastle(colorHex, seed = 1) {
     small.push(f);
   }
   const animators = [flag.update, ...small.map((f) => f.update)];
+  if (halloween) {
+    const bats = circlingBats(rng, 3, { cx: sx, cy: y0 + sh + 0.12, cz: sz, radius: 0.26, size: 0.05 });
+    group.add(bats.object);
+    animators.push(bats.update);
+  }
   return { group, update: (t) => animators.forEach((a) => a(t)) };
 }
+
+let collarGeo = null, collarOut = null, collarIn = null;
 
 // King meeple: lacquered robe, golden belt and crown.
 export function buildKing(colorHex) {
@@ -217,12 +228,24 @@ export function buildKing(colorHex) {
   const crown = makeCrown(0.95);
   crown.position.y = 0.345;
   g.add(body, head, belt, clasp, cape, crown);
+  // At Halloween the kings come as counts: a high black collar behind the head, lined with red.
+  if (halloween) {
+    collarGeo ||= new THREE.CylinderGeometry(0.1, 0.062, 0.11, 20, 1, true, Math.PI / 2, Math.PI);
+    collarOut ||= new THREE.MeshStandardMaterial({ color: 0x1a0d14, roughness: 0.55, side: THREE.FrontSide });
+    collarIn ||= new THREE.MeshStandardMaterial({ color: 0x9a0f1e, roughness: 0.45, side: THREE.BackSide });
+    for (const m of [collarOut, collarIn]) {
+      const c = new THREE.Mesh(collarGeo, m);
+      c.position.y = 0.275;
+      c.castShadow = true;
+      g.add(c);
+    }
+  }
   g.userData.parts = { body, crown };
   return g;
 }
 
 // Candle with a flickering flame, glow and a real light.
-export function buildCandle(height = 1.2, seed = 1) {
+export function buildCandle(height = 1.2, seed = 1, waxColor = 0xf3e7c9) {
   const rng = new Rng(seed);
   const g = new THREE.Group();
   const dishProfile = [[0, 0], [0.42, 0], [0.46, 0.03], [0.44, 0.06], [0.2, 0.07], [0.17, 0.12], [0.2, 0.14], [0, 0.14]].map(([x, y]) => new THREE.Vector2(x, y));
@@ -230,7 +253,7 @@ export function buildCandle(height = 1.2, seed = 1) {
   dish.castShadow = dish.receiveShadow = true;
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 8, 16), M.goldDull);
   ring.position.set(0.47, 0.05, 0); ring.rotation.y = Math.PI / 2;
-  const waxMat = new THREE.MeshPhysicalMaterial({ color: 0xf3e7c9, roughness: 0.55, transmission: 0.0, sheen: 0.4, emissive: 0xffa040, emissiveIntensity: 0.05 });
+  const waxMat = new THREE.MeshPhysicalMaterial({ color: waxColor, roughness: 0.55, transmission: 0.0, sheen: 0.4, emissive: 0xffa040, emissiveIntensity: 0.05 });
   const wax = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, height, 24), waxMat);
   wax.position.y = 0.14 + height / 2;
   wax.castShadow = true;

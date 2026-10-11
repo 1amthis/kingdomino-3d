@@ -114,6 +114,34 @@ Home Screen* on a phone); only online play needs a connection.
   generative D-dorian lute-and-drone score built from Karplus–Strong plucked strings.
 - The main menu plays a **live AI-vs-AI game** on the table behind it.
 
+## Halloween
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/halloween-kingdom.jpg" alt="A kingdom dressed for Halloween: ghosts drifting through the forests, pumpkins in the wheat, a cauldron bubbling green in the swamp and jack-o'-lanterns at the castle gate" /></td>
+    <td width="50%"><img src="docs/screenshots/halloween-table.jpg" alt="The table at Halloween: a purple drafting board, cobwebs stitched into the mats, bats flying over the table, a cauldron and a jack-o'-lantern in a corner" /></td>
+  </tr>
+</table>
+
+All through October, and on the night after Halloween, the table dresses up:
+
+- **The dioramas**: pumpkins ripen among the wheat and the scarecrows wear a carved one, sheet ghosts drift through
+  forests of autumn trees and glowing toadstools, small graveyards stand among the sheep, jack-o'-lanterns float on
+  the lily pads and the boats hoist black sails, witches' cauldrons bubble in the swamps and bats wheel round the
+  mountain tops. Each terrain keeps its colours and shapes, so a kingdom reads as it always does.
+- **The table**: jack-o'-lanterns light two corners and black candles the others, a cauldron brews where the goblet
+  stood, candy lies where the coins were, with a witch's hat by the scroll, cobwebs in the corners, bats flying loops
+  overhead and a spider letting itself down over the big crown.
+- **The pieces**: jack-o'-lanterns at every castle gate and bats round its spire, kings in high black collars, tile
+  backs with a pumpkin and a flight of bats, purple velvet on the drafting board, cobwebs stitched into the mats.
+- **Light and sound**: a purple sky, a blood-orange sunset and a cold moonlit night, embers in place of dust; the
+  soundtrack turns to D harmonic minor and sings its tune on a theremin while the wind howls now and then. The
+  interface turns pumpkin orange and violet, and the fireworks and confetti go orange, violet and green.
+
+**Theme** in the main menu switches between Classic and Halloween at any time of year. A pick holds for the season it
+was made in: choosing Classic in October keeps the pumpkins away until next October. Like the language, a new theme
+loads a fresh page (an offline game in progress picks up where it was).
+
 ## History and stats
 
 Every finished game is kept in your browser, and **History** in the main menu shows it:
@@ -319,6 +347,8 @@ src/
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
   game/controller.js game flow, animation choreography, camera direction, input
   game/coach.js      the coach at the table: analyses, grades, advice, study notes, the results verdict
+  skins/index.js     the table's look: Classic, or Halloween through October; a pick holds for its season
+  skins/halloween.js the Halloween props: pumpkins, jack-o'-lanterns, graves, ghosts, bats, cauldrons, candy, cobwebs
   sw.js              the service worker for offline play (the build fills in its file list, see vite.config.js)
 scripts/
   headless.js        core/table.js's flow with AI seats, for benchmarks and tests; records moves and replays them
@@ -331,6 +361,7 @@ tests/
   moves.test.js      moves replay a game exactly; a record that doesn't fit its deal, or a broken save, is refused
   replay.test.js     a record plays back to the kingdoms it ended with; the review sees the positions the Expert saw
   dynasty.test.js    three games add up, ties break as in one game; it travels saved and online; the history groups it
+  skin.test.js       Halloween comes with October; a pick holds for its season, then the season decides again
 ```
 
 In the browser console, `kingdomino` exposes the stage, controller and HUD for tinkering

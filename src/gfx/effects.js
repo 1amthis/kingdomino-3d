@@ -1,5 +1,9 @@
 // Particle effects: dust puffs, golden sparkles, fireworks and tumbling confetti.
 import * as THREE from 'three';
+import { halloween } from '../skins/index.js';
+
+// The colours a celebration adds to the winner's own: gold, or Halloween's orange, violet and green.
+export const FESTIVE = halloween ? [0xff8a1e, 0xa36bff, 0x7dff8a] : [0xffd46a];
 
 const vert = /* glsl */`
   attribute float aSize;
@@ -193,7 +197,7 @@ export class Effects {
 
   confettiBurst(pos, colors, count = 220) {
     const palette = colors.map((c) => new THREE.Color(c));
-    palette.push(new THREE.Color(0xffd46a), new THREE.Color(0xffffff));
+    palette.push(...(halloween ? [...FESTIVE, 0x221a28] : [0xffd46a, 0xffffff]).map((c) => new THREE.Color(c)));
     for (let k = 0; k < count; k++) {
       const i = this.confettiCursor;
       this.confettiCursor = (i + 1) % this.confettiState.length;

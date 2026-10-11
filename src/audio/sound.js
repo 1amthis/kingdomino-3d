@@ -1,5 +1,7 @@
 // All audio is synthesised at runtime: wooden clacks, whooshes, bells, brass fanfares and
-// a generative lute-and-drone soundtrack built from Karplus-Strong plucked strings.
+// a generative lute-and-drone soundtrack built from Karplus-Strong plucked strings. At Halloween the
+// soundtrack turns to D harmonic minor, slows down, sings its melody on a theremin and lets the wind howl.
+import { halloween } from '../skins/index.js';
 
 const midiHz = (m) => 440 * 2 ** ((m - 69) / 12);
 
@@ -265,9 +267,62 @@ export class Sound {
     // D dorian progression (i VII i v III VII IV i)
     this.chords = [[50, 53, 57], [48, 52, 55], [50, 53, 57], [45, 48, 52], [53, 57, 60], [48, 52, 55], [55, 59, 62], [50, 53, 57]];
     this.scale = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79];
+    if (halloween) {
+      // D harmonic minor, with the Neapolitan E-flat (i VI iv V i bII V i)
+      this.beat = 0.54;
+      this.chords = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 49, 52], [50, 53, 57], [51, 55, 58], [45, 49, 52], [50, 53, 57]];
+      this.scale = [62, 64, 65, 67, 69, 70, 73, 74, 76, 77, 79];
+      this.thereminVoice();
+    }
     this.melodyIdx = 4;
     this.drone();
     this.timer = setInterval(() => this.schedule(), 60);
+  }
+
+  // One sine voice that glides from note to note with a wide vibrato, as a theremin does.
+  thereminVoice() {
+    const ctx = this.ctx;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    const vib = ctx.createOscillator();
+    vib.frequency.value = 5.4;
+    const depth = ctx.createGain();
+    depth.gain.value = 28; // cents
+    vib.connect(depth).connect(o.detune);
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 2200;
+    o.connect(f).connect(g).connect(this.music);
+    o.start(); vib.start();
+    this.ther = { o, g };
+  }
+
+  theremin(midi, t, beats) {
+    const { o, g } = this.ther;
+    o.frequency.setTargetAtTime(midiHz(midi), t, 0.07);
+    g.gain.cancelScheduledValues(t);
+    g.gain.setTargetAtTime(0.07, t, 0.05);
+    // it swells and fades between notes, and dies away when the line rests
+    g.gain.setTargetAtTime(0, t + this.beat * beats * 0.9, 0.22);
+  }
+
+  // A gust of wind whistling round the tower.
+  wind(t) {
+    const ctx = this.ctx;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise; src.loop = true;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 8;
+    f.frequency.setValueAtTime(380, t);
+    f.frequency.linearRampToValueAtTime(880, t + 2.2);
+    f.frequency.linearRampToValueAtTime(420, t + 5);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.06, t + 2);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 5.5);
+    src.connect(f).connect(g).connect(this.music);
+    src.start(t); src.stop(t + 5.6);
   }
 
   drone() {
@@ -303,6 +358,7 @@ export class Sound {
       const note = chord[pattern[eighth]] + 12;
       if (!(eighth === 5 && Math.random() < 0.4)) this.pluck(note, { t: t + (Math.random() - 0.5) * 0.012, gain: eighth === 0 ? 0.3 : 0.2, dest: this.music, bright: 0.45 });
       if (eighth === 3 && phrase > 1) this.noiseBurst({ t, type: 'bandpass', freq: 3500, q: 3, gain: 0.02, dur: 0.05, dest: this.music });
+      if (this.ther && s % 96 === 30) this.wind(t);
       // melody: a wandering line that prefers chord tones on strong beats
       if (phrase !== 0 && (eighth % 2 === 0) && Math.random() < 0.72) {
         let idx = this.melodyIdx + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)];
@@ -313,7 +369,8 @@ export class Sound {
         }
         this.melodyIdx = idx;
         const long = eighth === 4 ? 2 : 1;
-        this.pluck(this.scale[idx], { t, gain: 0.28 * long, dest: this.music, bright: 0.7, dur: 2.2 });
+        if (this.ther) this.theremin(this.scale[idx], t, long);
+        else this.pluck(this.scale[idx], { t, gain: 0.28 * long, dest: this.music, bright: 0.7, dur: 2.2 });
       }
       this.nextTime += this.beat / 2;
       this.step++;

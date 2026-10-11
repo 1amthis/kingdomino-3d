@@ -2,6 +2,7 @@
 // small shader injections add wind, shimmering water and night-time glow.
 import * as THREE from 'three';
 import { makeWaterNormal, makeTileWoodTexture } from './textures.js';
+import { halloween } from '../skins/index.js';
 
 export const uniforms = {
   uTime: { value: 0 },
@@ -30,6 +31,8 @@ function injectWind(mat, strength = 1) {
 }
 
 export const M = {};
+// the materials that glow brighter after dark
+let glowing = [];
 
 export function createMaterials() {
   M.flat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.88, metalness: 0 });
@@ -72,6 +75,19 @@ export function createMaterials() {
   M.crystalPink = new THREE.MeshPhysicalMaterial({ color: 0xff9ad8, emissive: 0xff3ab0, emissiveIntensity: 0.6, roughness: 0.1, clearcoat: 1, flatShading: true });
   M.crystalPink.userData.glow = { day: 0.6, night: 3 };
   M.firefly = new THREE.MeshBasicMaterial({ color: 0xd8ff6a, transparent: true, opacity: 0, depthWrite: false });
+  glowing = [M.lantern, M.window, M.crystal, M.crystalPink];
+  if (halloween) {
+    // orange windows, violet and amber crystals, will-o'-the-wisps over the swamps
+    M.window.color.set(0xff9a3a); M.window.emissive.set(0xff8a2a);
+    M.crystal.color.set(0xc9a2ff); M.crystal.emissive.set(0x8a3aff);
+    M.crystalPink.color.set(0xffb36a); M.crystalPink.emissive.set(0xff6a00);
+    M.firefly.color.set(0x8dffc0);
+    M.potion = glow(0x56e86a, 0.45, 1.6);
+    M.ghost = new THREE.MeshStandardMaterial({ color: 0xf4f6ff, emissive: 0xbfd8ff, emissiveIntensity: 0.2, transparent: true, opacity: 0.85, roughness: 0.5, side: THREE.DoubleSide, flatShading: true });
+    M.ghost.userData.glow = { day: 0.12, night: 0.9 };
+    M.bat = new THREE.MeshStandardMaterial({ color: 0x241a2a, roughness: 0.75, side: THREE.DoubleSide, flatShading: true });
+    glowing.push(M.potion, M.ghost);
+  }
 
   M.back = new THREE.MeshStandardMaterial({ color: 0x1a2a5a, roughness: 0.6 });
   M.ghostOk = new THREE.MeshBasicMaterial({ color: 0x7dff9a, transparent: true, opacity: 0.35, depthWrite: false });
@@ -92,7 +108,7 @@ export function updateMaterials(time, night) {
   uniforms.uNight.value = night;
   M.waterNormal.offset.set(time * 0.012, time * 0.007);
   M.waterNormal2.offset.set(-time * 0.004, time * 0.003);
-  for (const m of [M.lantern, M.window, M.crystal, M.crystalPink]) {
+  for (const m of glowing) {
     const g = m.userData.glow;
     m.emissiveIntensity = g.day + (g.night - g.day) * night;
   }
