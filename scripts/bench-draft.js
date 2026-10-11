@@ -1,9 +1,9 @@
 // Paired head-to-head between current Expert and the learned drafting evaluator.
-// Usage: node scripts/bench-draft.js --mode rollout --deals 100 --sims 2000 --ms 55 --threads 4 --seed 24000
+// Usage: node scripts/bench-draft.js --mode tree --deals 50 --sims 3000 --ms 1500 --threads 4 --seed 40000 --middle 1 --harmony 1
 // --mode tree: draft ranking only in tree expansion
 // --mode rollout: only in complete game simulations (playouts)
 // --mode both: both tree and complete game simulations
-// Two-player 5x5, no optional bonuses. Each random deal is replayed from both seats.
+// Two-player 5x5 with optional bonuses. Each random deal is replayed from both seats.
 // No monkey-patching: different Search instances use their own placement policies.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';
@@ -21,6 +21,8 @@ const deals = get('deals', 100);
 const first = get('seed', 24000);
 const sims = get('sims', 2000);
 const ms = get('ms', 55);
+const middle = get('middle', 0) === 1;
+const harmony = get('harmony', 0) === 1;
 const mode = process.argv.includes('--mode') ? process.argv[process.argv.indexOf('--mode') + 1] : 'rollout';
 if (mode !== 'tree' && mode !== 'rollout' && mode !== 'both') throw new Error('Unknown --mode: ' + mode);
 const threads = Math.max(1, Math.min(deals, get('threads', Math.min(4, availableParallelism()))));
@@ -31,7 +33,7 @@ function setup(seed) {
     const j = (rnd() * (i + 1)) | 0;
     [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
   }
-  const g = new Game(2, 5, false, false);
+  const g = new Game(2, 5, middle, harmony);
   g.line = Int8Array.from(tiles.slice(0, 4).sort((a, b) => a - b));
   g.own = new Int8Array(4).fill(-1);
   g.order = new Int8Array([0, 1, 1, 0]);
@@ -88,7 +90,8 @@ if (!isMainThread) {
   const se = Math.sqrt(results.reduce((s, r) => s + (r.margin - mean) ** 2, 0) / ((results.length - 1) * results.length));
   const average = (type, k) => games.reduce((s, r) => s + r.stats[type][k], 0) / games.reduce((s, r) => s + r.stats[type].moves, 0);
   const output = {
-    seed: first, pairedDeals: results.length, games: games.length, mode, budget: { sims, ms },
+    seed: first, pairedDeals: results.length, games: games.length, mode,
+    rules: { players: 2, size: 5, middle, harmony }, budget: { sims, ms },
     learnedWins: games.filter(r => r.margin > 0).length,
     originalWins: games.filter(r => r.margin < 0).length,
     equalScores: games.filter(r => r.margin === 0).length,
