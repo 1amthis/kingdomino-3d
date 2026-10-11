@@ -3,7 +3,7 @@
 // Global vector: current/next domino lines, ownership, stage/rules, seen tile flags.
 // These encodings never inspect the hidden deck or future determinized tiles.
 import { DOM, INIT, PLACE, PICK, DISCARD } from './engine.js';
-export const FULL_SIZE=9, FULL_SPATIAL_CHANNELS=20, FULL_AUX=106;
+export const FULL_SIZE=9, FULL_SPATIAL_CHANNELS=24, FULL_AUX=106;
 export const FULL_PLACE_ACTIONS=324, FULL_DISCARD_ACTION=324;
 
 export function moveIndex(game,move) {
@@ -50,7 +50,7 @@ export function rawFullObservation(game) {
   for(const line of [game.line,game.nextLine])if(line)for(const d of line)aux[58+d]=1;
   return {board,aux};
 }
-export function spatialFull(board) {
+export function spatialFull(board,aux) {
   if(board.length!==324)throw Error('Invalid raw spatial tensor size');
   const tensor=new Float32Array(FULL_SPATIAL_CHANNELS*81);
   for(let p=0;p<2;p++)for(let i=0;i<81;i++) {
@@ -58,6 +58,12 @@ export function spatialFull(board) {
     if(t>8||c>3)throw Error('Bad terrain/crown code');
     tensor[(p*10+t)*81+i]=1;
     tensor[(p*10+9)*81+i]=c/3;
+  }
+  if(aux){
+    // The active domino is broadcast across the map so placement logits
+    // represent the placement of THIS specific tile, not a generic region.
+    const idx=Math.min(3,Math.max(0,Math.round(aux[57]*4)));
+    for(let k=0;k<4;k++)tensor.fill(aux[5*idx+k],(20+k)*81,(21+k)*81);
   }
   return tensor;
 }
