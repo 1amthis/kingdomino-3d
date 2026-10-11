@@ -66,3 +66,25 @@ test('both draft injection paths produce legal complete games',()=>{
     assert.equal(g.phase,DONE);
   }
 });
+
+test('bonus variants preserve score rules and end legally with learned draft search',()=>{
+  for(const middle of [false,true])for(const harmony of [false,true]){
+    const g=initial(920+Number(middle)*2+Number(harmony));
+    g.middle=middle; g.harmony=harmony;
+    const searches=[
+      new Search({seed:193,draftTreeEval:learnedDraftEval}),
+      new Search({seed:197}),
+    ];
+    for(let step=0;g.phase!==DONE&&step<60;step++){
+      const actor=g.player;
+      const move=searches[actor].choose(g,{sims:48,ms:10000}).move;
+      assert.ok(g.legal().includes(move));
+      g.apply(move);
+      if(g.nextLine)for(const d of g.nextLine)g.seen[d]=1;
+    }
+    assert.equal(g.phase,DONE);
+    const scores=g.scores();
+    assert.equal(scores.length,2);
+    for(let player=0;player<2;player++)assert.equal(scores[player],g.boards[player].score(middle,harmony));
+  }
+});
