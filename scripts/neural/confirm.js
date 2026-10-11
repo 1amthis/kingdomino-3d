@@ -21,12 +21,11 @@ for(const file of files(root)){
  for(let i=0;i<r.pairedMargins.length;i++){
    const seed=r.seedRange[0]+i;
    if(seen.has(seed))throw Error('Duplicate confirmation seed '+seed);
-   if(seed<180000||seed>186149)throw Error('Unexpected seed range '+seed);
+   if(seed<180000||seed>186199)throw Error('Unexpected seed range '+seed);
    seen.add(seed);const value=r.pairedMargins[i];
    if(!Number.isFinite(value))throw Error('Nonfinite margin');
    buckets[name].push(value);all.push(value);
  }
- buckets[name].push(); // preserve bucket array identity without modifying counts
  (buckets[name+'_wins']??=[]).push([r.neuralWins,r.originalWins,r.ties]);
 }
 const summarize=(pairs,stat)=>{
