@@ -40,6 +40,10 @@ jobs:
       - name: Train and export larger spatial model for one epoch
         run: |
           python scripts/full-neural/train.py --data smoke --out xl-smoke.json --epochs 1 --batch 16 --channels 24 --blocks 3 --aux-width 48
+      - name: Numerically compare PyTorch and JavaScript spatial outputs
+        run: |
+          python scripts/full-neural/parity-reference.py xl-smoke.json reference.json
+          node scripts/full-neural/check-parity.js xl-smoke.json reference.json
       - name: Check JS inference of exported PyTorch checkpoint
         run: |
           node --input-type=module -e 'import {FullNeuralNet} from "./src/core/search/fullNeural.js"; import {Game} from "./src/core/search/engine.js"; import {readFileSync} from "node:fs"; const net=new FullNeuralNet(JSON.parse(readFileSync("xl-smoke.json","utf8"))); const g=new Game(2,5,false,false);g.line=new Int8Array([0,1,2,3]);g.own=new Int8Array(4).fill(-1);g.order=new Int8Array([0,1,1,0]);g.left=20;const o=net.evaluate(g);if(o.priors.size!==4||!Number.isFinite(o.value))process.exit(1);console.log("XL checkpoint loaded and inferred successfully");'
