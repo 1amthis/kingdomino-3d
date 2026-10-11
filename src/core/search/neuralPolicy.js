@@ -10,7 +10,7 @@ export function makeNeuralWeights(seed=73451) {
   const rnd=mulberry32(seed);
   function matrix(n,m) {
     const s=Math.sqrt(2/n);
-    return Array.from({length:n*m},()=>((rnd()+rnd()+rnd()+rnd())-2)*s*1.732);
+    return Array.from({length:n*m},()=>((rnd()+rnd()+rnd()+rnd())-2)*s*0.866);
   }
   return {version:1,inSize:NEURAL_INPUT,hidden:NEURAL_HIDDEN,
     w1:matrix(NEURAL_INPUT,64),b1:Array(64).fill(0),
