@@ -4,6 +4,7 @@
 //   node scripts/full-neural/collect.js --first 250000 --games 12 --sims 192
 //     --place-sims 96 --out shard.json [--model checkpoint.json --leaf-every 64]
 import {readFileSync,writeFileSync} from 'node:fs';
+import {gzipSync} from 'node:zlib';
 import {Game,DONE,PLACE} from '../../src/core/search/engine.js';
 import {Search} from '../../src/core/search/mcts.js';
 import {rawFullObservation,moveIndex} from '../../src/core/search/fullObservation.js';
@@ -63,7 +64,8 @@ const payload={format:'full-neural-selfplay-v1',first,games,sims,placeSims,
   guided:!!model,leafEvery:!!model?leafEvery:0,
   count:batch.reduce((n,g)=>n+g.observations.length,0),episodes:batch,
   seconds:(performance.now()-started)/1000};
-writeFileSync(output,JSON.stringify(payload));
+const json=JSON.stringify(payload);
+writeFileSync(output,output.endsWith('.gz')?gzipSync(json,{level:6}):json);
 console.log(JSON.stringify({first,games,count:payload.count,seconds:payload.seconds,
   draft:batch.flatMap(x=>x.observations).filter(x=>x.phase!==PLACE).length,
   place:batch.flatMap(x=>x.observations).filter(x=>x.phase===PLACE).length}));
