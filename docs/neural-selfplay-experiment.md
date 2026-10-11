@@ -83,3 +83,88 @@ available as artifacts.
 - The browser production worker uses plain `new Search()`, with no loaded
   checkpoint. It will continue playing **exactly the same** until an
   improvement is statistically confirmed.
+
+
+## Measured results — 2026-10-11
+
+### First exploratory arena (2 generations, 1,600 games)
+
+[Successful CI workflow](https://github.com/1amthis/kingdomino-3d/actions/runs/38119620310) and
+[full per-seed artifact](https://github.com/1amthis/kingdomino-3d/actions/runs/38119620310/artifacts/11693929233).
+
+Both networks were evaluated against the unchanged Expert, 100 seed-swapped
+deals per scoring-rule case and model (400 deals / 800 games for each
+generation). Maximum 3,000 simulations and 1,500 milliseconds per move.
+
+| Iteration | Neural wins | Expert wins | Draws | Mean margin | Approx. 95% paired CI |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 (initial self-play) | 389 | 378 | 33 | +0.16 | [−0.33, +0.65] |
+| 1 (guided self-play + replay) | 403 | 343 | 54 | +0.52 | [+0.03, +1.00] |
+
+Iteration 1 looked promising. **But this exploratory arena also served to
+select iteration 1**, so its uncorrected interval does not establish a
+prospective improvement. The two versions reused the same arena seeds.
+
+Validation on disjoint training-era games:
+- Iteration 0: 2,880 policy targets for fitting, 720 independent validation
+  draft positions; top MCTS action agreement 57.9%.
+- Iteration 1: 5,760 fitting positions in a two-generation replay buffer,
+  1,440 validation positions; top MCTS action agreement 63.5%.
+These validation datasets differ. Do not interpret percentage differences
+as a controlled comparison.
+
+### Independent prospective arena (frozen iteration 1, 1,600 more games)
+
+After choosing iteration 1, we **froze all network weights** and tested
+a new range of 800 independent paired deals (1,600 games), four scoring
+configurations, 200 pairs per configuration; budget unchanged. Seeds were
+not used for training, validation or initial arena selection.
+
+[Successful independent CI workflow](https://github.com/1amthis/kingdomino-3d/actions/runs/38119852438),
+[full per-seed artifact](https://github.com/1amthis/kingdomino-3d/actions/runs/38119852438/artifacts/11695155543).
+
+| Rules | Neural wins | Expert wins | Score draws | Mean neural margin | Approx. 95% paired CI |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| No bonuses | 185 | 198 | 17 | **−0.60** | [−1.22, +0.02] |
+| Middle Kingdom | 193 | 186 | 21 | −0.10 | [−0.80, +0.59] |
+| Harmony | 205 | 174 | 21 | +0.51 | [−0.15, +1.17] |
+| Both bonuses | 206 | 173 | 21 | +0.90 | [+0.11, +1.68] |
+| **All cases (800 paired deals)** | **789** | **731** | **80** | **+0.17** | **[−0.17, +0.52]** |
+
+The pooled 95% CI **includes zero**, so the independent evaluation does not
+show a statistically conclusive overall playing-strength improvement. The
+two-bonus case looks positive, but is one of four cases and was not
+pre-registered as the primary hypothesis; its interval is not adjusted for
+multiple comparisons. Results are different by scoring rules and test seeds,
+and inference overhead varies across machines. This model cannot be claimed
+to reliably beat the current Expert.
+
+**Decision: keep both neural checkpoint weights as downloadable experimental
+artifacts. Keep this pull request in draft; do not enable neural inference in
+the production browser worker.**
+
+## Next high-compute experiment
+
+A more serious *Bitter Lesson* scaling direction is:
+
+1. **Millions of self-play positions**, rather than the current 5,760, and
+   recurrent self-play model updates. Record policy visit distributions,
+   terminal values and legal action masks.
+2. **2D convolutional residual tower** with terrain as one-hot spatial planes,
+   crowns, and explicit action encodings, not ordinal terrain integers.
+   Train with a GPU accelerator (PyTorch or ONNX export) and use an
+   optimized CPU/WebGPU inference runtime. The current MLP is a small
+   dependency-free proof-of-concept.
+3. **Joint drafting and placement policy**, rather than only drafting.
+   The space of legal placements changes with the board; model it by
+   action-conditioned features or a masked spatial policy.
+4. **A calibrated learned value function used inside search** to replace
+   expensive end-of-game rollouts, not just an auxiliary head. Validate
+   how much additional search the saved compute enables.
+5. **Separate frozen evaluations** for each rule mode on untouched game
+   seeds, a browser-speed device test, and opponent mixtures. Promote a
+   checkpoint only after a win/loss metric improves at equal elapsed time.
+
+More search compute alone cannot guarantee improvement if the supervision
+objective or the model/search integration is misaligned; the independent
+arena, not training loss, remains the acceptance criterion.
