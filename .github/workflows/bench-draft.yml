@@ -8,8 +8,6 @@ on:
       - 'src/core/search/mcts.js'
       - 'src/core/search/learnedDraft.js'
       - 'src/core/search/draftFeatures.js'
-      - 'scripts/bench-draft.js'
-      - 'scripts/aggregate-draft.js'
 
 permissions:
   contents: read
