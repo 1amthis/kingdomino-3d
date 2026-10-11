@@ -430,9 +430,10 @@ export class Controller {
     const c = winners.reduce((a, w) => a.add(w.seat.pos), new THREE.Vector3()).divideScalar(winners.length);
     const spread = Math.max(...winners.map((w) => w.seat.pos.distanceTo(c)));
     const d = winners.length > 1 && c.lengthSq() > 1e-3 ? c.clone().setY(0).normalize() : winners[0].seat.dir;
-    const r = 11 * this.far + spread * 1.2;
-    const target = c.clone().setY(3);
-    return { pos: target.clone().add(d.clone().multiplyScalar(r * 0.95)).add(new THREE.Vector3(0, r * 0.31, 0)), target };
+    // narrow screens back off only enough to fit the realm across, not the whole table
+    const r = 9 * Math.max(1, 1 / this.stage.camera.aspect) + spread * 1.2;
+    const target = c.clone().setY(1.3);
+    return { pos: target.clone().add(d.clone().multiplyScalar(r * 0.96)).add(new THREE.Vector3(0, r * 0.28, 0)), target };
   }
 
   // Nearly straight down on the drafting board, from a local lord's side of the table.
@@ -1414,7 +1415,8 @@ export class Controller {
     return { coach: log.length ? this.settings.coach : null, verdict: log.length ? tally(log) : null };
   }
 
-  // close: the camera is down by the castle, so the rockets go up nearer to it and burst lower
+  // close: the camera is down by the castle, so the rockets go up nearer to it, just beyond it
+  // (seen from the camera), and burst lower
   async celebrate(flow, winners, close = false) {
     if (reducedMotion()) return;
     const [spread, lo, hi] = close ? [3, 4, 5.5] : [4, 6, 9];
@@ -1422,6 +1424,7 @@ export class Controller {
       for (let i = 0; i < 9; i++) {
         const w = winners[i % winners.length];
         const from = w.seat.pos.clone().add(new THREE.Vector3(this.rng.float(-spread, spread), 0.2, this.rng.float(-spread, spread)));
+        if (close) from.addScaledVector(w.seat.dir, -2);
         const to = from.clone().add(new THREE.Vector3(this.rng.float(-1, 1), this.rng.float(lo, hi), this.rng.float(-1, 1)));
         this.fx.launch(from, to, i % 2 ? w.color : FESTIVE[(i >> 1) % FESTIVE.length]);
         setTimeout(() => this.sound.ok && this.sound.noiseBurst({ t: this.sound.ctx.currentTime, type: 'lowpass', freq: 600, gain: 0.25, dur: 0.5 }), 520);
