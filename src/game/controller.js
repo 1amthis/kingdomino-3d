@@ -424,6 +424,17 @@ export class Controller {
     return { pos: c.clone().add(p.seat.dir.clone().multiplyScalar(r * 0.42)).add(new THREE.Vector3(0, r * 0.9, 0)), target: c };
   }
 
+  // Low and close on the winner's castle, from beyond their realm, looking up enough to catch the
+  // fireworks bursting over it; a tie frames every winning castle at once.
+  winnerView(winners) {
+    const c = winners.reduce((a, w) => a.add(w.seat.pos), new THREE.Vector3()).divideScalar(winners.length);
+    const spread = Math.max(...winners.map((w) => w.seat.pos.distanceTo(c)));
+    const d = winners.length > 1 && c.lengthSq() > 1e-3 ? c.clone().setY(0).normalize() : winners[0].seat.dir;
+    const r = 11 * this.far + spread * 1.2;
+    const target = c.clone().setY(3);
+    return { pos: target.clone().add(d.clone().multiplyScalar(r * 0.95)).add(new THREE.Vector3(0, r * 0.31, 0)), target };
+  }
+
   // Nearly straight down on the drafting board, from a local lord's side of the table.
   draftView(p = this.viewer) {
     const B = this.boardCenter, f = this.far;
@@ -497,6 +508,7 @@ export class Controller {
   takeCamera() {
     if (this.demo) return;
     this.stage.cancelFlight();
+    this.stage.controls.autoRotate = false;
     this.camKey = 'user';
     this.viewName = null;
     this.holdCamera(true);
@@ -1356,9 +1368,25 @@ export class Controller {
     this.hud.prompt(title, sub);
     this.sound.fanfare();
     for (const w of winners) { if (!reducedMotion()) this.fx.confettiBurst(w.seat.pos.clone().setY(0.5), [w.color]); w.plateBody.classList.add('tally'); }
+    // The camera swoops down to the winner's castle as the confetti flies, then circles it slowly
+    // through the fireworks.
+    const close = autoCam && !this.camHeld && !reducedMotion();
+    let partying = true;
+    if (close) {
+      const v = this.winnerView(winners);
+      this.camKey = 'winner';
+      this.shot = { key: 'winner', view: () => this.winnerView(winners) };
+      this.stage.flyTo(v.pos, v.target, 1800).then(() => {
+        if (!partying || !flow.alive || this.camHeld || this.camKey !== 'winner') return;
+        this.stage.controls.autoRotateSpeed = 3.5;
+        this.stage.controls.autoRotate = true;
+      });
+    }
     // Let the fireworks play out before the results cover the table; the floating button opens them sooner.
-    const party = this.celebrate(flow, winners).then(() => this.tw.wait(1500));
+    const party = this.celebrate(flow, winners, close).then(() => this.tw.wait(1500));
     await flow.w(Promise.race([party, this.hud.offerResults()]));
+    partying = false;
+    this.stage.controls.autoRotate = false;
     for (const w of winners) w.plateBody.classList.remove('tally');
     this.hud.showResults(rows, this.opts, {
       coach: this.coach.summary(),
@@ -1386,13 +1414,15 @@ export class Controller {
     return { coach: log.length ? this.settings.coach : null, verdict: log.length ? tally(log) : null };
   }
 
-  async celebrate(flow, winners) {
+  // close: the camera is down by the castle, so the rockets go up nearer to it and burst lower
+  async celebrate(flow, winners, close = false) {
     if (reducedMotion()) return;
+    const [spread, lo, hi] = close ? [3, 4, 5.5] : [4, 6, 9];
     try {
       for (let i = 0; i < 9; i++) {
         const w = winners[i % winners.length];
-        const from = w.seat.pos.clone().add(new THREE.Vector3(this.rng.float(-4, 4), 0.2, this.rng.float(-4, 4)));
-        const to = from.clone().add(new THREE.Vector3(this.rng.float(-1, 1), this.rng.float(6, 9), this.rng.float(-1, 1)));
+        const from = w.seat.pos.clone().add(new THREE.Vector3(this.rng.float(-spread, spread), 0.2, this.rng.float(-spread, spread)));
+        const to = from.clone().add(new THREE.Vector3(this.rng.float(-1, 1), this.rng.float(lo, hi), this.rng.float(-1, 1)));
         this.fx.launch(from, to, i % 2 ? w.color : FESTIVE[(i >> 1) % FESTIVE.length]);
         setTimeout(() => this.sound.ok && this.sound.noiseBurst({ t: this.sound.ctx.currentTime, type: 'lowpass', freq: 600, gain: 0.25, dur: 0.5 }), 520);
         await flow.w(this.tw.wait(450 + this.rng.float(0, 400)));
