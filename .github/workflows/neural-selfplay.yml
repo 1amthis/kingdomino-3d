@@ -6,6 +6,7 @@ on:
       - experiment/neural-selfplay
     paths:
       - '.github/workflows/neural-selfplay.yml'
+      - 'src/core/search/neuralPolicy.js'
 
 permissions:
   contents: read
