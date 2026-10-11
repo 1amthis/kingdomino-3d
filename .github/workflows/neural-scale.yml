@@ -1,0 +1,169 @@
+name: Neural MCTS Scaled Self-Play and Confirmation
+
+on:
+  push:
+    branches:
+      - experiment/neural-selfplay
+    paths:
+      - '.github/workflows/neural-scale.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collect:
+    name: 1024-search self-play ${{ matrix.split }} ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { split: train, shard: 0, first: 130000, games: 40 }
+          - { split: train, shard: 1, first: 130040, games: 40 }
+          - { split: train, shard: 2, first: 130080, games: 40 }
+          - { split: train, shard: 3, first: 130120, games: 40 }
+          - { split: train, shard: 4, first: 130160, games: 40 }
+          - { split: train, shard: 5, first: 130200, games: 40 }
+          - { split: train, shard: 6, first: 130240, games: 40 }
+          - { split: train, shard: 7, first: 130280, games: 40 }
+          - { split: train, shard: 8, first: 130320, games: 40 }
+          - { split: train, shard: 9, first: 130360, games: 40 }
+          - { split: train, shard: 10, first: 130400, games: 40 }
+          - { split: train, shard: 11, first: 130440, games: 40 }
+          - { split: train, shard: 12, first: 130480, games: 40 }
+          - { split: train, shard: 13, first: 130520, games: 40 }
+          - { split: train, shard: 14, first: 130560, games: 40 }
+          - { split: train, shard: 15, first: 130600, games: 40 }
+          - { split: valid, shard: 0, first: 910000, games: 40 }
+          - { split: valid, shard: 1, first: 910040, games: 40 }
+          - { split: valid, shard: 2, first: 910080, games: 40 }
+          - { split: valid, shard: 3, first: 910120, games: 40 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter1-weights
+          path: checkpoint
+          run-id: 38119620310
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Large-scale guided search and full-game outcome samples
+        env:
+          FIRST: ${{ matrix.first }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          node scripts/neural/collect.js --first "$FIRST" --games "$GAMES" --sims 1024 --place-sims 256 --model checkpoint/model1.json --out shard.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw2-${{ matrix.split }}-${{ matrix.shard }}
+          path: shard.json
+          retention-days: 20
+
+  train:
+    name: Train third generation on expanded 3-generation replay
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw?-*
+          path: data/early
+          run-id: 38119620310
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw2-*
+          path: data/scaled
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter1-weights
+          path: checkpoint
+          run-id: 38119620310
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Train with larger replay buffer, dihedral augmentation and Adam
+        run: |
+          node scripts/neural/train.js --dir data --out model2.json --init checkpoint/model1.json --epochs 12 --seed 703 --lr 0.0003 --batch 48 --valid-seed 900000
+          node -e 'const r=require("./model2.report.json");if(r.trainGames!==960||r.validGames!==240||r.trainObservations<16000||r.validObservations<4000)process.exit(1)'
+          node -e 'const r=require("./model2.report.json");require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,"## Generation 3\n\nTraining examples: "+r.trainObservations+"; validation: "+r.validObservations+".\n\nBest epoch "+r.bestEpoch+", held-out policy CE "+r.history[r.bestEpoch-1].valid.policyCE+".\n");'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-iter2-weights
+          path: |
+            model2.json
+            model2.report.json
+          retention-days: 30
+
+  arena:
+    name: Frozen V3 confirmation ${{ matrix.rules }} shard ${{ matrix.shard }}
+    needs: train
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        rules: [plain, middle, harmony, both]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter2-weights
+          path: model
+      - name: Independent seed-swapped test at production compute
+        env:
+          RULES: ${{ matrix.rules }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          case "$RULES" in
+            plain) RID=0; MID=0; HAR=0 ;;
+            middle) RID=1; MID=1; HAR=0 ;;
+            harmony) RID=2; MID=0; HAR=1 ;;
+            both) RID=3; MID=1; HAR=1 ;;
+            *) exit 1 ;;
+          esac
+          SEED=$((200000 + RID * 2000 + SHARD * 50))
+          node scripts/neural/bench.js --model model/model2.json --first "$SEED" --deals 50 --sims 3000 --ms 1500 --middle "$MID" --harmony "$HAR" --threads 4 --out result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scale-${{ matrix.rules }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 30
+
+  summary:
+    name: Summarize scaled model on 1600 brand-new games
+    needs: arena
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: scale-*-*
+          path: arena
+      - name: Validate game results and paired uncertainty
+        run: |
+          node scripts/neural/confirm.js arena neural-scale.json neural-scale.md --checkpoint model2.json --min-seed 200000 --max-seed 206199
+          cat neural-scale.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-scaled-confirmation
+          path: |
+            neural-scale.json
+            neural-scale.md
+          retention-days: 30
