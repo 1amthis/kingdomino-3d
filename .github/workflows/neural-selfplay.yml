@@ -1,0 +1,209 @@
+name: Neural MCTS Self-Play and Arena
+
+on:
+  push:
+    branches:
+      - experiment/neural-selfplay
+    paths:
+      - '.github/workflows/neural-selfplay.yml'
+      - 'src/core/search/neuralPolicy.js'
+
+permissions:
+  contents: read
+
+jobs:
+  collect0:
+    name: Initial self-play ${{ matrix.split }} ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { split: train, shard: 0, first: 120000, games: 40 }
+          - { split: train, shard: 1, first: 120040, games: 40 }
+          - { split: train, shard: 2, first: 120080, games: 40 }
+          - { split: train, shard: 3, first: 120120, games: 40 }
+          - { split: valid, shard: 0, first: 900000, games: 20 }
+          - { split: valid, shard: 1, first: 900020, games: 20 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate exact MCTS-visit policy and terminal outcome labels
+        env:
+          FIRST: ${{ matrix.first }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          node scripts/neural/collect.js --first "$FIRST" --games "$GAMES" --sims 256 --place-sims 64 --out shard.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw0-${{ matrix.split }}-${{ matrix.shard }}
+          path: shard.json
+          retention-days: 20
+
+  train0:
+    name: Train first raw-board policy and value network
+    needs: collect0
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw0-*
+          path: data
+      - name: Adam training with D4 augmentation and game-level validation
+        run: |
+          node scripts/neural/train.js --dir data --out model0.json --epochs 14 --seed 701 --batch 32
+          test -s model0.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-iter0-weights
+          path: |
+            model0.json
+            model0.report.json
+          retention-days: 30
+
+  collect1:
+    name: Network-guided self-play ${{ matrix.split }} ${{ matrix.shard }}
+    needs: train0
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { split: train, shard: 0, first: 121000, games: 40 }
+          - { split: train, shard: 1, first: 121040, games: 40 }
+          - { split: train, shard: 2, first: 121080, games: 40 }
+          - { split: train, shard: 3, first: 121120, games: 40 }
+          - { split: valid, shard: 0, first: 900100, games: 20 }
+          - { split: valid, shard: 1, first: 900120, games: 20 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter0-weights
+          path: initial
+      - name: Improve teacher search with learned priors and self-play
+        env:
+          FIRST: ${{ matrix.first }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          node scripts/neural/collect.js --first "$FIRST" --games "$GAMES" --sims 256 --place-sims 64 --model initial/model0.json --out shard.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw1-${{ matrix.split }}-${{ matrix.shard }}
+          path: shard.json
+          retention-days: 20
+
+  train1:
+    name: Replay-buffer training of second-generation model
+    needs: collect1
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw0-*
+          path: data/initial
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw1-*
+          path: data/guided
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter0-weights
+          path: initial
+      - name: Continue policy+value learning from both generations
+        run: |
+          node scripts/neural/train.js --dir data --out model1.json --init initial/model0.json --epochs 9 --seed 702 --lr 0.00045 --batch 32
+          test -s model1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-iter1-weights
+          path: |
+            model1.json
+            model1.report.json
+          retention-days: 30
+
+  arena:
+    name: Arena ${{ matrix.version }} ${{ matrix.rules }} ${{ matrix.shard }}
+    needs: train1
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [0, 1]
+        rules: [plain, middle, harmony, both]
+        shard: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter${{ matrix.version }}-weights
+          path: net
+      - name: Seat-swapped comparison with unchanged Expert
+        env:
+          VERSION: ${{ matrix.version }}
+          RULES: ${{ matrix.rules }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          case "$RULES" in
+            plain) RID=0; MID=0; HAR=0 ;;
+            middle) RID=1; MID=1; HAR=0 ;;
+            harmony) RID=2; MID=0; HAR=1 ;;
+            both) RID=3; MID=1; HAR=1 ;;
+            *) exit 1 ;;
+          esac
+          SEED=$((160000 + RID * 1000 + SHARD * 50))
+          node scripts/neural/bench.js --model "net/model${VERSION}.json" --first "$SEED" --deals 50 --sims 3000 --ms 1500 --middle "$MID" --harmony "$HAR" --threads 4 --out result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-${{ matrix.version }}-${{ matrix.rules }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 30
+
+  summary:
+    name: Aggregate independent neural search benchmark results
+    needs: arena
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: neural-?-*-*
+          path: arena
+      - name: Produce validation table and weighted aggregate
+        run: |
+          node scripts/neural/aggregate.js arena neural-arena-results.json neural-arena-results.md
+          cat neural-arena-results.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-final-arena
+          path: |
+            neural-arena-results.json
+            neural-arena-results.md
+          retention-days: 30

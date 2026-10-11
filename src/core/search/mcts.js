@@ -14,6 +14,7 @@ class Node {
     this.w = 0; // summed value for the player who moved into this node
     this.kids = new Map();
     this.acts = null; // legal moves, cached while no new tile has been revealed
+    this.priors = null; // optional neural draft prior at the current search root
   }
 }
 
@@ -45,8 +46,8 @@ function landing(hist) {
 export class Search {
   // c: UCT exploration; cap / rootCap: placements kept (best by heuristic) inside the tree / at its root;
   // eps: playout randomness; sample: placements a playout compares before picking one.
-  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0 } = {}) {
-    Object.assign(this, { c, cap, rootCap, eps, sample });
+  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, draftPolicy = null, recordPolicy = false, cpuct = 1.5 } = {}) {
+    Object.assign(this, { c, cap, rootCap, eps, sample, draftPolicy, recordPolicy, cpuct });
     this.rnd = mulberry32(seed);
     this.carry = null; // { key, node }: the subtree under the placement just played
     this.stats = null; // while analysing: per root move, { win, margin, land } summed over its simulations
@@ -63,6 +64,9 @@ export class Search {
     // Placing reveals nothing, so the tree grown for the placement is a head start for the pick after it.
     let root = carry && carry.key === game.key() ? carry.node : null;
     if (!root) { root = new Node(); root.acts = acts; }
+    // Evaluate the full visible state once at a real draft decision, never
+    // on every determinized playout. Default Expert never enters this branch.
+    if (this.draftPolicy && game.phase !== PLACE) root.priors = this.draftPolicy(game);
     const n = this.grow(game, root, sims, ms);
     let best = acts[0], bn = -1, bw = 0;
     for (const a of acts) {
@@ -74,6 +78,11 @@ export class Search {
       const after = game.clone();
       after.apply(best);
       this.carry = { key: after.key(), node: root.kids.get(best) };
+    }
+    if (this.recordPolicy && game.phase !== PLACE) {
+      const visits = new Int32Array(4);
+      for (const a of acts) visits[a] = root.kids.get(a)?.n || 0;
+      return { move: best, sims: n, visits: Array.from(visits) };
     }
     return { move: best, sims: n };
   }
@@ -133,7 +142,7 @@ export class Search {
         acts = st.legal(depth ? this.cap : this.rootCap, BUF);
         if (fixed) node.acts = acts;
       }
-      let a = depth === 0 && forced !== null ? forced : this.untried(st, acts, node.kids);
+      let a = depth === 0 && forced !== null ? forced : this.untried(st, acts, node);
       if (a === null) a = this.uct(node, acts);
       if (depth === 0) {
         first = a;
@@ -185,22 +194,26 @@ export class Search {
     let best = acts[0], bu = -Infinity;
     for (const a of acts) {
       const k = node.kids.get(a);
-      const u = k.w / k.n + this.c * Math.sqrt(logn / k.n);
+      const u = node.priors
+        ? k.w / k.n + this.cpuct * node.priors[a] * Math.sqrt(node.n + 1) / (1 + k.n)
+        : k.w / k.n + this.c * Math.sqrt(logn / k.n);
       if (u > bu) { bu = u; best = a; }
     }
     return best;
   }
 
   // The heuristically best move not yet in the tree (null when all are), expanded first.
-  untried(st, acts, kids) {
+  untried(st, acts, node) {
+    const kids = node.kids;
     const b = st.boards[st.player];
     const place = st.phase === PLACE, d = place ? st.line[st.idx] : 0;
     const line = st.phase === INIT ? st.line : st.nextLine;
     let best = null, bv = -Infinity;
     for (const a of acts) {
       if (kids.has(a)) continue;
-      const v = (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : b.pickEval(line[a]) - 0.05 * a) + 0.01 * this.rnd();
-      if (v > bv) { bv = v; best = a; }
+      const v = node?.priors ? node.priors[a] : (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : b.pickEval(line[a]) - 0.05 * a);
+      const score = v + 0.01 * this.rnd();
+      if (score > bv) { bv = score; best = a; }
     }
     return best;
   }
