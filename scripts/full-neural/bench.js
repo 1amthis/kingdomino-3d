@@ -13,10 +13,11 @@ import {mulberry32} from '../../src/core/rng.js';
 const arg=(k,v)=>{const i=process.argv.indexOf('--'+k);return i<0?v:process.argv[i+1]};
 const num=(k,v)=>+arg(k,v),first=num('first',310000),deals=num('deals',25),
   sims=num('sims',3000),ms=num('ms',1500),middle=!!num('middle',0),harmony=!!num('harmony',0),
-  modelFile=arg('model',null),mode=arg('mode','policy'),out=arg('out','full-bench.json'),
+  modelFile=arg('model',null),mode=arg('mode','policy'),baseline=arg('baseline','original'),out=arg('out','full-bench.json'),
   threads=Math.min(Math.max(1,num('threads',Math.min(2,availableParallelism()))),deals),
   leafEvery=mode==='value'?num('leaf-every',128):0;
-if(!['policy','value'].includes(mode)||!modelFile)throw Error('Supply --model and --mode policy|value');
+if(!['policy','value'].includes(mode)||!['original','uncapped'].includes(baseline)||!modelFile)
+  throw Error('Supply --model, --mode policy|value and --baseline original|uncapped');
 const net=new FullNeuralNet(JSON.parse(readFileSync(modelFile,'utf8')));
 function initial(seed){
   const rnd=mulberry32(seed),ds=Array.from({length:48},(_,i)=>i);
@@ -30,6 +31,7 @@ function play(seed,neuralSeat){
   const g=initial(seed),agents=[0,1].map(player=>new Search({
     seed:seed*31+player+1,
     fullNet:player===neuralSeat?net:null,
+    uncappedLegal:baseline==='uncapped'&&player!==neuralSeat,
     leafValueEvery:player===neuralSeat?leafEvery:0,
   }));
   const stats={model:{moves:0,sims:0,ms:0},expert:{moves:0,sims:0,ms:0}};
@@ -62,7 +64,7 @@ else {
   const se=deals>1?Math.sqrt(results.reduce((a,b)=>a+(b.mean-mean)**2,0)/(deals*(deals-1))):null;
   const av=(who,key)=>games.reduce((a,g)=>a+g.stats[who][key],0)/
     games.reduce((a,g)=>a+g.stats[who].moves,0);
-  const report={checkpoint:modelFile,mode,leafEvery,seedRange:[first,first+deals-1],
+  const report={checkpoint:modelFile,mode,baseline,leafEvery,seedRange:[first,first+deals-1],
     pairedDeals:deals,games:2*deals,rules:{middle,harmony},budget:{sims,ms},
     modelWins:games.filter(g=>g.margin>0).length,expertWins:games.filter(g=>g.margin<0).length,
     ties:games.filter(g=>g.margin===0).length,meanMargin:mean,pairedSE:se,
