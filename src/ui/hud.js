@@ -419,9 +419,9 @@ export class Hud {
     return `<div class="tt-title">${t('Domino {n}', { n: domino.id })}</div>${rows}${extra}`;
   }
 
-  toast(text, life = 2.6) {
+  toast(text, life = 2.6, cls = '') {
     const t = document.createElement('div');
-    t.className = 'toast';
+    t.className = cls ? `toast ${cls}` : 'toast';
     t.style.setProperty('--life', `${life}s`);
     t.innerHTML = text;
     this.el.toasts.appendChild(t);

@@ -44,6 +44,7 @@ export default {
     'Ein <b>Gebiet</b> ist eine Gruppe zusammenhängender Felder einer Landschaft. Es bringt <b>Felder &times; Kronen</b>, ohne Krone also nichts. Optionale Regeln geben +10 für ein Schloss in der Mitte und +5 für ein volles Königreich ohne Abwurf. Eine <b>Dynastie</b> sind drei Partien hintereinander, deren Punkte addiert werden.',
   // controls
   'Pick a domino': 'Domino wählen',
+  'Show a domino, tap again to pick it': 'Domino zeigen, erneut tippen zum Wählen',
   'Show a spot, tap again to place': 'Platz zeigen, erneut tippen zum Anlegen',
   'Turn the domino, show the legal spots': 'Domino drehen, erlaubte Plätze zeigen',
   'The Expert&rsquo;s move, with the coach on': 'Zug des Experten, bei aktivem Coach',

@@ -90,7 +90,7 @@ Home Screen* on a phone); only online play needs a connection.
   &nbsp;
   <img src="docs/screenshots/phone-placing.jpg" width="28%" alt="Placing a domino on a phone" />
   <br />
-  <sub>Made for phones too: tap to pick, tap twice to place, pinch to zoom.</sub>
+  <sub>Made for phones too: tap twice to pick or place, pinch to zoom.</sub>
 </p>
 
 - **All 48 official dominoes** with correct terrains and crowns, each carved as a unique diorama.
@@ -238,14 +238,16 @@ in a worker of its own: the same search, up to 8,000 simulations, with at least 
 person is at the table, on the same screen or online. Once the game is over, fair play no longer stands in the way:
 the history's **review** grades the people's moves after the fact (see [History and stats](#history-and-stats)).
 
-- **Trainer**: once you move, a badge pops up on it, from **Best** through Excellent, Good, Inaccuracy and Mistake to
-  **Blunder**, by the points of expected final lead the move gives up against the Expert's choice (0.3, 1, 2.5, 5 and 9
-  points). After a poor move, the Expert's choice flashes blue on the table. **Advice** (<kbd>A</kbd>) shows the
+- **Trainer**: once you move, a badge comes up on the screen, from **Best** through Excellent, Good, Inaccuracy and
+  Mistake to **Blunder**, by the points of expected final lead the move gives up against the Expert's choice (0.3, 1,
+  2.5, 5 and 9 points). After a poor move, the Expert's choice flashes blue on the table, and a poor placement's badge
+  brings a small map of your kingdom with your spot and the Expert's. **Advice** (<kbd>A</kbd>) shows the
   Expert's move: its pick glows blue, or the ghost domino moves to its spot; a light on the button shows when the coach
   is ready. The results card sums up your game: points lost per move and how your grades split.
 - **Study**: all of that, and the values show while you decide. Every draft domino carries a pill with what it gives
   up against the best pick; the legal squares on your mat are tinted from green to red; the ghost domino shows what its
-  spot gives up. Hovering a draft domino maps where it would score most right now and where the Expert would lay it.
+  spot gives up. Hovering a draft domino (or tapping it once on a touch screen) maps where it would score most right now
+  and where the Expert would lay it.
 
 ## Playing with friends online
 
@@ -266,7 +268,7 @@ Set one or more seats to **Online friend** in the menu and press **Invite your f
 
 | Input | Action |
 | --- | --- |
-| Click | Pick a domino / place it (tap twice on touch screens) |
+| Click | Pick a domino / place it (on touch screens, tap once to look and again to confirm) |
 | <kbd>R</kbd>, right-click, <kbd>Q</kbd>/<kbd>E</kbd> | Rotate the domino |
 | Arrows + <kbd>Enter</kbd> | Move and drop the domino with the keyboard |
 | <kbd>G</kbd> | Toggle legal-spot hints |

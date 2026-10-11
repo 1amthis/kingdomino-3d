@@ -1,7 +1,8 @@
 // The coach at the table: while the player decides, the Expert quietly analyses the position in its
 // own worker. Trainer mode grades each move once it is made (a badge from Best down to Blunder, by the
 // points of expected final lead it gives up) and gives advice on request; study mode also shows the
-// values while the player decides. The game's grades add up to a verdict on the results card.
+// values (and the spots worth taking) while the player decides. The game's grades add up to a
+// verdict on the results card.
 // Fair play: the coach stays off (locked) whenever more than one person is at the table.
 import { TERRAIN_INFO, footprint } from '../core/rules.js';
 import { analysePosition } from '../core/search/expert.js';
@@ -57,7 +58,8 @@ export class Coach {
   begin(p, phase, king, choices, domino = null) {
     if (!this.on || choices < 2) return null;
     const c = this.ctl;
-    const job = { p, phase, domino, slots: c.next.slice(), flow: c.flow, hinted: false, result: null };
+    // (a placement keeps the kingdom as it was, for the map that may come with its grade)
+    const job = { p, phase, domino, kingdom: domino && p.kingdom.clone(), slots: c.next.slice(), flow: c.flow, hinted: false, result: null };
     job.ready = analysePosition(c.tableFor(phase, king)).then((r) => (job.result = r), () => null);
     job.ready.then(() => { if (c.mode && c.mode.coach === job) c.coachReady(c.mode); });
     c.hud.setAdvice('thinking');
@@ -65,11 +67,11 @@ export class Coach {
   }
 
   // The move is made (a slot index, or a placement or null). Once the analysis is in (and after
-  // `delay` ms, for the domino to land), its grade pops up at `anchor`; after a poor move the table
+  // `delay` ms, for the domino to land), its grade shows on the screen; after a poor move the table
   // shows what the Expert would have done.
-  judge(job, move, anchor, delay = 0) {
+  judge(job, move, delay = 0) {
     if (!job) return;
-    const p = this.grade(job, move, anchor, delay).catch((e) => console.warn('[coach]', e));
+    const p = this.grade(job, move, delay).catch((e) => console.warn('[coach]', e));
     this.pending.add(p);
     p.then(() => this.pending.delete(p));
   }
@@ -77,8 +79,8 @@ export class Coach {
   // Resolves once every move made so far has its grade (or never will).
   settled() { return Promise.all([...this.pending]); }
 
-  async grade(job, move, anchor, delay) {
-    const c = this.ctl, t0 = performance.now();
+  async grade(job, move, delay) {
+    const c = this.ctl;
     const r = await job.ready;
     if (delay) await c.tw.wait(delay);
     if (!r || !job.flow.alive || job.flow !== c.flow) return;
@@ -86,14 +88,25 @@ export class Coach {
     if (!v) return;
     this.log.push({ grade: v.grade, loss: v.loss, hinted: job.hinted });
     c.saveProgress();
-    if (performance.now() - t0 < 1500 + delay) {
-      c.popup(anchor, `<div class="grade-badge ${cls(v.grade)}"><b>${gradeLabel(v.grade)}</b>${v.grade === 'Best' ? '' : `<span>${loss(v)}</span>`}</div>`, 'popup grade-pop', 2600);
-    } else {
-      // a late verdict: the camera has moved on, so it comes as a small note instead
-      c.hud.toast(`<span class="grade ${cls(v.grade)}">${gradeLabel(v.grade)}</span>${v.grade === 'Best' ? '' : ` ${loss(v)}`}`, 2.2);
-    }
-    if (!poor(v.grade)) return;
-    if (job.phase === 'place') { if (v.best.move) c.flashSpot(job.p, v.best.move); } else c.flashSlot(job.slots[v.best.move]);
+    // The camera is soon off to the next decision, so the grade shows on the screen rather than on
+    // the table; after a poor placement it brings a map of the Expert's spot along.
+    const placed = job.phase === 'place', bad = poor(v.grade);
+    const map = placed && bad && v.best.move ? this.expertMap(job, move, v.best.move) : '';
+    c.hud.toast(`<span class="grade-what">${placed ? t('Your placement') : t('Your pick')}</span>`
+      + `<span class="grade-badge ${cls(v.grade)}"><b>${gradeLabel(v.grade)}</b>${v.grade === 'Best' ? '' : `<span>${loss(v)}</span>`}</span>${map}`,
+    map ? 4.2 : 2.8, 'grade-toast');
+    if (!bad) return;
+    if (placed) { if (v.best.move) c.flashSpot(job.p, v.best.move); } else c.flashSlot(job.slots[v.best.move]);
+  }
+
+  // The kingdom as it was before a placement: where the domino went, and where the Expert would
+  // have laid it.
+  expertMap(job, move, best) {
+    const marks = [];
+    if (move) marks.push({ domino: job.domino, at: move, color: NOW });
+    marks.push({ domino: job.domino, at: best, color: EXPERT });
+    const legend = `${move ? `<span><i style="background:${NOW}"></i>${t('You')}</span>` : ''}<span><i style="background:${EXPERT}"></i>${t('Expert')}</span>`;
+    return `<div class="tt-coach">${miniMap(job.kingdom, marks)}<div class="tt-legend">${legend}</div></div>`;
   }
 
   // Advice for the decision in progress: the Expert's move, shown on the table.
@@ -143,10 +156,11 @@ export class Coach {
     return new Map([...best].map(([k, j]) => [k, j.grade]));
   }
 
-  // The hovered draft domino's tooltip extras: a map of the kingdom with the most points it could
-  // score right now and, in study mode, where the Expert would lay it.
+  // The hovered draft domino's tooltip extras, in study mode only (trainer mode keeps quiet until
+  // the move is made): a map of the kingdom with the most points it could score right now, and
+  // where the Expert would lay it.
   slotNote(m, slot) {
-    if (!this.on) return '';
+    if (!this.study) return '';
     const c = this.ctl, k = m.player.kingdom, domino = slot.domino;
     m.nowCache ||= new Map();
     if (!m.nowCache.has(domino.id)) {
@@ -167,7 +181,7 @@ export class Coach {
       marks.push({ domino, at: top.at, color: NOW });
       legend.push(`<span><i style="background:${NOW}"></i>${t('+{n} now', { n: top.gain })}</span>`);
     }
-    const r = this.study && m.coach && m.coach.result;
+    const r = m.coach && m.coach.result;
     const v = r && judge(r, slot.index);
     if (v && v.stats.land) {
       marks.push({ domino, at: v.stats.land, color: EXPERT });

@@ -754,7 +754,8 @@ export class Controller {
       this.hud.setActive(p);
       if (local) {
         this.hud.prompt(placed ? t('Now pick your next domino') : this.yourTurn(p, 'pick'),
-          this.tip('select', t('Low numbers pick first next round · high numbers have more crowns')));
+          this.tip('select', this.touch ? t('Tap a domino to see it, then tap it again to pick it')
+            : t('Low numbers pick first next round · high numbers have more crowns')));
       } else this.hud.prompt(t('{who} is picking a domino…', { who: this.hud.who(p) }), this.remoteNote(p));
     }
     const framing = this.focusPlayer(flow, p, 'select');
@@ -763,7 +764,7 @@ export class Controller {
       await framing;
       this.sfx('turnChime');
       const slot = await flow.w(this.humanSelect(p, options, coach));
-      this.coach.judge(coach, slot.index, this.slotPos(1, slot.index).add(new THREE.Vector3(0, 0.6, 0)));
+      this.coach.judge(coach, slot.index);
       // looking around during one's own turn does not outlast it
       if (this.camHeld) this.holdCamera(false);
       return slot;
@@ -886,6 +887,7 @@ export class Controller {
     if (m.type === 'select') {
       const prev = m.advised;
       m.advised = m.options.find((s) => s.index === move) || null;
+      m.touchSlot = m.advised;
       if (prev && prev !== m.hovered) this.restGlow(m, prev);
       if (m.advised && m.advised !== m.hovered) this.restGlow(m, m.advised);
       this.updateSlotLabels(m);
@@ -993,7 +995,7 @@ export class Controller {
       this.sfx('turnChime');
       const choice = await flow.w(this.humanPlace(flow, p, slot, valid, coach));
       // (the grade shows once the domino has landed)
-      this.coach.judge(coach, choice, choice && this.placementTransform(p, choice, 0).pos.add(new THREE.Vector3(0, 0.4, 0)), 1300);
+      this.coach.judge(coach, choice, 1300);
       if (this.camHeld) this.holdCamera(false);
       return choice;
     }
@@ -1486,8 +1488,16 @@ export class Controller {
   onClick(e) {
     const m = this.mode;
     if (!m) return;
-    if (m.type === 'select' && m.hovered) m.resolve(m.hovered);
-    else if (m.type === 'place') {
+    if (m.type === 'select') {
+      // Without hover, the first tap shows a domino (lifted, with its tooltip) and a second tap on
+      // it picks it; a tap beside the dominoes puts it back.
+      if (e && e.pointerType === 'touch' && m.touchSlot !== m.hovered) {
+        m.touchSlot = m.hovered;
+        if (m.hovered && !this.pickHinted) { this.pickHinted = true; this.hud.toast(t('Tap it again to pick it')); }
+        return;
+      }
+      if (m.hovered) m.resolve(m.hovered);
+    } else if (m.type === 'place') {
       // Without hover, the first tap previews the spot and a second tap on it confirms.
       if (e && e.pointerType === 'touch') {
         const key = `${m.cell.x},${m.cell.y},${m.rot}`;
