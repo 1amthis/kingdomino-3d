@@ -27,9 +27,10 @@ function initial(seed){
 const batch=[],started=performance.now();
 for(let seed=first;seed<first+games;seed++){
   const g=initial(seed),rnd=mulberry32(seed^0x334411),
+    netForGame=model && seed%4!==0 ? model : null,
     agents=Array.from({length:2},(_,actor)=>new Search({
-      seed:seed*23+actor+1,fullNet:model,uncappedLegal:true,
-      leafValueEvery:model?leafEvery:0,recordAllPolicy:true,
+      seed:seed*23+actor+1,fullNet:netForGame,uncappedLegal:true,
+      leafValueEvery:netForGame?leafEvery:0,recordAllPolicy:true,
     }));
   const observations=[],style=seed%4;let steps=0;
   while(g.phase!==DONE && steps++<60){
