@@ -1,0 +1,79 @@
+name: Neural MCTS Independent Frozen-Model Confirmation
+
+on:
+  push:
+    branches:
+      - experiment/neural-selfplay
+    paths:
+      - '.github/workflows/neural-confirm.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  arena:
+    name: Confirmation ${{ matrix.rules }} shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        rules: [plain, middle, harmony, both]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-iter1-weights
+          path: model
+          run-id: 38119620310
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test frozen iteration-1 network on new games
+        env:
+          RULES: ${{ matrix.rules }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          case "$RULES" in
+            plain) RID=0; MID=0; HAR=0 ;;
+            middle) RID=1; MID=1; HAR=0 ;;
+            harmony) RID=2; MID=0; HAR=1 ;;
+            both) RID=3; MID=1; HAR=1 ;;
+            *) exit 1 ;;
+          esac
+          SEED=$((180000 + RID * 2000 + SHARD * 50))
+          test -s model/model1.json
+          node scripts/neural/bench.js --model model/model1.json --first "$SEED" --deals 50 --sims 3000 --ms 1500 --middle "$MID" --harmony "$HAR" --threads 4 --out result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: confirm-${{ matrix.rules }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 30
+
+  summary:
+    name: Independent 800-pair neural arena summary
+    needs: arena
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: confirm-*-*
+          path: reports
+      - name: Verify disjoint seeds and calculate pairwise confidence intervals
+        run: |
+          node scripts/neural/confirm.js reports neural-confirm.json neural-confirm.md
+          cat neural-confirm.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neural-confirmed-arena
+          path: |
+            neural-confirm.json
+            neural-confirm.md
+          retention-days: 30
