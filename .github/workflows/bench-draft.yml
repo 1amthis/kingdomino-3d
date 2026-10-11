@@ -1,0 +1,77 @@
+name: Draft Fixed-Simulation Confirmation
+
+on:
+  push:
+    branches:
+      - experiment/learned-draft
+    paths:
+      - 'src/core/search/mcts.js'
+      - 'src/core/search/learnedDraft.js'
+      - 'src/core/search/draftFeatures.js'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: ${{ matrix.mode }} shard ${{ matrix.shard }}/5
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [tree]
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Play 50 paired deals
+        env:
+          SHARD: ${{ matrix.shard }}
+          MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          SEED=$((32000 + SHARD * 50))
+          node scripts/bench-draft.js --mode "$MODE" --deals 50 --sims 2000 --ms 1500 --threads 4 --seed "$SEED" > result.json
+          cat result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft-${{ matrix.mode }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 30
+
+  aggregate:
+    name: Aggregate ${{ matrix.mode }}
+    needs: benchmark
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [tree]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: draft-${{ matrix.mode }}-*
+          path: shards
+      - name: Calculate paired confidence interval
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          node scripts/aggregate-draft.js shards "draft-${MODE}.json"
+          node -e 'const r=require("./draft-"+process.env.MODE+".json");if(r.pairedDeals!==300||r.games!==600)process.exit(1)'
+          cat "draft-${MODE}.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft-${{ matrix.mode }}-300
+          path: |
+            draft-${{ matrix.mode }}.json
+            draft-${{ matrix.mode }}.md
+          retention-days: 30

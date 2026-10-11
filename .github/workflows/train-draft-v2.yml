@@ -1,0 +1,73 @@
+name: Strong Draft Teacher Training
+
+on:
+  push:
+    branches:
+      - experiment/learned-draft
+    paths:
+      - '.github/workflows/train-draft-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  label:
+    name: ${{ matrix.split }} shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { split: train, shard: 0, first: 60000, games: 40 }
+          - { split: train, shard: 1, first: 60040, games: 40 }
+          - { split: train, shard: 2, first: 60080, games: 40 }
+          - { split: train, shard: 3, first: 60120, games: 40 }
+          - { split: train, shard: 4, first: 60160, games: 40 }
+          - { split: train, shard: 5, first: 60200, games: 40 }
+          - { split: valid, shard: 0, first: 70000, games: 30 }
+          - { split: valid, shard: 1, first: 70030, games: 30 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Label diverse expert draft positions with 128 teacher rollouts per action
+        env:
+          SPLIT: ${{ matrix.split }}
+          FIRST: ${{ matrix.first }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          node scripts/train-draft-v2.js --collect --split "$SPLIT" --first "$FIRST" --games "$GAMES" --teacher-sims 128 --trajectory-sims 48 --out shard.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft-v2-${{ matrix.split }}-${{ matrix.shard }}
+          path: shard.json
+          retention-days: 30
+
+  fit:
+    name: Fit, validate, and select model
+    needs: label
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: draft-v2-*
+          path: shards
+      - name: Fit regularized draft models on disjoint whole games
+        run: |
+          node scripts/train-draft-v2.js --fit --dir shards --out draft-v2-fit.json
+          node -e 'const r=require("./draft-v2-fit.json");if(r.games.train!==240||r.games.valid!==60||r.teacherSims!==128)process.exit(1)'
+          node -e 'const r=require("./draft-v2-fit.json");const m=r.models[r.validationWinningModel];const v=m.validation.find(x=>x.stage===2);require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,"## V2 middle-game model: "+r.validationWinningModel+"\n\nRegret: "+JSON.stringify(v.regret)+"\n\n");'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft-v2-fit-report
+          path: draft-v2-fit.json
+          retention-days: 30

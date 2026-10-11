@@ -1,0 +1,117 @@
+name: Learned Draft V2 Independent A/B
+
+on:
+  push:
+    branches:
+      - experiment/learned-draft
+    paths:
+      - '.github/workflows/bench-draft-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: ${{ matrix.opponent }} / ${{ matrix.rules }} / shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [original, v1]
+        rules: [plain, middle, harmony, both]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Play 50 paired deals at production Expert budget
+        env:
+          OPPONENT: ${{ matrix.opponent }}
+          RULES: ${{ matrix.rules }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          case "$RULES" in
+            plain) RID=0; MIDDLE=0; HARMONY=0 ;;
+            middle) RID=1; MIDDLE=1; HARMONY=0 ;;
+            harmony) RID=2; MIDDLE=0; HARMONY=1 ;;
+            both) RID=3; MIDDLE=1; HARMONY=1 ;;
+            *) exit 1 ;;
+          esac
+          case "$OPPONENT" in
+            original) OID=0 ;;
+            v1) OID=1 ;;
+            *) exit 1 ;;
+          esac
+          SEED=$((81000 + OID * 8000 + RID * 1000 + SHARD * 50))
+          node scripts/bench-draft.js --policy v2 --opponent "$OPPONENT" --mode tree --deals 50 --sims 3000 --ms 1500 --threads 4 --seed "$SEED" --middle "$MIDDLE" --harmony "$HARMONY" > result.json
+          cat result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-${{ matrix.opponent }}-${{ matrix.rules }}-${{ matrix.shard }}
+          path: result.json
+          retention-days: 30
+
+  aggregate:
+    name: Summary V2 vs ${{ matrix.opponent }} / ${{ matrix.rules }}
+    needs: benchmark
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [original, v1]
+        rules: [plain, middle, harmony, both]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v2-${{ matrix.opponent }}-${{ matrix.rules }}-*
+          path: shards
+      - name: Verify all 200 paired deals and summarize
+        env:
+          OPPONENT: ${{ matrix.opponent }}
+          RULES: ${{ matrix.rules }}
+        run: |
+          node scripts/aggregate-draft.js shards "v2-${OPPONENT}-${RULES}.json"
+          node -e 'const r=require("./v2-"+process.env.OPPONENT+"-"+process.env.RULES+".json");if(r.policy!=="v2"||r.opponent!==process.env.OPPONENT||r.pairedDeals!==200||r.games!==400||r.budget.sims!==3000||r.budget.ms!==1500)process.exit(1)'
+          cat "v2-${OPPONENT}-${RULES}.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-${{ matrix.opponent }}-${{ matrix.rules }}-report
+          path: |
+            v2-${{ matrix.opponent }}-${{ matrix.rules }}.json
+            v2-${{ matrix.opponent }}-${{ matrix.rules }}.md
+          retention-days: 30
+
+  verify:
+    name: Archive all eight A/B scenario reports
+    needs: aggregate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v2-*-report
+          path: reports
+      - name: Check all reports are present
+        run: |
+          python - <<'PY'
+          import os,glob,json
+          paths=glob.glob('reports/**/*.json',recursive=True)
+          assert len(paths)==8, paths
+          for f in paths:
+              d=json.load(open(f))
+              assert d['policy']=='v2' and d['pairedDeals']==200 and d['games']==400
+          print('Validated 8 independently seeded A/B comparisons:',len(paths)*400,'complete games')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: draft-v2-all-reports
+          path: reports
+          retention-days: 30
