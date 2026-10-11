@@ -46,8 +46,8 @@ function landing(hist) {
 export class Search {
   // c: UCT exploration; cap / rootCap: placements kept (best by heuristic) inside the tree / at its root;
   // eps: playout randomness; sample: placements a playout compares before picking one.
-  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, draftPolicy = null, recordPolicy = false, cpuct = 1.5, fullNet = null, leafValueEvery = 0, recordAllPolicy = false } = {}) {
-    Object.assign(this, { c, cap, rootCap, eps, sample, draftPolicy, recordPolicy, cpuct, fullNet, leafValueEvery, recordAllPolicy });
+  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, draftPolicy = null, recordPolicy = false, cpuct = 1.5, fullNet = null, leafValueEvery = 0, recordAllPolicy = false, uncappedLegal = false } = {}) {
+    Object.assign(this, { c, cap, rootCap, eps, sample, draftPolicy, recordPolicy, cpuct, fullNet, leafValueEvery, recordAllPolicy, uncappedLegal });
     this.leafCalls = 0;
     this.rnd = mulberry32(seed);
     this.carry = null; // { key, node }: the subtree under the placement just played
@@ -58,7 +58,7 @@ export class Search {
 
   // Searches until `sims` simulations or `ms` milliseconds, then plays the most visited move.
   choose(game, { sims = 2000, ms = 1500 } = {}) {
-    const acts = game.legal(this.fullNet ? 0 : this.rootCap, BUF);
+    const acts = game.legal((this.fullNet || this.uncappedLegal) ? 0 : this.rootCap, BUF);
     const carry = this.carry;
     this.carry = null;
     if (acts.length === 1) return { move: acts[0], sims: 0 };
@@ -145,7 +145,7 @@ export class Search {
       const actor = st.player;
       let acts = fixed ? node.acts : null;
       if (!acts) {
-        acts = st.legal(this.fullNet ? 0 : (depth ? this.cap : this.rootCap), BUF);
+        acts = st.legal((this.fullNet || this.uncappedLegal) ? 0 : (depth ? this.cap : this.rootCap), BUF);
         if (fixed) node.acts = acts;
       }
       let a = depth === 0 && forced !== null ? forced : this.untried(st, acts, node);
