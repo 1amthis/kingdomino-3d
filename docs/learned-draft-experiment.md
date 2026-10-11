@@ -131,3 +131,49 @@ Source workflows with full per-seed records (Actions artifacts):
 replace the default Expert until there is a consistent result on a
 larger fully independent confirmation, at the browser's actual budget,
 and ideally across game options.
+
+
+## Production-budget validation, 2026-10-11
+
+The best previous configuration was the learned draft score **only when ordering
+untried draft actions in the MCTS tree**. Production Expert for two players
+uses 3,000 simulations and a 1,500 ms decision cap; this test uses that
+budget rather than the earlier 2,000 simulations / 55 ms.
+
+A sharded Node 22 GitHub Actions run
+[38118400746](https://github.com/1amthis/kingdomino-3d/actions/runs/38118400746)
+completed successfully, with a [combined report artifact](https://github.com/1amthis/kingdomino-3d/actions/runs/38118400746/artifacts/11693663069).
+
+Each case has **200 distinct random deals**, each played twice with seats
+swapped (400 games). Different ranges are used for the four rule sets,
+altogether **800 paired deals / 1,600 complete games**. The original
+MCTS search and scoring logic is unchanged.
+
+| Bonus configuration | Learned wins | Baseline wins | Score draws | Learned avg. margin | Approx. paired 95% CI |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| None (seeds 41000–41199) | 185 | 191 | 24 | −0.135 | [−0.839, +0.569] |
+| Middle Kingdom (42000–42199) | 188 | 197 | 15 | −0.160 | [−0.891, +0.571] |
+| Harmony (43000–43199) | 187 | 182 | 31 | +0.198 | [−0.483, +0.878] |
+| Both bonuses (44000–44199) | 197 | 190 | 13 | +0.268 | [−0.420, +0.955] |
+| **Pooled, equal weighting across rule cases** | **757** | **760** | **83** | **+0.043** | **[−0.308, +0.393]** |
+
+The pooled confidence interval is computed on the 800 individual
+within-deal mean margins, not on the four group means. None of the
+case intervals or the pooled interval excludes zero. With three or
+four possible rule variants, even an isolated positive result would
+require an appropriate multiple-comparisons correction.
+
+There was one additional run on the **same deal ranges** using an
+earlier workflow commit; its results differed slightly under the
+wall-clock budget. These are repeats, **not new independent deals**;
+they are deliberately **not** included in the 800-deal pooled estimate.
+The latest successful run shown above is the canonical report.
+
+**Decision:** do not switch on the learned draft ranking in the browser
+Expert by default. The previously promising low-budget advantage is
+not demonstrated at the true 3,000-simulation Expert budget or across
+the tested optional scoring rules. Keep this draft PR experimental,
+and if further work is pursued, prioritize improving the MCTS teacher,
+collecting more diverse expert draft states, or training a policy
+directly for the 3,000-simulation target. Multiseat play and Mighty
+Duel remain untested for this learned model.
