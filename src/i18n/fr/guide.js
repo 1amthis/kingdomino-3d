@@ -44,6 +44,7 @@ export default {
     'Un <b>domaine</b> est un groupe de cases adjacentes d’un même terrain. Il rapporte <b>cases &times; couronnes</b> : sans couronne, il ne rapporte rien. Des règles optionnelles ajoutent +10 pour un château au centre et +5 pour un royaume complet sans défausse. Une <b>Dynastie</b> enchaîne trois parties et additionne les scores.',
   // controls
   'Pick a domino': 'Choisir un domino',
+  'Show a domino, tap again to pick it': 'Montrer un domino, toucher à nouveau pour le choisir',
   'Show a spot, tap again to place': 'Montrer un emplacement, toucher à nouveau pour placer',
   'Turn the domino, show the legal spots': 'Tourner le domino, montrer les emplacements possibles',
   'The Expert&rsquo;s move, with the coach on': 'Le coup de l’Expert, coach activé',

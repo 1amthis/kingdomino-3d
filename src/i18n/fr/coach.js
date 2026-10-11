@@ -11,6 +11,8 @@ export default {
   'Turn the coach on in Settings': 'Activez le coach dans les Paramètres',
   'Fits nowhere in your kingdom': 'Ne rentre nulle part dans votre royaume',
   '+{n} now': '+{n} maintenant',
+  'Your pick': 'Votre choix',
+  'Your placement': 'Votre placement',
   '{n} hint': '{n} conseil',
   '{n} hints': '{n} conseils',
   'The coach’s verdict': 'Le verdict du coach',

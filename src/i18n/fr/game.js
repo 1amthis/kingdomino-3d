@@ -47,6 +47,8 @@ export default {
   'Discard it to carry on': 'Défaussez-le pour continuer',
   'This domino cannot be placed anywhere &mdash; discard it.': 'Ce domino ne peut être placé nulle part &mdash; défaussez-le.',
   'Tap the same spot again to place it': 'Touchez à nouveau le même emplacement pour le placer',
+  'Tap it again to pick it': 'Touchez-le à nouveau pour le choisir',
+  'Tap a domino to see it, then tap it again to pick it': 'Touchez un domino pour le voir, puis touchez-le à nouveau pour le choisir',
   'Final scoring': 'Décompte final',
   'Each crowned property scores squares &times; crowns': 'Chaque domaine couronné rapporte cases &times; couronnes',
   'Game over': 'Partie terminée',
