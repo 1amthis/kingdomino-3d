@@ -11,6 +11,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { Tweener, Ease, reducedMotion } from './tween.js';
 import { updateMaterials } from './materials.js';
 import { t } from '../i18n/index.js';
+import { halloween } from '../skins/index.js';
 
 const FinishShader = {
   uniforms: {
@@ -71,6 +72,14 @@ export const AMBIENCE = {
     bg: 0x05060c, candle: 10, night: 1, exposure: 1.2, sunPos: [12, 26, -14], shaft: 0.0, lamp: 420,
   },
 };
+
+// At Halloween the same three times of day pass under a purple sky: an overcast autumn day, a blood-orange
+// sunset and a cold, moonlit night.
+if (halloween) {
+  Object.assign(AMBIENCE.day, { sunColor: 0xffe6c8, sun: 3.0, hemiSky: 0xcfc6ec, hemiGround: 0x5a3a36, bg: 0x241a26 });
+  Object.assign(AMBIENCE.dusk, { sunColor: 0xff8238, hemiSky: 0xa47cf0, hemiGround: 0x3a1a2c, bg: 0x1a0e1e });
+  Object.assign(AMBIENCE.night, { sunColor: 0x9fb0ff, sun: 1.15, hemiSky: 0x48388a, hemiGround: 0x140a16, bg: 0x08050f });
+}
 
 export class Stage {
   constructor(container) {
@@ -220,7 +229,8 @@ export class Stage {
     // Soft motes that twinkle and fade out as they approach the lens.
     const m = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uScale: { value: 800 }, uOpacity: { value: 0.5 }, uColor: { value: new THREE.Color(0xffe2b0) } },
+      // (at Halloween, embers rather than dust)
+      uniforms: { uTime: { value: 0 }, uScale: { value: 800 }, uOpacity: { value: 0.5 }, uColor: { value: new THREE.Color(halloween ? 0xffa060 : 0xffe2b0) } },
       vertexShader: `attribute float aSeed; uniform float uTime, uScale, uOpacity; varying float vA;
         void main() {
           vec4 mv = modelViewMatrix * vec4(position, 1.0);

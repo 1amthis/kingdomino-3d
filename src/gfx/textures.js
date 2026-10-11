@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { perlin2, fbm2 } from './noise.js';
 import { mulberry32 } from '../core/rng.js';
 import { t } from '../i18n/index.js';
+import { halloween } from '../skins/index.js';
 
 function canvas(w, h) {
   const c = document.createElement('canvas');
@@ -115,13 +116,69 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Gilding; at Halloween, a pumpkin-orange lustre.
+const GILT = halloween ? ['#ffe2a8', '#ff9a2e', '#b8520e', '#ffc46a'] : ['#fff2b0', '#e2b54a', '#b9832a', '#f6d77a'];
 function goldGradient(ctx, y0, y1) {
   const g = ctx.createLinearGradient(0, y0, 0, y1);
-  g.addColorStop(0, '#fff2b0');
-  g.addColorStop(0.45, '#e2b54a');
-  g.addColorStop(0.55, '#b9832a');
-  g.addColorStop(1, '#f6d77a');
+  g.addColorStop(0, GILT[0]);
+  g.addColorStop(0.45, GILT[1]);
+  g.addColorStop(0.55, GILT[2]);
+  g.addColorStop(1, GILT[3]);
   return g;
+}
+
+// A bat's silhouette, wings spread, `s` from wingtip to body.
+function drawBat(ctx, cx, cy, s) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+  ctx.beginPath();
+  for (const side of [1, -1]) {
+    ctx.moveTo(0, -0.2);
+    ctx.quadraticCurveTo(side * 0.4, -0.55, side, -0.4);
+    ctx.quadraticCurveTo(side * 0.82, -0.12, side * 0.86, 0.12);
+    ctx.quadraticCurveTo(side * 0.7, -0.04, side * 0.56, 0.16);
+    ctx.quadraticCurveTo(side * 0.42, 0, side * 0.28, 0.2);
+    ctx.quadraticCurveTo(side * 0.15, 0.02, 0, 0.26);
+  }
+  ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 0, 0.12, 0.24, 0, 0, Math.PI * 2); ctx.fill();
+  for (const side of [1, -1]) { ctx.beginPath(); ctx.moveTo(side * 0.03, -0.18); ctx.lineTo(side * 0.11, -0.36); ctx.lineTo(side * 0.12, -0.14); ctx.fill(); }
+  ctx.restore();
+}
+
+// A pumpkin: three lobes and a stem.
+function drawPumpkinIcon(ctx, cx, cy, s, fill) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+  ctx.fillStyle = fill;
+  for (const [x, rx] of [[-0.45, 0.6], [0.45, 0.6], [0, 0.62]]) { ctx.beginPath(); ctx.ellipse(x, 0.1, rx, 0.62, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillRect(-0.1, -0.78, 0.2, 0.32);
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.06;
+  for (const x of [-0.3, 0.3]) { ctx.beginPath(); ctx.moveTo(x, -0.4); ctx.quadraticCurveTo(x * 1.2, 0.1, x, 0.64); ctx.stroke(); }
+  ctx.restore();
+}
+
+// Cobweb threads stitched into a corner, fanning out from (cx, cy) towards (dx, dy).
+function drawCornerWeb(ctx, cx, cy, dx, dy, r) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(dx, dy);
+  const spokes = [0, 0.3, 0.62, 0.95, 1.25, Math.PI / 2];
+  ctx.beginPath();
+  for (const a of spokes) { ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+  for (let k = 1; k <= 4; k++) {
+    const rr = (k / 4.4) * r;
+    spokes.forEach((a, i) => {
+      const p = [Math.cos(a) * rr, Math.sin(a) * rr];
+      if (!i) { ctx.moveTo(...p); return; }
+      const m = (a + spokes[i - 1]) / 2;
+      ctx.quadraticCurveTo(Math.cos(m) * rr * 0.85, Math.sin(m) * rr * 0.85, ...p);
+    });
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawCrownIcon(ctx, cx, cy, s, fill) {
@@ -141,14 +198,15 @@ export function makeBackTexture(id) {
   const c = canvas(W, H);
   const x = c.getContext('2d');
   const bg = x.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W * 0.6);
-  bg.addColorStop(0, '#2c4a8e');
-  bg.addColorStop(1, '#0d1838');
+  bg.addColorStop(0, halloween ? '#43206a' : '#2c4a8e');
+  bg.addColorStop(1, halloween ? '#0e0619' : '#0d1838');
   x.fillStyle = bg; x.fillRect(0, 0, W, H);
-  // damask pattern
-  x.globalAlpha = 0.09;
-  x.fillStyle = '#9fb8ff';
+  // damask pattern (at Halloween, a flight of bats)
+  x.globalAlpha = halloween ? 0.13 : 0.09;
+  x.fillStyle = halloween ? '#c9a0ff' : '#9fb8ff';
   for (let j = 0; j < 6; j++) for (let i = 0; i < 12; i++) {
     const px = i * 46 + (j % 2) * 23, py = j * 46 + 10;
+    if (halloween) { drawBat(x, px, py, 11); continue; }
     x.beginPath(); x.moveTo(px, py - 9); x.lineTo(px + 7, py); x.lineTo(px, py + 9); x.lineTo(px - 7, py); x.closePath(); x.fill();
   }
   x.globalAlpha = 1;
@@ -166,7 +224,8 @@ export function makeBackTexture(id) {
   x.beginPath(); x.ellipse(W / 2, H / 2 + 4, 92, 86, 0, 0, Math.PI * 2); x.fill();
   x.lineWidth = 4; x.strokeStyle = goldGradient(x, H / 2 - 80, H / 2 + 80);
   x.beginPath(); x.ellipse(W / 2, H / 2, 88, 82, 0, 0, Math.PI * 2); x.stroke();
-  drawCrownIcon(x, W / 2, H / 2 - 58, 20, goldGradient(x, H / 2 - 75, H / 2 - 45));
+  if (halloween) drawPumpkinIcon(x, W / 2, H / 2 - 60, 17, goldGradient(x, H / 2 - 75, H / 2 - 45));
+  else drawCrownIcon(x, W / 2, H / 2 - 58, 20, goldGradient(x, H / 2 - 75, H / 2 - 45));
   x.font = '700 104px Cinzel, Georgia, serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillStyle = 'rgba(0,0,0,0.5)';
@@ -269,6 +328,11 @@ export function makeMatTexture(colorHex, name, px = 1024) {
     x.fillStyle = colorHex;
     x.beginPath(); x.arc(px0, py0, px * 0.013, 0, Math.PI * 2); x.fill();
   }
+  if (halloween) {
+    x.strokeStyle = 'rgba(255,236,210,0.3)'; x.lineWidth = px * 0.0022;
+    drawCornerWeb(x, m * 2.45, m * 2.45, 1, 1, px * 0.2);
+    drawCornerWeb(x, px - m * 2.45, m * 2.45, -1, 1, px * 0.2);
+  }
   // embroidered name along the bottom border
   if (name) {
     x.font = `700 ${Math.round(px * 0.03)}px Cinzel, Georgia, serif`;
@@ -287,12 +351,12 @@ export function makeDraftTexture(slots, W = 1024, H = 1024) {
   const c = canvas(W, H);
   const x = c.getContext('2d');
   const g = x.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, W * 0.7);
-  g.addColorStop(0, '#7a1a22');
-  g.addColorStop(1, '#3a080d');
+  g.addColorStop(0, halloween ? '#4a1f72' : '#7a1a22');
+  g.addColorStop(1, halloween ? '#1a0a2c' : '#3a080d');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   x.globalAlpha = 0.06;
   for (let i = 0; i < 9000; i++) {
-    x.fillStyle = Math.random() < 0.5 ? '#000' : '#ff9a9a';
+    x.fillStyle = Math.random() < 0.5 ? '#000' : halloween ? '#c9a0ff' : '#ff9a9a';
     x.fillRect(Math.random() * W, Math.random() * H, 2, 2);
   }
   x.globalAlpha = 1;

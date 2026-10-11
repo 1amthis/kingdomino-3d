@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { GeoBuilder, P, shade, mixColor } from './geo.js';
 import { fbm2, perlin2 } from './noise.js';
 import { M } from './materials.js';
+import { halloween } from '../skins/index.js';
+import { pumpkin, pumpkinPatch, graveyard, ghost, circlingBats, cauldron } from '../skins/halloween.js';
 
 export const GROUND_TOP = 0.035;
 const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
@@ -13,6 +15,7 @@ export const CATEGORY_MATERIALS = () => ({
   ground: M.flat, solid: M.flat, sway: M.sway, swaySoft: M.swaySoft,
   lantern: M.lantern, window: M.window, crystal: M.crystal, crystalPink: M.crystalPink,
   gold: M.goldDull, water: M.water, swampWater: M.swampWater,
+  potion: M.potion, // (Halloween's)
 });
 
 // ---------- shared helpers ----------
@@ -249,8 +252,8 @@ function boat(rng, groundH) {
     b.add('solid', P.cyl5, '#4a2e18', { pos: [0.005, 0.018, 0], scale: [0.003, 0.11, 0.003] });
     const sail = new THREE.BufferGeometry();
     sail.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0.09, 0, 0.055, 0.005, 0, 0, 0, 0, 0.055, 0.005, 0, 0, 0.09, 0], 3));
-    b.add('solid', sail, '#f5efe0', { pos: [0.008, 0.03, 0], jitter: 0 });
-    b.add('solid', P.box, '#c83a3a', { pos: [0.008, 0.132, 0.004], scale: [0.02, 0.01, 0.002] });
+    b.add('solid', sail, halloween ? '#2a2230' : '#f5efe0', { pos: [0.008, 0.03, 0], jitter: 0 });
+    b.add('solid', P.box, halloween ? '#ff8a1e' : '#c83a3a', { pos: [0.008, 0.132, 0.004], scale: [0.02, 0.01, 0.002] });
   }, rng, CATEGORY_MATERIALS());
   const r = rng.float(0.12, 0.2), ph = rng.float(0, 6.28), sp = rng.float(0.08, 0.14) * (rng.chance(0.5) ? 1 : -1);
   const update = (t) => {
@@ -360,6 +363,9 @@ function buildWheat(b, rng, crowns, objects, animators) {
   } else if (roll < 0.62) {
     cottage(b, rng, spot[0], groundH(spot[0], spot[1]), spot[1], rng.pick([0, Math.PI / 2, 0.3]), 1, objects, animators);
     avoid.push({ x: spot[0], z: spot[1], r: 0.13 });
+  } else if (roll < 0.85 && halloween) {
+    pumpkinPatch(b, rng, spot[0], groundH(spot[0], spot[1]), spot[1], groundH);
+    avoid.push({ x: spot[0], z: spot[1], r: 0.13 });
   } else if (roll < 0.85) {
     const n = rng.int(2, 3);
     for (let i = 0; i < n; i++) {
@@ -375,9 +381,17 @@ function buildWheat(b, rng, crowns, objects, animators) {
     b.add('solid', P.cyl5, '#5a3a22', { pos: [sx, sy, sz], scale: [0.004, 0.11, 0.004] });
     b.add('solid', P.box, '#5a3a22', { pos: [sx, sy + 0.08, sz], scale: [0.07, 0.005, 0.005] });
     b.add('solid', P.box, '#8a3b2a', { pos: [sx, sy + 0.07, sz], scale: [0.028, 0.035, 0.016] });
-    b.add('solid', P.ico0, '#e8d49a', { pos: [sx, sy + 0.1, sz], scale: 0.013 });
-    b.add('solid', P.cone6, '#6a4a2a', { pos: [sx, sy + 0.106, sz], scale: [0.02, 0.022, 0.02] });
+    if (halloween) pumpkin(b, rng, sx, sy + 0.09, sz, 0.018, { carved: true, rotY: rng.float(-0.6, 0.6) });
+    else b.add('solid', P.ico0, '#e8d49a', { pos: [sx, sy + 0.1, sz], scale: 0.013 });
+    b.add('solid', P.cone6, '#6a4a2a', { pos: [sx, sy + (halloween ? 0.113 : 0.106), sz], scale: [0.02, 0.022, 0.02] });
     avoid.push({ x: sx, z: sz, r: 0.06 });
+  }
+  // pumpkins ripening between the rows
+  if (halloween) {
+    for (const [px, pz] of scatter(rng, rng.int(1, 3), 0.15, avoid, 0.36)) {
+      pumpkin(b, rng, px, groundH(px, pz), pz, rng.float(0.03, 0.04), { carved: rng.chance(0.35) });
+      avoid.push({ x: px, z: pz, r: 0.055 });
+    }
   }
   const stalkColors = ['#f0cc55', '#e7bd45', '#f5d86b', '#dcae3a'];
   for (let zi = -5; zi <= 5; zi++) {
@@ -394,6 +408,8 @@ function buildWheat(b, rng, crowns, objects, animators) {
   }
   return groundH;
 }
+
+const AUTUMN = halloween ? ['#c8742a', '#d49a2a', '#b8452a', '#8a2f1f'] : ['#c8742a', '#d49a2a'];
 
 function buildForest(b, rng, crowns, objects, animators) {
   const ox = rng.float(0, 40);
@@ -415,14 +431,19 @@ function buildForest(b, rng, crowns, objects, animators) {
   for (const [x, z] of pts) {
     const s = rng.float(0.85, 1.35);
     if (rng.chance(0.72)) pine(b, rng, x, groundH(x, z), z, s, greens);
-    else roundTree(b, rng, x, groundH(x, z), z, s * 0.9, rng.chance(0.15) ? rng.pick(['#c8742a', '#d49a2a']) : rng.pick(['#4f8a35', '#3f7a2e', '#5c9a3a']));
+    else roundTree(b, rng, x, groundH(x, z), z, s * 0.9, rng.chance(halloween ? 0.55 : 0.15) ? rng.pick(AUTUMN) : rng.pick(['#4f8a35', '#3f7a2e', '#5c9a3a']));
   }
   for (let i = 0; i < 4; i++) {
     const [x, z] = [rng.float(-0.4, 0.4), rng.float(-0.4, 0.4)];
     if (inAvoid(x, z, avoid)) continue;
     const y = groundH(x, z);
     b.add('solid', P.cyl5, '#efe6d4', { pos: [x, y - 0.002, z], scale: [0.004, 0.014, 0.004] });
-    b.add('solid', P.sphere, rng.chance(0.5) ? '#c8352a' : '#b98a4a', { pos: [x, y + 0.014, z], scale: [0.01, 0.006, 0.01] });
+    // (at Halloween the toadstools glow)
+    b.add(halloween ? 'potion' : 'solid', P.sphere, rng.chance(0.5) ? '#c8352a' : '#b98a4a', { pos: [x, y + 0.014, z], scale: [0.01, 0.006, 0.01] });
+  }
+  if (halloween && rng.chance(0.4)) {
+    const g = ghost(rng, { cz: 0.05, radius: 0.18, y: 0.2, size: 0.18 });
+    objects.push(g.object); animators.push(g.update);
   }
   return groundH;
 }
@@ -460,6 +481,8 @@ function buildLake(b, rng, crowns, objects, animators) {
       const x = cx + rng.float(-0.05, 0.05), z = cz + rng.float(-0.05, 0.05);
       b.add('solid', P.cyl8, rng.pick(['#3f8a3a', '#4f9a42', '#357a33']), { pos: [x, W, z], rot: [0, rng.float(0, 6), 0], scale: [rng.float(0.022, 0.032), 0.003, rng.float(0.022, 0.032)] });
       if (rng.chance(0.45)) {
+        // at Halloween every other flower is a jack-o'-lantern afloat on its pad
+        if (halloween && rng.chance(0.5)) { pumpkin(b, rng, x, W + 0.002, z, 0.02, { carved: true }); continue; }
         const pc = rng.pick(['#ff9ac8', '#fff4f8', '#ffd24a']);
         for (let k = 0; k < 5; k++) {
           const a = (k / 5) * Math.PI * 2;
@@ -527,6 +550,9 @@ function buildGrass(b, rng, crowns, objects, animators) {
     for (const dx of [-0.03, 0.03]) b.add('solid', P.box, '#5a3a22', { pos: [wx + dx, wy + 0.045, wz], scale: [0.006, 0.05, 0.006] });
     b.add('solid', prismRoof(), '#8a3b26', { pos: [wx, wy + 0.08, wz], scale: [0.08, 0.03, 0.035] });
     avoid.push({ x: wx, z: wz, r: 0.08 });
+  } else if (halloween) {
+    graveyard(b, rng, groundH, 0.3);
+    avoid.push({ x0: -0.5, x1: 0.5, z0: 0.18, z1: 0.5 });
   }
   const greens = ['#6fb23c', '#89c84a', '#5c9a32', '#9ad556', '#4f8f2c'];
   // tufts come in little clumps so the meadow reads as long grass
@@ -545,7 +571,7 @@ function buildGrass(b, rng, crowns, objects, animators) {
     if (rng.chance(0.5)) for (let k = 0; k < 3; k++) b.add('solid', P.ico0, '#e8364a', { pos: [x + rng.float(-0.025, 0.025), y + 0.03, z + rng.float(-0.02, 0.02)], scale: 0.006, jitter: 0 });
     avoid.push({ x, z, r: 0.05 });
   }
-  const petals = ['#ffffff', '#ffe14a', '#ff8fc2', '#b58cff', '#7fb8ff', '#ff6a5a'];
+  const petals = halloween ? ['#ffffff', '#ff8a1e', '#b58cff', '#8a3cff', '#ffd23a', '#ff6a2a'] : ['#ffffff', '#ffe14a', '#ff8fc2', '#b58cff', '#7fb8ff', '#ff6a5a'];
   // flowers grow in patches of one colour
   for (const [cx, cz] of scatter(rng, rng.int(5, 8), 0.1, avoid, 0.4)) {
     const col = rng.pick(petals);
@@ -564,7 +590,7 @@ function buildGrass(b, rng, crowns, objects, animators) {
     // a butterfly flitting over the meadow
     const bf = makeMesh((bb) => {
       const wing = new THREE.CircleGeometry(0.012, 6);
-      const c = rng.pick(['#ffd23a', '#ff7ab8', '#9ad0ff']);
+      const c = rng.pick(halloween ? ['#ff8a1e', '#ff7a1a', '#b58cff'] : ['#ffd23a', '#ff7ab8', '#9ad0ff']);
       bb.add('solid', wing, c, { pos: [0, 0, 0.012], rot: [-Math.PI / 2, 0, 0], jitter: 0 });
       bb.add('solid', wing, c, { pos: [0, 0, -0.012], rot: [-Math.PI / 2, 0, 0], jitter: 0 });
     }, rng, CATEGORY_MATERIALS());
@@ -628,6 +654,15 @@ function buildSwamp(b, rng, crowns, objects, animators) {
       }
     }
   }
+  let pot = null;
+  if (halloween && rng.chance(0.6)) {
+    const [spot] = scatter(rng, 1, 0, avoid, 0.3);
+    if (spot) {
+      pot = { x: spot[0], z: spot[1], r: 0.11 };
+      cauldron(b, rng, pot.x, groundH(pot.x, pot.z), pot.z, 0.09, objects, animators);
+      avoid.push(pot);
+    }
+  }
   // moss mounds
   for (const [x, z] of scatter(rng, rng.int(2, 4), 0.12, avoid, 0.4)) {
     b.add('solid', P.ico1, rng.pick(['#6a7a32', '#7a8a3a', '#56662a']), { pos: [x, groundH(x, z) - 0.004, z], rot: [0, rng.float(0, 3), 0], scale: [0.035, 0.018, 0.03] });
@@ -635,7 +670,7 @@ function buildSwamp(b, rng, crowns, objects, animators) {
   // reeds and cattails
   for (let c = 0; c < rng.int(5, 7); c++) {
     const [cx, cz] = [rng.float(-0.38, 0.38), rng.float(-0.38, 0.38)];
-    if (inAvoid(cx, cz, crownAvoid(crowns))) continue;
+    if (inAvoid(cx, cz, crownAvoid(crowns)) || (pot && inAvoid(cx, cz, [pot]))) continue;
     for (let i = 0; i < rng.int(4, 7); i++) {
       const x = cx + rng.float(-0.035, 0.035), z = cz + rng.float(-0.035, 0.035);
       const h = rng.float(0.06, 0.11);
@@ -667,7 +702,7 @@ function buildSwamp(b, rng, crowns, objects, animators) {
     if (inAvoid(x, z, avoid)) continue;
     const y = groundH(x, z);
     b.add('solid', P.cyl5, '#f0e6d0', { pos: [x, y - 0.002, z], scale: [0.004, 0.016, 0.004] });
-    b.add('solid', P.sphere, rng.chance(0.6) ? '#d0342a' : '#c9a24a', { pos: [x, y + 0.016, z], scale: [0.012, 0.007, 0.012] });
+    b.add(halloween ? 'potion' : 'solid', P.sphere, rng.chance(0.6) ? '#d0342a' : '#c9a24a', { pos: [x, y + 0.016, z], scale: [0.012, 0.007, 0.012] });
   }
   const ff = fireflies(rng, rng.int(5, 8));
   objects.push(ff.object); animators.push(ff.update);
@@ -731,7 +766,8 @@ function buildMine(b, rng, crowns, objects, animators) {
   const avoid = crownAvoid(crowns);
   const mx = crowns ? 0.14 : rng.float(-0.12, 0.05), mz = crowns ? 0.0 : -0.1;
   const mr = rng.float(0.22, 0.26);
-  mountain(b, rng, mx, groundH(mx, mz), mz, mr, rng.float(0.38, 0.46));
+  const mh = rng.float(0.38, 0.46);
+  mountain(b, rng, mx, groundH(mx, mz), mz, mr, mh);
   const sx = mx > 0 ? -0.24 : 0.27, sz = crowns ? 0.1 : -0.22;
   mountain(b, rng, sx, groundH(sx, sz), sz, rng.float(0.12, 0.16), rng.float(0.2, 0.27));
   // a rocky outcrop in front of the peak houses the timbered mine portal
@@ -767,6 +803,10 @@ function buildMine(b, rng, crowns, objects, animators) {
   for (let i = 0; i < 5; i++) {
     const [x, z] = [rng.float(-0.4, 0.4), rng.float(0.1, 0.42)];
     if (!inAvoid(x, z, avoid) && Math.abs(x - ex) > 0.06) rock(b, rng, x, groundH(x, z), z, rng.float(0.5, 1), '#6d6660');
+  }
+  if (halloween) {
+    const bats = circlingBats(rng, rng.int(2, 3), { cx: mx, cy: groundH(mx, mz) + mh * 0.95, cz: mz, radius: mr * 0.8, size: 0.04 });
+    objects.push(bats.object); animators.push(bats.update);
   }
   return groundH;
 }

@@ -4,6 +4,8 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { makeTableTextures, makeMatTexture, makeDraftTexture, makeFeltTexture, makeBackTexture } from './textures.js';
 import { M } from './materials.js';
 import { buildCandle, buildGoblet, buildCoinStack, buildScroll, makeCrown, TILE_H } from './pieces.js';
+import { halloween } from '../skins/index.js';
+import { buildJackOLantern, buildTableCauldron, buildCandy, buildWitchHat, buildCobwebs, buildSpider, batFlock } from '../skins/halloween.js';
 
 export const TABLE = { w: 40, d: 38 };
 
@@ -40,24 +42,30 @@ export function buildTable(stage) {
   group.add(floor);
   scene.add(group);
 
-  // Candles in the four corners.
+  // Candles in the four corners (at Halloween, black ones and two jack-o'-lanterns).
   const candles = [];
   const cpos = [[-17, 0, -15.5, 1.9], [17, 0, -15.5, 1.3], [-17.5, 0, 15.5, 1.1], [17.5, 0, 15, 1.6]];
   cpos.forEach(([x, y, z, h], i) => {
-    const c = buildCandle(h, i + 3);
+    const lantern = halloween && (i === 1 || i === 2);
+    const c = lantern ? buildJackOLantern(i === 1 ? 0.85 : 0.72, i + 3) : buildCandle(h, i + 3, halloween ? 0x2b2233 : undefined);
     c.group.position.set(x, y, z);
+    // (grinning at the south of the table, where the view usually is)
+    if (lantern) c.group.rotation.y = Math.atan2(-x, 30 - z);
     scene.add(c.group);
     candles.push(c);
     stage.onFrame((t) => c.update(t));
   });
 
   // Trinkets
-  const goblet = buildGoblet();
-  goblet.scale.setScalar(1.6);
-  goblet.position.set(15.5, 0, -12);
-  scene.add(goblet);
-  const coins = [[14.3, -14.2, 7], [13.6, -13.1, 4], [15.0, -13.6, 10]];
-  coins.forEach(([x, z, n], i) => { const s = buildCoinStack(n, i + 2); s.position.set(x, 0, z); scene.add(s); });
+  if (halloween) dressForHalloween(stage);
+  else {
+    const goblet = buildGoblet();
+    goblet.scale.setScalar(1.6);
+    goblet.position.set(15.5, 0, -12);
+    scene.add(goblet);
+    const coins = [[14.3, -14.2, 7], [13.6, -13.1, 4], [15.0, -13.6, 10]];
+    coins.forEach(([x, z, n], i) => { const s = buildCoinStack(n, i + 2); s.position.set(x, 0, z); scene.add(s); });
+  }
   const scroll = buildScroll();
   scroll.position.set(-15.2, 0, 13.2);
   scroll.rotation.y = 0.5;
@@ -70,6 +78,33 @@ export function buildTable(stage) {
   bigCrown.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
   return { group, candles };
+}
+
+// The witch's cauldron where the goblet stood, candy where the coins were, a hat, cobwebs in two
+// corners, bats flying loops over the table and a spider coming down over the big crown.
+function dressForHalloween(stage) {
+  const scene = stage.scene;
+  const pot = buildTableCauldron();
+  pot.scale.setScalar(0.95);
+  pot.position.set(15.5, 0, -12);
+  // (the glowing brew, bubbles and flames cast no shadow)
+  pot.traverse((o) => { if (o.isMesh) { o.castShadow = o.material === M.flat; o.receiveShadow = true; } });
+  scene.add(pot);
+  stage.onFrame((t) => pot.userData.update(t));
+  for (const [x, z, seed, n] of [[14, -14.2, 7, 18], [-14.6, 11.4, 8, 10]]) {
+    const candy = buildCandy(seed, n);
+    candy.position.set(x, 0, z);
+    candy.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    scene.add(candy);
+  }
+  const hat = buildWitchHat();
+  hat.position.set(-13.2, 0, 14.6);
+  hat.rotation.y = -0.4;
+  hat.scale.setScalar(1.25);
+  scene.add(hat);
+  scene.add(buildCobwebs([[-TABLE.w / 2 + 0.4, -TABLE.d / 2 + 0.4], [TABLE.w / 2 - 0.4, TABLE.d / 2 - 0.4]]));
+  batFlock(stage, 9);
+  buildSpider(stage, -15.5, -12.4, 13);
 }
 
 export function makeMat(colorHex, name, sizeCells) {
@@ -113,7 +148,7 @@ export function makeDraftBoard(n) {
   }
   const tex = makeDraftTexture(slots, 1024, Math.round(1024 * L.D / L.W));
   const g = new THREE.Group();
-  const edge = new THREE.Mesh(new RoundedBoxGeometry(L.W + 0.14, 0.06, L.D + 0.14, 2, 0.05), new THREE.MeshStandardMaterial({ color: 0x2a0a0c, roughness: 0.5 }));
+  const edge = new THREE.Mesh(new RoundedBoxGeometry(L.W + 0.14, 0.06, L.D + 0.14, 2, 0.05), new THREE.MeshStandardMaterial({ color: halloween ? 0x170a26 : 0x2a0a0c, roughness: 0.5 }));
   edge.position.y = -0.01; // well below the felt, as under the kingdom mats
   edge.receiveShadow = true;
   const felt = makeFeltTexture();
@@ -132,7 +167,7 @@ export function makeChest() {
   const g = new THREE.Group();
   const wood = new THREE.MeshStandardMaterial({ color: 0x5a3519, roughness: 0.65 });
   const iron = new THREE.MeshStandardMaterial({ color: 0x3a3a40, metalness: 0.8, roughness: 0.45 });
-  const velvet = new THREE.MeshStandardMaterial({ color: 0x6a0f1a, roughness: 1 });
+  const velvet = new THREE.MeshStandardMaterial({ color: halloween ? 0x3a1458 : 0x6a0f1a, roughness: 1 });
   const W = 2.5, D = 1.35, H = 0.95, t = 0.09;
   const parts = [
     [W, t, D, 0, t / 2, 0], [W, H, t, 0, H / 2, D / 2 - t / 2], [W, H, t, 0, H / 2, -D / 2 + t / 2],
