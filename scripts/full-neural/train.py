@@ -134,12 +134,25 @@ def main():
     ap.add_argument('--lr',type=float,default=0.0007)
     ap.add_argument('--seed',type=int,default=507)
     ap.add_argument('--valid-seed',type=int,default=900000)
+    ap.add_argument('--init',default=None,help='Existing version-2 exported weights for replay-buffer fine-tuning')
     args=ap.parse_args()
     random.seed(args.seed);np.random.seed(args.seed);torch.manual_seed(args.seed)
     torch.set_num_threads(min(4,os.cpu_count() or 1))
     train,valid,games=load(args.data,args.valid_seed)
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net=FullNet().to(device)
+    if args.init:
+        previous=json.loads(pathlib.Path(args.init).read_text())
+        if previous.get('version')!=2 or previous.get('channels')!=C or previous.get('aux')!=A:
+            raise ValueError('Invalid initial checkpoint')
+        layer_names=['stem','res0a','res0b','res1a','res1b','place','aux_fc','draft','discard','value']
+        state={}
+        for layer in layer_names:
+            for suffix,ext in [('weight','W'),('bias','B')]:
+                name=layer+'.'+suffix
+                current=net.state_dict()[name]
+                state[name]=torch.tensor(previous[layer+ext],dtype=torch.float32).reshape(current.shape)
+        net.load_state_dict(state)
     opt=torch.optim.AdamW(net.parameters(),lr=args.lr,weight_decay=1e-5)
     best=float('inf');weights=None;best_epoch=0;history=[]
     for epoch in range(args.epochs):
@@ -161,7 +174,8 @@ def main():
     report={'games':games,'trainExamples':len(train),'validExamples':len(valid),
         'bestEpoch':best_epoch,'validation':history[best_epoch-1]['valid'],
         'architecture':'24x9x9 -> 16ch residual2, 4x9x9 placement, 4 draft, discard, signed value',
-        'device':str(device),'parameterCount':sum(p.numel() for p in net.parameters()),
+        'device':str(device),'initialCheckpoint':args.init,
+        'parameterCount':sum(p.numel() for p in net.parameters()),
         'trainingHistory':history}
     report_path=args.out.replace('.json','.report.json')
     pathlib.Path(report_path).write_text(json.dumps(report,indent=2))
