@@ -52,5 +52,5 @@ export class NeuralDraftNet {
     return this.forward(observation,mask);
   }
   asDraftPolicy() {return game=>this.evaluate(game).policy;}
-  json(){const w=this.w;return Object.fromEntries(Object.entries(w).map(([k,v])=>v instanceof Float32Array?[k,...[]]&&Array.from(v):v));}
+  json(){const w=this.w;return Object.fromEntries(Object.entries(w).map(([k,v])=>v instanceof Float32Array?Array.from(v):v));}
 }
