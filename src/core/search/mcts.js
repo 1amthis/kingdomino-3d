@@ -46,8 +46,9 @@ function landing(hist) {
 export class Search {
   // c: UCT exploration; cap / rootCap: placements kept (best by heuristic) inside the tree / at its root;
   // eps: playout randomness; sample: placements a playout compares before picking one.
-  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, draftPolicy = null, recordPolicy = false, cpuct = 1.5 } = {}) {
-    Object.assign(this, { c, cap, rootCap, eps, sample, draftPolicy, recordPolicy, cpuct });
+  constructor({ c = 1, cap = 20, rootCap = 48, eps = 0.2, sample = 10, seed = (Math.random() * 2 ** 32) >>> 0, draftPolicy = null, recordPolicy = false, cpuct = 1.5, fullNet = null, leafValueEvery = 0, recordAllPolicy = false, uncappedLegal = false } = {}) {
+    Object.assign(this, { c, cap, rootCap, eps, sample, draftPolicy, recordPolicy, cpuct, fullNet, leafValueEvery, recordAllPolicy, uncappedLegal });
+    this.leafCalls = 0;
     this.rnd = mulberry32(seed);
     this.carry = null; // { key, node }: the subtree under the placement just played
     this.stats = null; // while analysing: per root move, { win, margin, land } summed over its simulations
@@ -57,7 +58,7 @@ export class Search {
 
   // Searches until `sims` simulations or `ms` milliseconds, then plays the most visited move.
   choose(game, { sims = 2000, ms = 1500 } = {}) {
-    const acts = game.legal(this.rootCap, BUF);
+    const acts = game.legal((this.fullNet || this.uncappedLegal) ? 0 : this.rootCap, BUF);
     const carry = this.carry;
     this.carry = null;
     if (acts.length === 1) return { move: acts[0], sims: 0 };
@@ -66,7 +67,8 @@ export class Search {
     if (!root) { root = new Node(); root.acts = acts; }
     // Evaluate the full visible state once at a real draft decision, never
     // on every determinized playout. Default Expert never enters this branch.
-    if (this.draftPolicy && game.phase !== PLACE) root.priors = this.draftPolicy(game);
+    if (this.fullNet) root.priors = this.fullNet.evaluate(game,acts).priors;
+    else if (this.draftPolicy && game.phase !== PLACE) root.priors = this.draftPolicy(game);
     const n = this.grow(game, root, sims, ms);
     let best = acts[0], bn = -1, bw = 0;
     for (const a of acts) {
@@ -79,6 +81,10 @@ export class Search {
       after.apply(best);
       this.carry = { key: after.key(), node: root.kids.get(best) };
     }
+    if (this.recordAllPolicy) return {
+      move:best,sims:n,moves:acts.slice(),
+      visits:acts.map(a=>root.kids.get(a)?.n||0),
+    };
     if (this.recordPolicy && game.phase !== PLACE) {
       const visits = new Int32Array(4);
       for (const a of acts) visits[a] = root.kids.get(a)?.n || 0;
@@ -139,7 +145,7 @@ export class Search {
       const actor = st.player;
       let acts = fixed ? node.acts : null;
       if (!acts) {
-        acts = st.legal(depth ? this.cap : this.rootCap, BUF);
+        acts = st.legal((this.fullNet || this.uncappedLegal) ? 0 : (depth ? this.cap : this.rootCap), BUF);
         if (fixed) node.acts = acts;
       }
       let a = depth === 0 && forced !== null ? forced : this.untried(st, acts, node);
@@ -164,12 +170,26 @@ export class Search {
       actors.push(actor);
       depth++;
     }
-    this.playout(st);
-    const m = margins(st.scores());
+    // Evaluate a subset of newly expanded, nonterminal leaves instead of
+    // completing a heuristic playout. Signed value is for st.player; with
+    // exactly 2 players the other's value has opposite sign. The 0.35
+    // factor preserves the original MCTS win-heavy terminal reward scale.
+    const estimated = this.fullNet && this.leafValueEvery > 0 && !this.stats &&
+      st.phase !== DONE && (++this.leafCalls % this.leafValueEvery === 0);
+    let leafActor = -1, leafValue = 0, m = null;
+    if (estimated) {
+      leafActor = st.player;
+      leafValue = this.fullNet.evaluate(st).value;
+    } else {
+      this.playout(st);
+      m = margins(st.scores());
+    }
     root.n++;
     for (let i = 0; i < path.length; i++) {
       path[i].n++;
-      path[i].w += value(m[actors[i]]);
+      path[i].w += estimated
+        ? 0.5 + 0.35 * (actors[i] === leafActor ? leafValue : -leafValue)
+        : value(m[actors[i]]);
     }
     if (this.stats) {
       const s = this.stats.get(first), me = m[actors[0]];
@@ -195,7 +215,7 @@ export class Search {
     for (const a of acts) {
       const k = node.kids.get(a);
       const u = node.priors
-        ? k.w / k.n + this.cpuct * node.priors[a] * Math.sqrt(node.n + 1) / (1 + k.n)
+        ? k.w / k.n + this.cpuct * (node.priors instanceof Map ? node.priors.get(a) : node.priors[a]) * Math.sqrt(node.n + 1) / (1 + k.n)
         : k.w / k.n + this.c * Math.sqrt(logn / k.n);
       if (u > bu) { bu = u; best = a; }
     }
@@ -211,7 +231,7 @@ export class Search {
     let best = null, bv = -Infinity;
     for (const a of acts) {
       if (kids.has(a)) continue;
-      const v = node?.priors ? node.priors[a] : (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : b.pickEval(line[a]) - 0.05 * a);
+      const v = node?.priors ? (node.priors instanceof Map ? node.priors.get(a) : node.priors[a]) : (place ? (a === DISCARD ? 0 : b.quickEval(a, d)) : b.pickEval(line[a]) - 0.05 * a);
       const score = v + 0.01 * this.rnd();
       if (score > bv) { bv = score; best = a; }
     }
