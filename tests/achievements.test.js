@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanRecord, makeRecord } from '../src/core/history.js';
 import { ACHIEVEMENTS, GROUPS, achievementsFor, newAchievements } from '../src/core/achievements.js';
+import { hasBadge } from '../src/ui/badges.js';
 import { playGame } from '../scripts/headless.js';
 
 // A hand-made game: players as [name, kind, place, total, more fields], plus any extra fields.
@@ -25,6 +26,7 @@ test('every achievement has its own id, a group, a name and a text', () => {
   for (const a of ACHIEVEMENTS) {
     assert.ok(GROUPS.includes(a.group), a.id);
     assert.ok(a.name && a.text.endsWith('.'), a.id);
+    assert.ok(hasBadge(a.id), `${a.id} has a badge of its own`);
   }
 });
 

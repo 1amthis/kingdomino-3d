@@ -163,9 +163,9 @@ Every finished game is kept in your browser, and **History** in the main menu sh
   Duel, a Dynasty, three wins in a row, a win by a single point…), *Kingdoms* (60 and 80 points, a property worth 30,
   12 crowns, all six terrains scoring, every square filled with the castle in the middle…), *Mastery* (a game the
   coach grades without a Mistake or Blunder, under a point lost per move) and *The long road* (10, 50 and 100 games,
-  25 wins). Each one earned opens the game that earned it; the others show how far along they are.
-- The results card says when a game sets a **personal best**, is a **first win over the Expert**, or earns
-  **achievements**.
+  25 wins). Each has its own badge, on a medal in its group's metal (gold, emerald, sapphire, bronze); a badge not
+  yet earned shows faintly, with how far along it is. Each one earned opens the game that earned it.
+- The results card says when a game sets a **personal best** or earns **achievements**, each with its badge.
 
 Achievements are not stored on their own: they are read from the games in the history, so the games played before
 they existed count too, an imported history brings its achievements with it, and clearing the history clears them.
@@ -354,6 +354,7 @@ src/
   audio/sound.js     synthesised SFX and generative music
   ui/hud.js          menu, lobby, player cards, prompts, tooltips, results
   ui/history.js      the history window: stats, the chart, achievements, the list of games, a game's final scores and review
+  ui/badges.js       a badge for each achievement, drawn in SVG on a medal in its group's metal
   ui/replay.js       a game played back in the history window, move by move
   ui/review.js       runs the coach's review, one position at a time, saving each grade as it lands
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed

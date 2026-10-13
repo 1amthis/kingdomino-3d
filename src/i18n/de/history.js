@@ -163,8 +163,6 @@ export default {
   'The history is empty.': 'Der Verlauf ist leer.',
 
   // after a game
-  '{who}’s first win over the Expert!': 'Erster Sieg von {who} gegen den Experten!',
-  'Your first win over the Expert!': 'Dein erster Sieg gegen den Experten!',
   'New personal best for {who}: <b>{n}</b> points <i>(before: {before})</i>': 'Neuer persönlicher Rekord für {who}: <b>{n}</b> Punkte <i>(vorher: {before})</i>',
   'New personal best: <b>{n}</b> points <i>(before: {before})</i>': 'Neuer persönlicher Rekord: <b>{n}</b> Punkte <i>(vorher: {before})</i>',
 

@@ -175,12 +175,12 @@ test('the coach stats weigh every move once, and compare the last five games wit
   assert.equal(d.earlier.games, 2);
 });
 
-test('highlights: a new personal best, and a first win over the Expert', () => {
+test('highlights: a new personal best', () => {
   const past = [game([['You', 'here', 2, 50], ['A', 'expert', 1, 55]]), game([['You', 'here', 1, 48], ['B', 'hard', 2, 20]])];
   const first = game([['Mia', 'here', 1, 30], ['A', 'normal', 2, 20]]);
   assert.deepEqual(highlights([], first), [], 'no best on a first game');
   const win = game([['You', 'here', 1, 51], ['A', 'expert', 2, 49]]);
-  assert.deepEqual(highlights([...past, win], win), [{ type: 'expert', name: 'You' }, { type: 'best', name: 'You', total: 51, previous: 50 }]);
+  assert.deepEqual(highlights([...past, win], win), [{ type: 'best', name: 'You', total: 51, previous: 50 }], 'a win over the Expert is an achievement, not a highlight');
   const again = game([['You', 'here', 1, 40], ['A', 'expert', 2, 39]]);
-  assert.deepEqual(highlights([...past, win, again], again), [], 'only the first win over the Expert stands out');
+  assert.deepEqual(highlights([...past, win, again], again), []);
 });
