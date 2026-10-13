@@ -219,6 +219,14 @@ export function dynastyOf(records, id) {
   };
 }
 
+// A dynasty played out to the end, as the seat `me` of its last game `r` finished it: 'won' (a shared
+// first place counts) or 'lost'; null when r is not the last game of a dynasty the history holds whole.
+export function dynastyResult(records, r, me) {
+  const d = r.dynasty && r.dynasty.game === GAMES && dynastyOf(records, r.dynasty.id);
+  if (!d || !d.complete || d.games[GAMES - 1] !== r) return null;
+  return d.standings.find((row) => row.seat === r.players.indexOf(me)).place === 1 ? 'won' : 'lost';
+}
+
 // ---------- stats ----------
 // The menu calls the player "You", and a host's "You" becomes "Host": both are the same person.
 export const profileName = (name) => (/^(you|host)$/i.test(String(name).trim()) ? 'You' : String(name).trim());
@@ -240,7 +248,7 @@ export function profiles(records) {
 }
 
 // This person's games, oldest first: [{ r: record, me: their seat in it }]
-function gamesOf(records, name) {
+export function gamesOf(records, name) {
   const key = profileKey(name);
   return records
     .map((r) => ({ r, me: r.players.find((p) => p.kind === 'here' && profileKey(p.name) === key) }))
@@ -254,7 +262,7 @@ const tallyEntry = () => ({ games: 0, won: 0, lost: 0, tied: 0 });
 const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
 // The coach's verdict on this person's play in a game: the coach's at the table, or a review's after.
-const verdictOf = (g) => g.r.verdict || g.me.verdict || null;
+export const verdictOf = (g) => g.r.verdict || g.me.verdict || null;
 
 // Points lost per move over some coached games, each move counting once.
 function coachLoss(games) {
@@ -295,13 +303,11 @@ export function statsFor(records, name) {
       if (!richest || size * crowns > richest.score) richest = { terrain, size, crowns, score: size * crowns, end: r.end, id: r.id };
     }
   }
-  // the dynasties played out to the end, and won (a shared first place counts), from the last game's seat
   const dynasties = { won: 0, of: 0 };
   for (const { r, me } of games) {
-    const d = r.dynasty && r.dynasty.game === GAMES && dynastyOf(records, r.dynasty.id);
-    if (!d || !d.complete || d.games[GAMES - 1] !== r) continue;
-    dynasties.of++;
-    if (d.standings.find((row) => row.seat === r.players.indexOf(me)).place === 1) dynasties.won++;
+    const result = dynastyResult(records, r, me);
+    if (result) dynasties.of++;
+    if (result === 'won') dynasties.won++;
   }
   const bonus = (rule, field) => {
     const on = games.filter((g) => g.r.rules[rule]);

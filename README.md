@@ -159,7 +159,16 @@ Every finished game is kept in your browser, and **History** in the main menu sh
   verdict and the turning points; open one and the replay jumps there, with what the Expert would have done drawn
   in blue. The grades are saved with the game (a review stopped halfway carries on later), and reviewed games count
   in the coach's stats.
-- The results card says when a game sets a **personal best** or is a **first win over the Expert**.
+- **Achievements**: 24 of them, in four groups. *Victories* (beat the Expert, win against every level, a Mighty
+  Duel, a Dynasty, three wins in a row, a win by a single point…), *Kingdoms* (60 and 80 points, a property worth 30,
+  12 crowns, all six terrains scoring, every square filled with the castle in the middle…), *Mastery* (a game the
+  coach grades without a Mistake or Blunder, under a point lost per move) and *The long road* (10, 50 and 100 games,
+  25 wins). Each one earned opens the game that earned it; the others show how far along they are.
+- The results card says when a game sets a **personal best**, is a **first win over the Expert**, or earns
+  **achievements**.
+
+Achievements are not stored on their own: they are read from the games in the history, so the games played before
+they existed count too, an imported history brings its achievements with it, and clearing the history clears them.
 
 There is no server and no account: the history lives in this browser only (`localStorage`). Clearing the site's
 data or using a private window loses it, and other devices don't see it. **Export** saves it as a file, and
@@ -324,6 +333,7 @@ src/
   core/ai.js         heuristic AI: evaluates kingdoms (crowns, open frontiers, dead cells, bonuses)
   core/coach.js      the coach's grades: points given up against the Expert's move, a game's tally
   core/history.js    the game history: each finished game as a record, the log in localStorage, export/import, stats
+  core/achievements.js the achievements, each read from a person's games in the history, and the ones a game earned
   core/moves.js      a game's moves as short strings (they replay it with its seed), the game in progress saved
   core/table.js      the game flow with the rules alone (deal, draft, place and pick), as a generator of decisions
   core/replay.js     a recorded game played back: the table after every move, the position before every decision
@@ -343,7 +353,7 @@ src/
   gfx/textures.js    canvas-painted wood, felt, tile backs, water normals
   audio/sound.js     synthesised SFX and generative music
   ui/hud.js          menu, lobby, player cards, prompts, tooltips, results
-  ui/history.js      the history window: stats, the chart, the list of games, a game's final scores and review
+  ui/history.js      the history window: stats, the chart, achievements, the list of games, a game's final scores and review
   ui/replay.js       a game played back in the history window, move by move
   ui/review.js       runs the coach's review, one position at a time, saving each grade as it lands
   net/online.js      online tables: host/guest sessions over PeerJS, move relay, shared deal seed
@@ -362,6 +372,7 @@ tests/
   history.test.js    records read back unchanged, imports are checked and merged once, stats count each side right
   moves.test.js      moves replay a game exactly; a record that doesn't fit its deal, or a broken save, is refused
   replay.test.js     a record plays back to the kingdoms it ended with; the review sees the positions the Expert saw
+  achievements.test.js each achievement is earned by the right game, from the right seat; a new game says what it earned
   dynasty.test.js    three games add up, ties break as in one game; it travels saved and online; the history groups it
   skin.test.js       Halloween comes with October; a pick holds for its season, then the season decides again
 ```
