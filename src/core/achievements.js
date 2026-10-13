@@ -7,11 +7,14 @@ import { decodeMap, gamesOf, verdictOf, dynastyResult, profileName, AI_LEVELS } 
 const won = (me) => me.place === 1;
 // won, and ahead of an opponent of this kind (one who stayed to the end)
 const beat = (r, me, kind) => won(me) && r.players.some((o) => o !== me && o.kind === kind && !o.left && o.place > me.place);
+// A 5×5 kingdom: the Mighty Duel's 7×7 one scores twice as much, and would hand out the kingdoms' feats.
+const small = (r) => !r.rules.mightyDuel;
 // the whole kingdom filled: 5×5, or 7×7 in the Mighty Duel
 function fullKingdom(r, me) {
   const n = r.rules.mightyDuel ? 7 : 5, grid = decodeMap(me.map);
   return grid.length === n && grid.every((row) => row.length === n && row.every(Boolean));
 }
+const sixTerrains = (me) => new Set(me.props.map(([terrain]) => terrain)).size === 6;
 const centred = (r, me) => { const grid = decodeMap(me.map), mid = grid.length >> 1; return !!grid[mid] && !!grid[mid][mid] && grid[mid][mid].terrain === 'castle'; };
 // the coach graded the whole game (or nearly: it could be turned on after the first moves)
 const graded = (g) => { const v = verdictOf(g); return v && v.decisions >= 20 ? v : null; };
@@ -60,14 +63,18 @@ export const ACHIEVEMENTS = [
   },
   { id: 'among-friends', group: 'victories', name: 'Among Friends', text: 'Win an online game against a friend.', earn: once(({ r, me }) => !!r.online && beat(r, me, 'friend')) },
 
-  { id: 'score-60', group: 'kingdoms', name: 'Prosperity', text: 'Score 60 points in a game.', earn: once(({ me }) => me.total >= 60) },
-  { id: 'score-80', group: 'kingdoms', name: 'Golden Age', text: 'Score 80 points in a game.', earn: once(({ me }) => me.total >= 80) },
-  { id: 'jewel', group: 'kingdoms', name: 'Crown Jewel', text: 'Build a single property worth 30 points.', earn: once(({ me }) => me.props.some(([, size, crowns]) => size * crowns >= 30)) },
-  { id: 'crowns-12', group: 'kingdoms', name: 'Crown Collector', text: 'Gather 12 crowns in one kingdom.', earn: once(({ me }) => me.crowns >= 12) },
-  { id: 'vast', group: 'kingdoms', name: 'Vast Domain', text: 'Build a property of 10 squares.', earn: once(({ me }) => me.largest >= 10) },
-  { id: 'six-terrains', group: 'kingdoms', name: 'Six Realms', text: 'Score with all six terrains in one kingdom.', earn: once(({ me }) => new Set(me.props.map(([terrain]) => terrain)).size === 6) },
-  { id: 'full', group: 'kingdoms', name: 'Not a Square to Spare', text: 'Fill every square of your kingdom.', earn: once(({ r, me }) => fullKingdom(r, me)) },
-  { id: 'flawless', group: 'kingdoms', name: 'Flawless Realm', text: 'Fill every square of your kingdom, with your castle in the middle.', earn: once(({ r, me }) => fullKingdom(r, me) && centred(r, me)) },
+  // How often the Expert gets each one in 5×5 games against Hard, with 2 and with 4 players (240 and 160
+  // games of scripts/headless.js, 500 simulations a move): a strong player's odds, roughly. 70 points 0.4% and 14%, 80 points 0% and 0.6%, a property of 40 2%
+  // and 13%, 13 crowns 4% and 0.6%, a property of 11 squares 2% and 8%, six terrains 11% and 4%, the
+  // flawless realm 8% and 3%; every square of a Mighty Duel filled, 17%.
+  { id: 'score-70', group: 'kingdoms', name: 'Prosperity', text: 'Score 70 points in a 5×5 kingdom.', earn: once(({ r, me }) => small(r) && me.total >= 70) },
+  { id: 'score-80', group: 'kingdoms', name: 'Golden Age', text: 'Score 80 points in a 5×5 kingdom.', earn: once(({ r, me }) => small(r) && me.total >= 80) },
+  { id: 'jewel', group: 'kingdoms', name: 'Crown Jewel', text: 'Build a single property worth 40 points in a 5×5 kingdom.', earn: once(({ r, me }) => small(r) && me.props.some(([, size, crowns]) => size * crowns >= 40)) },
+  { id: 'crowns-13', group: 'kingdoms', name: 'Crown Collector', text: 'Gather 13 crowns in a 5×5 kingdom.', earn: once(({ r, me }) => small(r) && me.crowns >= 13) },
+  { id: 'vast', group: 'kingdoms', name: 'Vast Domain', text: 'Build a property of 11 squares in a 5×5 kingdom.', earn: once(({ r, me }) => small(r) && me.largest >= 11) },
+  { id: 'six-terrains', group: 'kingdoms', name: 'Six Realms', text: 'Score with all six terrains in a 5×5 kingdom.', earn: once(({ r, me }) => small(r) && sixTerrains(me)) },
+  { id: 'full', group: 'kingdoms', name: 'Not a Square to Spare', text: 'Fill all 49 squares of a Mighty Duel kingdom.', earn: once(({ r, me }) => !small(r) && fullKingdom(r, me)) },
+  { id: 'flawless', group: 'kingdoms', name: 'Flawless Realm', text: 'Fill every square of a 5×5 kingdom, castle in the middle, scoring with all six terrains.', earn: once(({ r, me }) => small(r) && fullKingdom(r, me) && centred(r, me) && sixTerrains(me)) },
 
   { id: 'steady', group: 'mastery', name: 'Steady Hand', text: 'Play a game the coach grades without a single Mistake or Blunder.', earn: once((g) => { const v = graded(g); return !!v && !v.counts.Mistake && !v.counts.Blunder; }) },
   { id: 'sharp', group: 'mastery', name: 'The Expert’s Eye', text: 'Play a game the coach grades with under 1 point lost per move.', earn: once((g) => { const v = graded(g); return !!v && v.loss < 1; }) },

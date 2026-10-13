@@ -16,12 +16,13 @@ const star = (cx, cy, r) => {
 const sword = (angle) => `<g transform="rotate(${angle} 12 12)"><path d="M11.1 1.5h1.8l.6 13.5h-3z"/><rect x="7.6" y="15" width="8.8" height="1.9" rx=".9"/><rect x="11.1" y="16.9" width="1.8" height="3.6"/><circle cx="12" cy="21.6" r="1.3"/></g>`;
 const shield = (x, y) => `<path transform="translate(${x} ${y})" d="M0 0h9v5c0 3-2.2 4.6-4.5 5.5C2.2 9.6 0 8 0 5z"/>`;
 const CASTLE = '<path d="M3 22V9h3v3h3V9h6v3h3V9h3v13h-7v-4.5a2 2 0 0 0-4 0V22z"/><rect x="11.4" y="1.5" width="1.2" height="7.5"/><path d="M12.6 1.5l4.4 1.8-4.4 1.8z"/>';
-// the kingdom as a 5×5 grid of squares; centre: its middle given over to a castle
-const grid = (centre) => {
+// a kingdom as an n×n grid of squares; centre: its middle given over to a castle
+const grid = (n, centre) => {
   let out = '';
-  for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) {
-    if (centre && x > 0 && x < 4 && y > 0 && y < 4) continue;
-    out += `<rect x="${2 + x * 4.1}" y="${2 + y * 4.1}" width="3.5" height="3.5" rx=".7"/>`;
+  const step = 20.5 / n, size = step * 0.85;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (centre && x > 0 && x < n - 1 && y > 0 && y < n - 1) continue;
+    out += `<rect x="${(2 + x * step).toFixed(2)}" y="${(2 + y * step).toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${(size / 5).toFixed(2)}"/>`;
   }
   return centre ? `${out}<g transform="translate(12 12) scale(.5) translate(-12 -11.8)">${CASTLE}</g>` : out;
 };
@@ -52,14 +53,14 @@ const PICTURES = {
   'hat-trick': star(5, 14, 4.2) + star(12, 9, 4.6) + star(19, 14, 4.2),
   'photo-finish': checkered(),
   'among-friends': '<g opacity=".65"><circle cx="16" cy="7.5" r="3.4"/><path d="M9.5 21c0-4.4 2.9-7.6 6.5-7.6s6.5 3.2 6.5 7.6z"/></g><circle cx="8.5" cy="8" r="3.6"/><path d="M1.5 21.5c0-4.6 3.1-8 7-8s7 3.4 7 8z"/>',
-  'score-60': wheat(),
+  'score-70': wheat(),
   'score-80': sun(),
   jewel: `<path d="M7 3h10l4.5 6L12 21.5 2.5 9z"/><path ${CUT} d="M2.5 9h19M9.5 3 7.6 9 12 21.5 16.4 9 14.5 3" fill="none" stroke-width="1" stroke-linejoin="round"/>`,
-  'crowns-12': `<path d="M8 7V3.5l2 1.6L12 2.5l2 2.6 2-1.6V7z"/><path d="M3 12v-2c0-1.9 1.6-3 3.5-3h11c1.9 0 3.5 1.1 3.5 3v2z"/><rect x="3" y="13" width="18" height="8.5" rx="1.2"/><rect ${CUT} x="10.5" y="11" width="3" height="4" rx=".6"/>`,
+  'crowns-13': `<path d="M8 7V3.5l2 1.6L12 2.5l2 2.6 2-1.6V7z"/><path d="M3 12v-2c0-1.9 1.6-3 3.5-3h11c1.9 0 3.5 1.1 3.5 3v2z"/><rect x="3" y="13" width="18" height="8.5" rx="1.2"/><rect ${CUT} x="10.5" y="11" width="3" height="4" rx=".6"/>`,
   vast: '<path d="M1 21l7.5-12 4 6.2 3-4.4L23 21z"/><circle cx="18" cy="5.5" r="2.5"/>',
   'six-terrains': hexagon(),
-  full: grid(false),
-  flawless: grid(true),
+  full: grid(7, false),
+  flawless: grid(5, true),
   steady: `<path d="M12 1.5l8.5 3.2v6.1c0 5.3-3.6 9.4-8.5 11.7-4.9-2.3-8.5-6.4-8.5-11.7V4.7z"/><path ${CUT} d="M7.6 12l3.2 3.2 5.6-6.4" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   sharp: `<path d="M1 12c3-5.5 7-8 11-8s8 2.5 11 8c-3 5.5-7 8-11 8S4 17.5 1 12z"/><circle ${CUT} cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="2.2"/>`,
   student: `<path d="M12 6C9.5 4.3 6 4 2 4.5V19c4-.5 7.5-.2 10 1.5 2.5-1.7 6-2 10-1.5V4.5C18 4 14.5 4.3 12 6z"/><path ${CUT} d="M12 6v14.5" fill="none" stroke-width="1"/>`,
