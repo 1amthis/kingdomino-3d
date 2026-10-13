@@ -7,6 +7,7 @@ import { Sound } from './audio/sound.js';
 import { Hud } from './ui/hud.js';
 import { HistoryView } from './ui/history.js';
 import { GameLog } from './core/history.js';
+import { achievementsFor } from './core/achievements.js';
 import { SavedGame } from './core/moves.js';
 import { isOver, nextDynasty } from './core/dynasty.js';
 import { Controller, ReplayError } from './game/controller.js';
@@ -102,6 +103,8 @@ async function main() {
   try { storage = window.localStorage; } catch { /* blocked */ }
   const log = new GameLog(storage);
   const history = new HistoryView(hud, log);
+  // the achievements that stand as trophies beside the mats of the people at this screen
+  ctl.achievementsOf = (name) => achievementsFor(log.all(), name);
   // An offline game in progress is saved after every move, so a reload (or a phone closing the tab
   // while it was in the background) picks it up again where it was. It goes once the game ends or is quit.
   const ongoing = new SavedGame(storage);
