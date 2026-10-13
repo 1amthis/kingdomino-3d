@@ -565,6 +565,34 @@ kbd { font-family: var(--caps); font-size: 11px; padding: 2px 6px; border-radius
 .hg-dyn:hover, .hg-dyn:focus-visible { color: var(--ink); outline: none; }
 .hg-dyn-name { font-family: var(--caps); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
 .hg-row.in-dyn { width: calc(100% - 14px); margin-left: 14px; border-left: 3px solid rgba(240, 199, 94, 0.45); }
+
+/* achievements: a medal each, gilded once earned (it then opens the game that earned it) */
+.ach-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 4px 10px; margin-bottom: 4px; }
+.ach-head b { font-family: var(--deco); font-weight: 900; font-size: 30px; line-height: 1; color: var(--gold-hi); text-shadow: 0 0 14px rgba(255, 200, 90, 0.3); }
+.ach-head > span:not(.ach-bar) { font-family: var(--caps); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); }
+.ach-head .ach-bar { grid-column: 1 / -1; height: 6px; }
+.ach-bar { display: block; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.ach-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.ach { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; padding: 9px 12px 9px 9px; border-radius: 12px; text-align: left;
+  font: inherit; color: var(--ink-dim); background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(240, 199, 94, 0.16); }
+.ach-medal { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(240, 199, 94, 0.18); }
+.ach-medal .crown-ico { width: 22px; height: 17px; fill: rgba(240, 199, 94, 0.22); vertical-align: 0; }
+.ach-text { display: flex; flex-direction: column; min-width: 0; }
+.ach-text b { font-family: var(--caps); font-size: 14px; letter-spacing: 0.5px; color: var(--ink-dim); }
+.ach-text > span { font-size: 14px; line-height: 1.3; font-style: italic; }
+.ach-text small { margin-top: 3px; font-family: var(--caps); font-size: 11px; letter-spacing: 1px; color: var(--ink-dim); }
+.ach-progress { display: flex; align-items: center; gap: 8px; }
+.ach-progress .ach-bar { flex: 1; max-width: 120px; }
+.ach.done { cursor: pointer; color: var(--ink); background: rgba(240, 199, 94, 0.07); border: 1px solid rgba(240, 199, 94, 0.35); }
+.ach.done:hover, .ach.done:focus-visible { background: rgba(240, 199, 94, 0.13); border-color: rgba(240, 199, 94, 0.6); outline: none; }
+.ach.done .ach-medal { background: radial-gradient(circle at 35% 30%, #fff1c0, var(--gold) 45%, var(--gold-deep)); border-color: #f7d77a; box-shadow: 0 0 12px rgba(255, 200, 90, 0.35); }
+.ach.done .ach-medal .crown-ico { fill: #3a2604; }
+.ach.done .ach-text b { color: var(--gold-hi); }
+.ach.done .ach-text small { color: var(--gold); }
+/* on the results card */
+.note-ach { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.note-ach .crown-ico { flex: none; width: 18px; height: 14px; }
 .hd-head { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 12px; }
 .hd-title { font-family: var(--caps); font-weight: 700; font-size: 18px; color: var(--gold-hi); }
 .hd-meta { font-style: italic; font-size: 15px; color: var(--ink-dim); }

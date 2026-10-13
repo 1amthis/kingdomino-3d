@@ -4,6 +4,7 @@
 import { TERRAIN_INFO } from '../core/rules.js';
 import { decodeMap, profiles, statsFor, parseExport, highlights, dynastyOf } from '../core/history.js';
 import { GAMES } from '../core/dynasty.js';
+import { achievementsFor, newAchievements, GROUPS } from '../core/achievements.js';
 import { replayable, replayRecord } from '../core/replay.js';
 import { reviewedSeats, reviewPlan, reviewVerdicts, gradeOf, isPoor } from '../core/review.js';
 import { ReplayView } from './replay.js';
@@ -140,7 +141,7 @@ export class HistoryView {
     this.body.innerHTML = !records.length ? this.empty()
       : this.replay ? this.replayHead(game) + this.replay.html()
         : game ? this.gameView(game)
-          : this.tab === 'stats' ? this.statsView(records) : this.listView(records);
+          : this.tab === 'stats' ? this.statsView(records) : this.tab === 'feats' ? this.featsView(records) : this.listView(records);
     this.body.scrollTop = 0;
     if (this.replay) this.replay.mount(this.body);
     this.wireChart();
@@ -176,15 +177,24 @@ export class HistoryView {
   }
 
   // ---------- stats ----------
-  statsView(records) {
+  // The people who played at this screen, and a picker between them when there are several (the same
+  // person stays picked from tab to tab); null when only the computer has played.
+  people(records, label) {
     const people = profiles(records);
-    if (!people.length) return `<div class="h-empty"><p>${t('Stats follow the people who play at this screen. So far, only the computer has played.')}</p></div>`;
+    if (!people.length) return null;
     if (!people.some((p) => p.name === this.profile)) this.profile = people[0].name;
-    const s = statsFor(records, this.profile);
-    const you = isYou(s.name);
     const picker = people.length > 1
-      ? `<div class="h-who"><span>${t('Stats for')}</span><div class="seg">${people.map((p) => `<button data-profile="${esc(p.name)}" class="${p.name === s.name ? 'on' : ''}">${esc(nameOf(p.name))}</button>`).join('')}</div></div>`
+      ? `<div class="h-who"><span>${label}</span><div class="seg">${people.map((p) => `<button data-profile="${esc(p.name)}" class="${p.name === this.profile ? 'on' : ''}">${esc(nameOf(p.name))}</button>`).join('')}</div></div>`
       : '';
+    return { picker, name: this.profile };
+  }
+
+  statsView(records) {
+    const who = this.people(records, t('Stats for'));
+    if (!who) return `<div class="h-empty"><p>${t('Stats follow the people who play at this screen. So far, only the computer has played.')}</p></div>`;
+    const { picker } = who;
+    const s = statsFor(records, who.name);
+    const you = isYou(s.name);
     const tiles = [
       [s.games, tn(s.games, 'Game', 'Games'), s.games > 1 ? t('since {date}', { date: when(s.first, { time: false }) }) : ''],
       [s.wins, tn(s.wins, 'Win', 'Wins'), t('{pct} of games', { pct: pct(s.winRate) })],
@@ -277,6 +287,28 @@ export class HistoryView {
     }
     const over = t('Over {games} ({moves}).', { games: tn(c.games, '{n} graded game', '{n} graded games'), moves: tn(c.decisions, '{n} move', '{n} moves') });
     return section(t('The coach'), `${verdict(c)}<p class="h-hint">${over}</p>${trend}`);
+  }
+
+  // ---------- achievements ----------
+  // Each group's achievements as medals: the ones earned open the game that earned them, the others
+  // show what they ask (and how far along it is, for the ones that take several games).
+  featsView(records) {
+    const who = this.people(records, t('Achievements of'));
+    if (!who) return `<div class="h-empty"><p>${t('Achievements follow the people who play at this screen. So far, only the computer has played.')}</p></div>`;
+    const all = achievementsFor(records, who.name), done = all.filter((a) => a.done).length;
+    const medal = (a) => {
+      const text = `<span class="ach-text"><b>${t(a.name)}</b><span>${t(a.text)}</span>${a.done ? `<small>${when(a.game.end, { time: false })}</small>`
+        : a.need > 1 ? `<small class="ach-progress"><span class="ach-bar"><i style="width:${(a.have / a.need) * 100}%"></i></span>${a.have} / ${a.need}</small>` : ''}</span>`;
+      const icon = `<span class="ach-medal" aria-hidden="true">${CROWN_SVG}</span>`;
+      return a.done
+        ? `<button type="button" class="ach done" data-game="${a.game.id}" title="${t('Open the game that earned it')}">${icon}${text}</button>`
+        : `<div class="ach">${icon}${text}</div>`;
+    };
+    const titles = { victories: t('Victories'), kingdoms: t('Kingdoms'), mastery: t('Mastery'), journey: t('The long road') };
+    const groups = GROUPS.map((g) => section(titles[g], `<div class="ach-grid">${all.filter((a) => a.group === g).map(medal).join('')}</div>`)).join('');
+    return `${who.picker}<div class="ach-head"><b>${done}</b><span>${tn(all.length, 'of {n} achievement earned', 'of {n} achievements earned')}</span>
+        <span class="ach-bar"><i style="width:${(done / all.length) * 100}%"></i></span></div>
+      ${groups}<p class="h-hint">${t('Achievements are read from the games kept in this browser: the games played before count too, and an imported history brings its own.')}</p>`;
   }
 
   // ---------- games ----------
@@ -470,16 +502,25 @@ export class HistoryView {
   }
 
   // ---------- after a game ----------
-  // What the results card says about the game just saved: a personal best, a first win over the Expert.
+  // What the results card says about the game just saved: a personal best, a first win over the Expert,
+  // the achievements it earned.
   note(record) {
     const here = record.players.filter((p) => p.kind === 'here').length;
-    return highlights(this.log.all(), record).map((h) => {
+    const records = this.log.all();
+    const feats = newAchievements(records, record).map(({ name, earned }) => {
+      const who = here > 1 || !isYou(name) ? esc(nameOf(name)) : '';
+      const names = listOf(earned.map((a) => `<b>${t(a.name)}</b>`));
+      const text = who ? tn(earned.length, '{who} earns an achievement: {names}', '{who} earns {n} achievements: {names}', { who, names })
+        : tn(earned.length, 'Achievement earned: {names}', '{n} achievements earned: {names}', { names });
+      return `<div class="note-ach">${CROWN_SVG}<span>${text}</span></div>`;
+    }).join('');
+    return highlights(records, record).map((h) => {
       const who = here > 1 || !isYou(h.name) ? esc(nameOf(h.name)) : '';
       const vars = { who, n: h.total, before: h.previous };
       return h.type === 'expert'
         ? `<div>${who ? t('{who}’s first win over the Expert!', vars) : t('Your first win over the Expert!')}</div>`
         : `<div>${who ? t('New personal best for {who}: <b>{n}</b> points <i>(before: {before})</i>', vars) : t('New personal best: <b>{n}</b> points <i>(before: {before})</i>', vars)}</div>`;
-    }).join('');
+    }).join('') + feats;
   }
 }
 
