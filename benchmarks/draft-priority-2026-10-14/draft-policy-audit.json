@@ -1,0 +1,54 @@
+{
+  "standard": {
+    "games": 200,
+    "old": {
+      "drafts": 2400,
+      "duplicateChoices": 85,
+      "laterCopies": 29
+    },
+    "new": {
+      "drafts": 2400,
+      "duplicateChoices": 85,
+      "laterCopies": 0
+    }
+  },
+  "bonuses": {
+    "games": 200,
+    "old": {
+      "drafts": 2400,
+      "duplicateChoices": 82,
+      "laterCopies": 29
+    },
+    "new": {
+      "drafts": 2400,
+      "duplicateChoices": 78,
+      "laterCopies": 0
+    }
+  },
+  "duel": {
+    "games": 40,
+    "old": {
+      "drafts": 960,
+      "duplicateChoices": 38,
+      "laterCopies": 13
+    },
+    "new": {
+      "drafts": 960,
+      "duplicateChoices": 38,
+      "laterCopies": 0
+    }
+  },
+  "three": {
+    "games": 120,
+    "old": {
+      "drafts": 1440,
+      "duplicateChoices": 66,
+      "laterCopies": 31
+    },
+    "new": {
+      "drafts": 1440,
+      "duplicateChoices": 65,
+      "laterCopies": 0
+    }
+  }
+}
