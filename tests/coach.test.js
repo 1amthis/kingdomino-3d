@@ -22,6 +22,67 @@ const analyse = (table, budget = { sims: 400, ms: 2000, min: 8 }) => {
   return { game, a: analysisOut(game, new Search({ seed: 7 }).analyse(game, budget)) };
 };
 
+// A lake-outward opening based on the report, with an opponent already on the board.
+// The unseen domino in a three-player opening is discarded; a duel holds all four slots.
+function lakeOpening(size) {
+  const duel = size === 7;
+  return { size, middle: true, harmony: true, phase: 'place', idx: 1, left: 40,
+    kingdoms: [{ placements: [], discards: 0 }, { placements: [{ id: 12, x: 1, y: -1, rot: 1 }], discards: 0 },
+      ...(duel ? [] : [{ placements: [], discards: 0 }])],
+    line: duel ? [12, 32, 40, 48] : [12, 32, 40], own: duel ? [1, 0, 0, 1] : [1, 0, 2],
+    nextLine: [16, 17, 26, 38], nextOwn: [-1, -1, -1, 1], seen: [12, duel ? 48 : 13, 32, 40, 16, 17, 26, 38] };
+}
+
+for (const size of [5, 7]) {
+  test(`rotated and reflected openings share statistics and grades on a ${size}×${size} kingdom`, () => {
+    const table = lakeOpening(size), d = dominoById(32);
+    // Straight out, with the crowned lake furthest from the castle, in each direction.
+    const out = [{ x: -2, y: 0, rot: 0 }, { x: 0, y: 2, rot: 3 }, { x: 2, y: 0, rot: 2 }, { x: 0, y: -2, rot: 1 }];
+    // Alongside the castle, lake on the corner: four rotations and their reflections.
+    const side = [{ x: 1, y: 1, rot: 3 }, { x: -1, y: 1, rot: 0 }, { x: -1, y: -1, rot: 1 }, { x: 1, y: -1, rot: 2 },
+      { x: -1, y: 1, rot: 3 }, { x: 1, y: 1, rot: 2 }, { x: 1, y: -1, rot: 1 }, { x: -1, y: -1, rot: 0 }];
+    for (const seed of [7, 23]) {
+      const game = gameFrom(table);
+      const raw = new Search({ seed }).analyse(game, { sims: 300, ms: 1e9, min: 12 });
+      const a = analysisOut(game, raw);
+      assert.equal(a.moves.length, game.legal(0).length, 'every physical placement is still reported');
+      for (const orbit of [out, side]) {
+        const verdicts = orbit.map((move) => judge(a, move, d));
+        const first = verdicts[0];
+        for (const v of verdicts) {
+          assert.ok(v && v.stats.visits >= 12);
+          for (const key of ['visits', 'value', 'win', 'ev']) assert.equal(v.stats[key], first.stats[key], key);
+          assert.equal(v.grade, first.grade);
+          assert.equal(v.loss, first.loss);
+        }
+      }
+      // Visits are shared evidence, not a separate simulation for each displayed orientation.
+      const representatives = [...game.moveGroups(game.legal(0)).keys()];
+      assert.equal(representatives.length, 4, 'lake-in/out and straight/alongside stay distinct');
+      assert.equal(representatives.reduce((n, m) => n + raw.moves.find((s) => s.move === m).visits, 0), raw.sims);
+      for (const m of a.moves) {
+        if (m.visits === a.moves[0].visits && m.ev === a.moves[0].ev) assert.equal(judge(a, m.move, d).loss, 0);
+      }
+    }
+  });
+}
+
+test('a single symmetry class is still analysed and gives every placement Best', () => {
+  const table = lakeOpening(5);
+  table.kingdoms[0].placements = [{ id: 3, x: 1, y: 0, rot: 0 }];
+  const game = gameFrom(table), moves = game.legal(0);
+  const group = [...game.moveGroups(moves).values()].find((g) => g.length > 1);
+  // A constrained root as used by scripts/study.js: several spots, all the same decision.
+  game.legal = () => group;
+  const a = analysisOut(game, new Search({ seed: 7 }).analyse(game, { sims: 0, ms: 1e9, min: 12 }));
+  assert.equal(a.sims, 12, 'minimum sampling is per class');
+  assert.equal(a.moves.length, group.length);
+  for (const m of a.moves) {
+    assert.equal(m.visits, 12);
+    assert.equal(judge(a, m.move, dominoById(32)).grade, 'Best');
+  }
+});
+
 test('the analysis covers every legal move once, best first, with sound numbers', () => {
   for (const setup of [{ types: ['expert', 'hard'], seed: 3 }, { types: ['expert', 'hard', 'normal'], seed: 4, middleKingdom: true }]) {
     for (const { table } of positions(setup)) {
