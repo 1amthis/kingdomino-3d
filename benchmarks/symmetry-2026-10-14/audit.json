@@ -1,0 +1,51 @@
+{
+  "reason": "Final audit found six missing append records; reran exactly the affected deals with the same source revisions, seats, search seeds and budgets. Existing game histories must match exactly. Recovered records are excluded from timing estimates.",
+  "modes": {
+    "duel": {
+      "restoredKeys": [
+        [
+          3000001,
+          0,
+          1
+        ],
+        [
+          3000045,
+          0,
+          1
+        ]
+      ],
+      "existingHistoriesReproducedExactly": 2,
+      "games": 100,
+      "wins": 64,
+      "totalLead": 232
+    },
+    "three": {
+      "restoredKeys": [
+        [
+          4000007,
+          1,
+          2
+        ],
+        [
+          4000008,
+          0,
+          1
+        ],
+        [
+          4000008,
+          0,
+          2
+        ],
+        [
+          4000019,
+          1,
+          0
+        ]
+      ],
+      "existingHistoriesReproducedExactly": 14,
+      "games": 120,
+      "wins": 68,
+      "totalLead": 199
+    }
+  }
+}
