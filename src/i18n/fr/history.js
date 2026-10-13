@@ -268,4 +268,8 @@ export default {
   'Play 100 games.': 'Jouer 100 parties.',
   'Conqueror': 'Conquérant',
   'Win 25 games.': 'Gagner 25 parties.',
+
+  // trophies on the table
+  'New on your table': 'Nouveau sur votre table',
+  'New on {who}’s table': 'Nouveau sur la table de {who}',
 };

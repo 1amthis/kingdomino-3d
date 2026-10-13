@@ -166,6 +166,13 @@ Every finished game is kept in your browser, and **History** in the main menu sh
   25 wins). Each has its own badge, on a medal in its group's metal (gold, emerald, sapphire, bronze); a badge not
   yet earned shows faintly, with how far along it is. Each one earned opens the game that earned it.
 - The results card says when a game sets a **personal best** or earns **achievements**, each with its badge.
+- **Trophies on the table**: sixteen of the achievements stand beside the mat of whoever earned them, on their
+  right, from the first game they sit down to: a crown on a velvet cushion, a sword in a rock (Giant Slayer), a shield
+  in their colours with crossed swords (Mighty Duellist), a banner in their colour (Dynasty), a golden laurel, two
+  tankards, stacks of gold, a great ruby turning on its stand, a chest spilling gold, a hexagon of the six terrains, a
+  golden castle, a spyglass, a pile of books, a goblet, a marble column and a golden cup. A trophy a game has just
+  earned drops onto the table after the fireworks, and hovering one says what it was won for. Only the people at
+  this screen have theirs out: they come from this browser's history.
 
 Achievements are not stored on their own: they are read from the games in the history, so the games played before
 they existed count too, an imported history brings its achievements with it, and clearing the history clears them.
@@ -349,6 +356,7 @@ src/
   gfx/pieces.js      crowns, castles, kings, candles, trinkets
   gfx/table.js       table, mats, drafting board, chest
   gfx/effects.js     dust, sparkles, fireworks, confetti
+  gfx/trophies.js    the achievements that stand on the table as trophies, and where they stand beside a mat
   gfx/materials.js   shared materials, wind sway and night-glow shader hooks
   gfx/textures.js    canvas-painted wood, felt, tile backs, water normals
   audio/sound.js     synthesised SFX and generative music

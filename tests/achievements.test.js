@@ -143,3 +143,22 @@ test('a real game reads the same', () => {
   assert.equal(get(list, 'full').done, players[0].kingdom.cells.size === 25);
   assert.equal(get(list, 'crowns-12').done, mine.crowns >= 12);
 });
+
+test('trophies: each stands for an achievement, beside the mat, none on top of another', async () => {
+  const { TROPHIES, trophyLayout } = await import('../src/gfx/trophies.js');
+  const ids = Object.keys(TROPHIES);
+  for (const id of ids) assert.ok(ACHIEVEMENTS.some((a) => a.id === id), id);
+  for (const matSize of [9.9, 13.9]) {
+    const at = trophyLayout(ids, matSize);
+    assert.equal(at.size, ids.length);
+    const spots = [...at.values()];
+    for (const v of spots) {
+      assert.ok(v.x > matSize / 2 + 0.4, 'off the mat');
+      assert.ok(v.z < matSize / 2 && v.z > -matSize / 2, 'alongside it');
+    }
+    for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) assert.ok(spots[i].distanceTo(spots[j]) >= 1, 'apart');
+    // the shortest nearest the player
+    const front = [...at].filter(([, v]) => v.z === Math.max(...spots.map((s) => s.z))).map(([id]) => TROPHIES[id].h);
+    assert.ok(Math.max(...front) <= Math.min(...[...at].filter(([, v]) => v.z < Math.max(...spots.map((s) => s.z))).map(([id]) => TROPHIES[id].h)));
+  }
+});

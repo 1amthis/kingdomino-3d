@@ -14,10 +14,12 @@ import { Rng } from '../core/rng.js';
 import { DominoView } from '../gfx/domino.js';
 import { buildCastle, buildKing, TILE_H } from '../gfx/pieces.js';
 import { makeMat, makeDraftBoard, makeChest } from '../gfx/table.js';
+import { buildTrophy, hasTrophy, trophyLayout } from '../gfx/trophies.js';
 import { M } from '../gfx/materials.js';
 import { FESTIVE } from '../gfx/effects.js';
 import { Ease, reducedMotion } from '../gfx/tween.js';
 import { CROWN_SVG } from '../ui/hud.js';
+import { badge } from '../ui/badges.js';
 import { LEFT } from '../net/online.js';
 import { t, tn } from '../i18n/index.js';
 
@@ -90,6 +92,9 @@ export class Controller {
     this.camHeld = false;
     this.viewName = null; // the dock view the camera is showing ('table', 'draft', a seat index…)
     this.shot = null; // what the automatic camera wants to show right now
+    // (name) => that person's achievements (core/achievements.js): the page hands it in, from the history
+    this.achievementsOf = null;
+    this.trophyTipped = null; // the trophy whose tooltip shows
     this.makeMarkers();
     this.setupInput();
     stage.onFrame((t, dt) => this.frame(t, dt));
@@ -316,6 +321,93 @@ export class Controller {
       this.world.add(g);
       p.kings.push({ player: p, group: g, model, home, id: `${p.index}-${i}` });
     }
+    p.trophies = new Map();
+    if (!this.demo && this.isLocal(p)) this.placeTrophies(p);
+  }
+
+  // ---------- trophies ----------
+  // Some achievements stand beside the mat of the person at this screen who earned them (gfx/trophies.js).
+  // Sets out the ones earned so far and returns those that were not on the table yet.
+  placeTrophies(p) {
+    let earned = [];
+    try { earned = this.achievementsOf ? this.achievementsOf(p.name).filter((a) => a.done && hasTrophy(a.id)) : []; } catch (e) { console.warn('[trophies]', e.message); }
+    const fresh = [];
+    for (const a of earned) {
+      if (!p.trophies.has(a.id)) {
+        const g = buildTrophy(a.id, p.color);
+        // each turned its own way, though always to the player
+        g.rotation.y = ((a.id.length * 7) % 11) / 11 * 0.7 - 0.35;
+        p.root.add(g);
+        p.trophies.set(a.id, g);
+        fresh.push(g);
+      }
+      p.trophies.get(a.id).userData.achievement = a;
+    }
+    const at = trophyLayout([...p.trophies.keys()], p.seat.matSize);
+    for (const [id, g] of p.trophies) g.userData.spot = at.get(id);
+    for (const g of p.trophies.values()) g.position.copy(g.userData.spot);
+    return fresh;
+  }
+
+  // The trophies a game has just earned come down onto the table one by one, while the camera looks on;
+  // the others make room for them.
+  async revealTrophies(flow, autoCam) {
+    for (const p of this.humans) {
+      const before = new Map([...p.trophies].map(([id, g]) => [id, g.position.clone()]));
+      const fresh = this.placeTrophies(p);
+      if (!fresh.length) continue;
+      for (const [id, from] of before) {
+        const g = p.trophies.get(id), to = g.userData.spot;
+        g.position.copy(from);
+        if (from.distanceToSquared(to) > 1e-4) this.tw.move(g, { position: to, duration: 500 });
+      }
+      const spots = [...p.trophies.values()].map((g) => p.root.localToWorld(g.userData.spot.clone()));
+      const c = spots.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(spots.length).setY(0.4);
+      if (autoCam && !this.camHeld) {
+        const r = 5.5 * Math.max(1, 1.2 / this.stage.camera.aspect);
+        this.camKey = 'trophies';
+        this.stage.flyTo(c.clone().add(p.seat.dir.clone().multiplyScalar(r * 0.8)).add(new THREE.Vector3(0, r * 0.75, 0)), c, 1100);
+      }
+      const names = fresh.map((g) => t(g.userData.achievement.name)).join(' &middot; ');
+      this.hud.prompt(this.hud.isYou(p) ? t('New on your table') : t('New on {who}’s table', { who: this.hud.who(p) }), names);
+      for (const g of fresh) g.visible = false;
+      await flow.w(this.tw.wait(900));
+      for (let i = 0; i < fresh.length; i++) {
+        const g = fresh[i], to = g.userData.spot;
+        g.visible = true;
+        const at = p.root.localToWorld(to.clone());
+        if (reducedMotion()) g.position.copy(to);
+        else {
+          g.position.copy(to).setY(2.2);
+          g.scale.setScalar(0.3);
+          this.tw.add({ duration: 700, ease: Ease.outBounce, update: (k) => { g.position.y = 2.2 * (1 - k); } });
+          this.tw.add({ duration: 450, ease: Ease.outBack, update: (k) => g.scale.setScalar(0.3 + 0.7 * k) });
+        }
+        this.tw.wait(reducedMotion() ? 0 : 520).then(() => {
+          this.fx.sparkle(at.clone().setY(0.4), { count: 40, spread: 0.45, up: 1.8 });
+          this.sfx('chime', i);
+        });
+        await flow.w(this.tw.wait(650));
+      }
+      await flow.w(this.tw.wait(1300));
+    }
+  }
+
+  // A trophy under the pointer shows what it was won for. Returns whether one is there.
+  trophyTip(e) {
+    const all = this.players.flatMap((p) => [...p.trophies.values()]);
+    let hit = null;
+    if (all.length) {
+      this.raycaster.setFromCamera(this.pointerNdc, this.stage.camera);
+      const hits = this.raycaster.intersectObjects(all, true);
+      for (let o = hits.length ? hits[0].object : null; o && !hit; o = o.parent) if (o.userData.trophy) hit = o;
+    }
+    if (hit) {
+      const a = hit.userData.achievement;
+      this.hud.tooltip(`<div class="tt-trophy">${badge(a, { small: true })}<div><div class="tt-title">${t(a.name)}</div><div class="tt-row">${t(a.text)}</div></div></div>`, e.clientX + 16, e.clientY + 16);
+    } else if (this.trophyTipped) this.hud.tooltip(null);
+    this.trophyTipped = hit;
+    return !!hit;
   }
 
   makeGuides(p) {
@@ -1389,6 +1481,7 @@ export class Controller {
     partying = false;
     this.stage.controls.autoRotate = false;
     for (const w of winners) w.plateBody.classList.remove('tally');
+    await flow.w(this.revealTrophies(flow, autoCam));
     this.hud.showResults(rows, this.opts, {
       coach: this.coach.summary(),
       note,
@@ -1496,7 +1589,7 @@ export class Controller {
     this.pointerPx = { x: e.clientX, y: e.clientY };
     this.pointerNdc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
     const m = this.mode;
-    if (!m) return;
+    if (!m) { this.trophyTip(e); return; }
     this.raycaster.setFromCamera(this.pointerNdc, this.stage.camera);
     if (m.type === 'place') {
       const hit = new THREE.Vector3();
@@ -1514,7 +1607,7 @@ export class Controller {
         this.stage.renderer.domElement.style.cursor = slot ? 'pointer' : '';
       }
       if (slot) this.slotTip(m, slot, e.clientX, e.clientY);
-      else this.hud.tooltip(null);
+      else if (!this.trophyTip(e)) this.hud.tooltip(null);
     }
   }
 
@@ -1547,7 +1640,10 @@ export class Controller {
   // ---------- per frame ----------
   frame(t, dt) {
     for (const v of this.activeViews) v.update(t, dt);
-    for (const p of this.players) p.castle.update(t);
+    for (const p of this.players) {
+      p.castle.update(t);
+      for (const g of p.trophies.values()) if (g.userData.update) g.userData.update(t);
+    }
     const m = this.mode;
     for (const k of this.kings) {
       const active = m && m.player === k.player;
