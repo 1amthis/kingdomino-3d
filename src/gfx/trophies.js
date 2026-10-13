@@ -365,7 +365,7 @@ export const TROPHIES = {
   'among-friends': { build: tankards, h: 0.35 },
   'score-80': { build: coins, h: 0.5 },
   jewel: { build: jewel, h: 0.5 },
-  'crowns-12': { build: treasure, h: 0.5 },
+  'crowns-13': { build: treasure, h: 0.5 },
   'six-terrains': { build: sixRealms, h: 0.2 },
   flawless: { build: goldenCastle, h: 1.0 },
   sharp: { build: spyglass, h: 0.7 },

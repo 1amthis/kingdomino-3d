@@ -75,22 +75,32 @@ test('wins in a row, and by a hair', () => {
 
 test('kingdoms: score, properties, crowns, terrains, a full kingdom', () => {
   const k = (more, rules = {}) => game([['You', 'here', 2, more.total ?? 40, more], ['A', 'hard', 1, 99]], { rules: { middleKingdom: false, harmony: false, mightyDuel: false, ...rules } });
-  assert.ok(earned([k({ total: 60 })]).includes('score-60'));
-  assert.ok(!earned([k({ total: 59 })]).includes('score-60'));
-  assert.ok(earned([k({ props: [['forest', 6, 5]] })]).includes('jewel'));
-  assert.ok(!earned([k({ props: [['forest', 7, 4]] })]).includes('jewel'));
-  assert.ok(earned([k({ crowns: 12 })]).includes('crowns-12'));
-  assert.ok(earned([k({ largest: 10 })]).includes('vast'));
+  assert.ok(earned([k({ total: 70 })]).includes('score-70'));
+  assert.ok(!earned([k({ total: 69 })]).includes('score-70'));
+  assert.ok(earned([k({ props: [['forest', 8, 5]] })]).includes('jewel'));
+  assert.ok(!earned([k({ props: [['forest', 9, 4]] })]).includes('jewel'));
+  assert.ok(earned([k({ crowns: 13 })]).includes('crowns-13'));
+  assert.ok(!earned([k({ crowns: 12 })]).includes('crowns-13'));
+  assert.ok(earned([k({ largest: 11 })]).includes('vast'));
+  assert.ok(!earned([k({ largest: 10 })]).includes('vast'));
   const six = ['wheat', 'forest', 'lake', 'grass', 'swamp', 'mine'].map((t) => [t, 2, 1]);
   assert.ok(earned([k({ props: six })]).includes('six-terrains'));
   assert.ok(!earned([k({ props: six.slice(1) })]).includes('six-terrains'));
-  // full, with the castle in a corner, then in the middle
+  // the Mighty Duel's 7×7 kingdom scores far more: the kingdoms' feats ask for a 5×5 one
+  const duel = { total: 140, crowns: 20, largest: 15, props: [['forest', 12, 6], ...six] };
+  assert.deepEqual(earned([k(duel, { mightyDuel: true })]).filter((id) => ACHIEVEMENTS.find((a) => a.id === id).group === 'kingdoms'), []);
+  // the flawless realm: full, the castle in the middle and the six terrains scoring
   const corner = ['C0W0W0W0W0', ...Array(4).fill('W0W0W0W0W0')];
   const middle = ['W0W0W0W0W0', 'W0W0W0W0W0', 'W0W0C0W0W0', 'W0W0W0W0W0', 'W0W0W0W0W0'];
-  assert.deepEqual(earned([k({ map: corner })]).filter((id) => ['full', 'flawless'].includes(id)), ['full']);
-  assert.deepEqual(earned([k({ map: middle })]).filter((id) => ['full', 'flawless'].includes(id)), ['full', 'flawless']);
-  assert.ok(!earned([k({ map: ['W0W0..W0W0', ...middle.slice(1)] })]).includes('full'), 'a gap');
-  assert.ok(!earned([k({ map: middle }, { mightyDuel: true })]).includes('full'), 'a Mighty Duel kingdom is 7×7');
+  assert.ok(earned([k({ map: middle, props: six })]).includes('flawless'));
+  assert.ok(!earned([k({ map: middle, props: six.slice(1) })]).includes('flawless'), 'five terrains');
+  assert.ok(!earned([k({ map: corner, props: six })]).includes('flawless'), 'the castle in a corner');
+  assert.ok(!earned([k({ map: ['W0W0..W0W0', ...middle.slice(1)], props: six })]).includes('flawless'), 'a gap');
+  // every square filled: a Mighty Duel's 49
+  const big = Array(7).fill('W0W0W0W0W0W0W0');
+  assert.ok(earned([k({ map: big }, { mightyDuel: true })]).includes('full'));
+  assert.ok(!earned([k({ map: ['W0W0W0..W0W0W0', ...big.slice(1)] }, { mightyDuel: true })]).includes('full'), 'a gap');
+  assert.ok(!earned([k({ map: middle })]).includes('full'), 'a full 5×5 kingdom is not enough');
 });
 
 test('the coach: a clean graded game, a sharp one, ten graded games', () => {
@@ -122,11 +132,11 @@ test('online: a win against a friend who stayed', () => {
 
 test('the game just played says what it earned, for each person at the screen', () => {
   const before = [game([['You', 'here', 1, 50], ['A', 'normal', 2, 40]])];
-  const now = game([['You', 'here', 1, 62], ['Mia', 'here', 2, 61], ['A', 'expert', 3, 40]]);
+  const now = game([['You', 'here', 1, 72], ['Mia', 'here', 2, 71], ['A', 'expert', 3, 40]]);
   const out = newAchievements(before, now);
   assert.deepEqual(out.map((o) => o.name), ['You', 'Mia']);
-  assert.deepEqual(out[0].earned.map((a) => a.id), ['beat-expert', 'photo-finish', 'score-60'], 'not the first win again');
-  assert.deepEqual(out[1].earned.map((a) => a.id), ['score-60']);
+  assert.deepEqual(out[0].earned.map((a) => a.id), ['beat-expert', 'photo-finish', 'score-70'], 'not the first win again');
+  assert.deepEqual(out[1].earned.map((a) => a.id), ['score-70']);
   // whether the history already holds the game or not
   assert.deepEqual(newAchievements([...before, now], now), out);
   assert.deepEqual(newAchievements([...before, now], game([['You', 'here', 2, 30], ['A', 'normal', 1, 40]])), []);
@@ -140,8 +150,9 @@ test('a real game reads the same', () => {
   const mine = rec.players[0];
   const list = achievementsFor([rec], 'You');
   assert.equal(get(list, 'first-win').done, mine.place === 1);
-  assert.equal(get(list, 'full').done, players[0].kingdom.cells.size === 25);
-  assert.equal(get(list, 'crowns-12').done, mine.crowns >= 12);
+  assert.equal(get(list, 'full').done, false, 'a 5×5 game');
+  assert.equal(get(list, 'crowns-13').done, mine.crowns >= 13);
+  assert.equal(get(list, 'vast').done, mine.largest >= 11);
 });
 
 test('trophies: each stands for an achievement, beside the mat, none on top of another', async () => {

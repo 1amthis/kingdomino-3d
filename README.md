@@ -160,8 +160,9 @@ Every finished game is kept in your browser, and **History** in the main menu sh
   in blue. The grades are saved with the game (a review stopped halfway carries on later), and reviewed games count
   in the coach's stats.
 - **Achievements**: 24 of them, in four groups. *Victories* (beat the Expert, win against every level, a Mighty
-  Duel, a Dynasty, three wins in a row, a win by a single point…), *Kingdoms* (60 and 80 points, a property worth 30,
-  12 crowns, all six terrains scoring, every square filled with the castle in the middle…), *Mastery* (a game the
+  Duel, a Dynasty, three wins in a row, a win by a single point…), *Kingdoms* (70 and 80 points, a property worth 40,
+  13 crowns, all six terrains scoring, all 49 squares of a Mighty Duel filled…: the Mighty Duel's big kingdom
+  would hand out the others, so they ask for a 5×5 one), *Mastery* (a game the
   coach grades without a Mistake or Blunder, under a point lost per move) and *The long road* (10, 50 and 100 games,
   25 wins). Each has its own badge, on a medal in its group's metal (gold, emerald, sapphire, bronze); a badge not
   yet earned shows faintly, with how far along it is. Each one earned opens the game that earned it.
