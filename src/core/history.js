@@ -345,18 +345,13 @@ export function statsFor(records, name) {
 }
 
 // What stands out about a game just played, for the people at this screen, against the games before it:
-// [{ type: 'best', name, total, previous }] for a new personal best, [{ type: 'expert', name }] for a
-// first win over the Expert.
+// [{ type: 'best', name, total, previous }] for a new personal best. (A first win over the Expert is an
+// achievement, see core/achievements.js.)
 export function highlights(records, record) {
   const out = [];
   const before = records.filter((r) => r.id !== record.id);
   for (const me of record.players.filter((p) => p.kind === 'here')) {
     const past = gamesOf(before, me.name);
-    const experts = record.players.filter((o) => o.kind === 'expert');
-    const beatExpert = (g, them) => them.some((o) => g.place < o.place);
-    if (experts.length && beatExpert(me, experts) && !past.some((g) => beatExpert(g.me, g.r.players.filter((o) => o.kind === 'expert')))) {
-      out.push({ type: 'expert', name: profileName(me.name) });
-    }
     const previous = Math.max(...past.map((g) => g.me.total));
     if (past.length && me.total > previous) out.push({ type: 'best', name: profileName(me.name), total: me.total, previous });
   }

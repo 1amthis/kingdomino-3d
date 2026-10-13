@@ -5,6 +5,7 @@ import { TERRAIN_INFO } from '../core/rules.js';
 import { decodeMap, profiles, statsFor, parseExport, highlights, dynastyOf } from '../core/history.js';
 import { GAMES } from '../core/dynasty.js';
 import { achievementsFor, newAchievements, GROUPS } from '../core/achievements.js';
+import { badge } from './badges.js';
 import { replayable, replayRecord } from '../core/replay.js';
 import { reviewedSeats, reviewPlan, reviewVerdicts, gradeOf, isPoor } from '../core/review.js';
 import { ReplayView } from './replay.js';
@@ -299,7 +300,7 @@ export class HistoryView {
     const medal = (a) => {
       const text = `<span class="ach-text"><b>${t(a.name)}</b><span>${t(a.text)}</span>${a.done ? `<small>${when(a.game.end, { time: false })}</small>`
         : a.need > 1 ? `<small class="ach-progress"><span class="ach-bar"><i style="width:${(a.have / a.need) * 100}%"></i></span>${a.have} / ${a.need}</small>` : ''}</span>`;
-      const icon = `<span class="ach-medal" aria-hidden="true">${CROWN_SVG}</span>`;
+      const icon = badge(a);
       return a.done
         ? `<button type="button" class="ach done" data-game="${a.game.id}" title="${t('Open the game that earned it')}">${icon}${text}</button>`
         : `<div class="ach">${icon}${text}</div>`;
@@ -502,24 +503,22 @@ export class HistoryView {
   }
 
   // ---------- after a game ----------
-  // What the results card says about the game just saved: a personal best, a first win over the Expert,
-  // the achievements it earned.
+  // What the results card says about the game just saved: a personal best, the achievements it earned
+  // (each with its badge).
   note(record) {
     const here = record.players.filter((p) => p.kind === 'here').length;
     const records = this.log.all();
     const feats = newAchievements(records, record).map(({ name, earned }) => {
       const who = here > 1 || !isYou(name) ? esc(nameOf(name)) : '';
-      const names = listOf(earned.map((a) => `<b>${t(a.name)}</b>`));
+      const names = listOf(earned.map((a) => `<span class="note-badge">${badge({ ...a, done: true }, { small: true })}<b>${t(a.name)}</b></span>`));
       const text = who ? tn(earned.length, '{who} earns an achievement: {names}', '{who} earns {n} achievements: {names}', { who, names })
         : tn(earned.length, 'Achievement earned: {names}', '{n} achievements earned: {names}', { names });
-      return `<div class="note-ach">${CROWN_SVG}<span>${text}</span></div>`;
+      return `<div class="note-ach">${text}</div>`;
     }).join('');
     return highlights(records, record).map((h) => {
       const who = here > 1 || !isYou(h.name) ? esc(nameOf(h.name)) : '';
       const vars = { who, n: h.total, before: h.previous };
-      return h.type === 'expert'
-        ? `<div>${who ? t('{who}’s first win over the Expert!', vars) : t('Your first win over the Expert!')}</div>`
-        : `<div>${who ? t('New personal best for {who}: <b>{n}</b> points <i>(before: {before})</i>', vars) : t('New personal best: <b>{n}</b> points <i>(before: {before})</i>', vars)}</div>`;
+      return `<div>${who ? t('New personal best for {who}: <b>{n}</b> points <i>(before: {before})</i>', vars) : t('New personal best: <b>{n}</b> points <i>(before: {before})</i>', vars)}</div>`;
     }).join('') + feats;
   }
 }
