@@ -29,8 +29,18 @@ export function grid(size) {
     row[i] = (i / W) | 0;
     if (!col[i] || !row[i] || col[i] === W - 1 || row[i] === W - 1) blank[i] = WALL;
   }
+  // The square's eight rotations/reflections, all about the castle. Each maps a cell to its image.
+  const transforms = Array.from({ length: 8 }, () => new Uint8Array(N));
+  for (let i = 0; i < N; i++) {
+    let x = col[i] - size, y = row[i] - size;
+    for (let r = 0; r < 4; r++) {
+      transforms[r][i] = (size + y) * W + size + x;
+      transforms[r + 4][i] = (size + y) * W + size - x;
+      [x, y] = [-y, x];
+    }
+  }
   // step[r] follows rules.js DIRS: right, towards the player, left, away
-  return (GRIDS[size] = { size, W, N, center: size * W + size, step: [1, W, -1, -W], blank, col, row });
+  return (GRIDS[size] = { size, W, N, center: size * W + size, step: [1, W, -1, -W], blank, col, row, transforms });
 }
 
 const SEEN = new Uint8Array(15 * 15), STACK = new Int16Array(15 * 15);
@@ -105,6 +115,43 @@ export class Board {
       }
     }
     return n;
+  }
+
+  // Only symmetries of the kingdom already on the board can make two placements equivalent.
+  // Terrain and crowns must both match; other players' boards need not share this symmetry because
+  // kingdoms never touch. Checking occupied cells suffices: every transform is a bijection.
+  symmetries() {
+    const { W, transforms } = this.g, { t, c } = this;
+    return transforms.filter((map) => {
+      for (let y = this.y0; y <= this.y1; y++) {
+        for (let x = this.x0; x <= this.x1; x++) {
+          const i = y * W + x;
+          if (t[i] && (t[i] !== t[map[i]] || c[i] !== c[map[i]])) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  // One legal representative per symmetry class, with every equivalent placement alongside it.
+  // Keep A/B in order unless both halves are identical, so lake-out and lake-in remain distinct.
+  placementGroups(moves, d) {
+    const maps = this.symmetries(), groups = new Map(), representatives = new Map();
+    const same = DOM[4 * d] === DOM[4 * d + 2] && DOM[4 * d + 1] === DOM[4 * d + 3];
+    for (const m of moves) {
+      let key = Infinity;
+      for (const map of maps) {
+        let a = map[m >> 8], b = map[m & 255];
+        if (same && b < a) [a, b] = [b, a];
+        key = Math.min(key, a << 8 | b);
+      }
+      if (!representatives.has(key)) {
+        representatives.set(key, m);
+        groups.set(m, []);
+      }
+      groups.get(representatives.get(key)).push(m);
+    }
+    return groups;
   }
 
   // The playout heuristic from the Python solver: roughly the points a placement adds, a little credit
@@ -237,15 +284,22 @@ export class Game {
     return out;
   }
 
-  // Legal moves; cap keeps only the most promising placements (by the playout heuristic).
-  legal(cap = 0, buf = new Int32Array(1024)) {
+  // Legal moves; the search can collapse symmetric placements before capping by the heuristic.
+  // The default still lists every placement for callers comparing the engine with the rules.
+  legal(cap = 0, buf = new Int32Array(1024), collapse = false) {
     if (this.phase !== PLACE) return this.freeSlots();
     const d = this.line[this.idx], b = this.boards[this.own[this.idx]];
     const n = b.placements(d, buf);
     if (!n) return [DISCARD];
-    const moves = Array.from(buf.subarray(0, n));
-    if (!cap || n <= cap) return moves;
+    let moves = Array.from(buf.subarray(0, n));
+    if (collapse) moves = [...this.moveGroups(moves).keys()];
+    if (!cap || moves.length <= cap) return moves;
     return moves.map((m) => [m, b.quickEval(m, d)]).sort((p, q) => q[1] - p[1]).slice(0, cap).map((p) => p[0]);
+  }
+
+  moveGroups(moves) {
+    if (this.phase !== PLACE || moves[0] === DISCARD) return new Map(moves.map((m) => [m, [m]]));
+    return this.boards[this.player].placementGroups(moves, this.line[this.idx]);
   }
 
   apply(m) {

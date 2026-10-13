@@ -251,7 +251,9 @@ stopped; the options are at the top of [`scripts/study.js`](scripts/study.js).
 ### The coach
 
 Pick it in the main menu (or in Settings during a game). While you decide, the Expert quietly analyses your position
-in a worker of its own: the same search, up to 8,000 simulations, with at least 24 for every legal move. For fair play the coach locks itself off whenever more than one
+in a worker of its own: the same search, up to 8,000 simulations, with at least 24 for every distinct legal move.
+Placements related by a rotation or reflection that preserves your existing kingdom (including crowns) share the
+same search results and grade. For fair play the coach locks itself off whenever more than one
 person is at the table, on the same screen or online. Once the game is over, fair play no longer stands in the way:
 the history's **review** grades the people's moves after the fact (see [History and stats](#history-and-stats)).
 

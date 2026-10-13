@@ -56,7 +56,7 @@ export class Search {
 
   // Searches until `sims` simulations or `ms` milliseconds, then plays the most visited move.
   choose(game, { sims = 2000, ms = 1500 } = {}) {
-    const acts = game.legal(this.rootCap, BUF);
+    const acts = game.legal(this.rootCap, BUF, true);
     const carry = this.carry;
     this.carry = null;
     if (acts.length === 1) return { move: acts[0], sims: 0 };
@@ -78,14 +78,17 @@ export class Search {
     return { move: best, sims: n };
   }
 
-  // For the coach: searches every legal move (no cap), gives each at least `min` simulations so even
+  // For the coach: searches every distinct legal move (no cap), gives each at least `min` simulations so even
   // the ones dismissed early are judged on more than a few games, and reports per move its visits, value,
   // win rate and average final lead in points over the best opponent (ev). For a pick, `land` is the
-  // spot where the picked domino did best. Moves come best first, ranked like choose() ranks them.
+  // spot where the picked domino did best. Symmetric placements share a branch and its statistics,
+  // but every legal placement is reported, so the coach can grade any orientation identically.
+  // Moves come best first, ranked like choose() ranks them; visits count the shared branch's samples.
   analyse(game, { sims = 8000, ms = 2500, min = 24 } = {}) {
-    const acts = game.legal(0, BUF), player = game.player;
+    const all = game.legal(0, BUF), player = game.player;
     const blank = (move) => ({ move, visits: 0, value: 0, win: 0, ev: 0, land: null });
-    if (acts.length < 2) return { player, sims: 0, moves: acts.map(blank) };
+    if (all.length < 2) return { player, sims: 0, moves: all.map(blank) };
+    const groups = game.moveGroups(all), acts = [...groups.keys()];
     const root = new Node();
     root.acts = acts;
     this.stats = new Map(acts.map((a) => [a, { win: 0, margin: 0, land: new Map() }]));
@@ -98,10 +101,11 @@ export class Search {
         n++;
       }
     }
-    const moves = acts.map((a) => {
+    const moves = acts.flatMap((a) => {
       const k = root.kids.get(a), s = this.stats.get(a);
-      if (!k) return blank(a);
-      return { move: a, visits: k.n, value: k.w / k.n, win: s.win / k.n, ev: s.margin / k.n, land: landing(s.land) };
+      if (!k) return groups.get(a).map(blank);
+      const stats = { visits: k.n, value: k.w / k.n, win: s.win / k.n, ev: s.margin / k.n, land: landing(s.land) };
+      return groups.get(a).map((move) => ({ move, ...stats }));
     }).sort((p, q) => q.visits - p.visits || q.value - p.value);
     this.stats = null;
     return { player, sims: n, moves };
@@ -130,7 +134,7 @@ export class Search {
       const actor = st.player;
       let acts = fixed ? node.acts : null;
       if (!acts) {
-        acts = st.legal(depth ? this.cap : this.rootCap, BUF);
+        acts = st.legal(depth ? this.cap : this.rootCap, BUF, true);
         if (fixed) node.acts = acts;
       }
       let a = depth === 0 && forced !== null ? forced : this.untried(st, acts, node.kids);

@@ -2,9 +2,9 @@
 // must only ever make legal moves in real game flows.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DOMINOES, Kingdom, footprint } from '../src/core/rules.js';
+import { DOMINOES, Kingdom, footprint, dominoById } from '../src/core/rules.js';
 import { Rng, mulberry32 } from '../src/core/rng.js';
-import { Board, DONE } from '../src/core/search/engine.js';
+import { Board, PLACE, PICK, DONE, DISCARD } from '../src/core/search/engine.js';
 import { gameFrom, moveOut } from '../src/core/search/state.js';
 import { playGame } from '../scripts/headless.js';
 
@@ -12,6 +12,73 @@ import { playGame } from '../scripts/headless.js';
 function outcomeKey(domino, { x, y, rot }) {
   return footprint(x, y, rot).map(([cx, cy], i) => `${cx},${cy}:${domino.squares[i].terrain}${domino.squares[i].crowns}`).sort().join(' ');
 }
+
+// An independent rules-engine snapshot of the whole kingdom after a move, up to rotation/reflection.
+function rotatedKingdomKey(kingdom) {
+  const cells = [...kingdom.cells].map(([key, c]) => [...key.split(',').map(Number), c.terrain, c.crowns]);
+  const keys = [];
+  for (const reflect of [false, true]) {
+    let points = cells.map(([x, y, ...rest]) => [reflect ? -x : x, y, ...rest]);
+    for (let r = 0; r < 4; r++) {
+      keys.push(points.map(([x, y, terrain, crowns]) => `${x},${y}:${terrain}${crowns}`).sort().join(' '));
+      points = points.map(([x, y, ...rest]) => [-y, x, ...rest]);
+    }
+  }
+  return keys.sort()[0];
+}
+
+for (const size of [5, 7]) {
+  test(`search groups only equivalent placements on ${size}×${size} kingdoms, before capping`, () => {
+    for (const placements of [[], [{ id: 3, x: 1, y: 0, rot: 0 }],
+      [{ id: 13, x: 1, y: 0, rot: 0 }, { id: 13, x: 0, y: 1, rot: 1 }]]) {
+      const kingdom = new Kingdom(size);
+      for (const p of placements) kingdom.place(dominoById(p.id), p.x, p.y, p.rot);
+      const game = gameFrom({ size, kingdoms: [{ placements, discards: 0 }, { placements: [], discards: 0 }],
+        seen: [], left: 0, phase: 'place', line: [32, 40], own: [0, 1], idx: 0 });
+      const groups = game.moveGroups(game.legal(0)), d = dominoById(32);
+      const expected = new Set(kingdom.validPlacements(d).map((v) => {
+        const after = kingdom.clone(); after.place(d, v.x, v.y, v.rot);
+        return rotatedKingdomKey(after);
+      }));
+      const actual = [];
+      for (const [rep, equivalent] of groups) {
+        const outcomes = equivalent.map((m) => {
+          const v = moveOut(game, m), after = kingdom.clone();
+          assert.ok(kingdom.canPlace(d, v.x, v.y, v.rot));
+          after.place(d, v.x, v.y, v.rot);
+          return rotatedKingdomKey(after);
+        });
+        assert.equal(new Set(outcomes).size, 1, 'every grouped move leaves an equivalent whole kingdom');
+        assert.ok(equivalent.includes(rep), 'the representative is a legal member');
+        actual.push(outcomes[0]);
+      }
+      assert.deepEqual(new Set(actual), expected);
+      assert.equal(actual.length, expected.size, 'equivalent branches are searched just once');
+      assert.equal([...groups.values()].reduce((n, g) => n + g.length, 0), game.legal(0).length);
+      assert.equal(game.legal(3, new Int32Array(1024), true).length, Math.min(3, expected.size));
+    }
+    const game = gameFrom({ size, kingdoms: [{ placements: [], discards: 0 }, { placements: [], discards: 0 }],
+      seen: [], left: 0, phase: 'place', line: [3, 40], own: [0, 1], idx: 0 });
+    assert.equal(game.moveGroups(game.legal()).size, 2, 'identical halves leave only straight and alongside');
+    game.phase = PICK; game.nextLine = new Int8Array([2, 3, 4, 5]); game.nextOwn = new Int8Array(4).fill(-1);
+    assert.deepEqual([...game.moveGroups(game.legal()).values()], [[0], [1], [2], [3]], 'draft slots stay distinct');
+    game.phase = PLACE;
+    assert.deepEqual([...game.moveGroups([DISCARD]).values()], [[DISCARD]], 'discard stays a single move');
+  });
+}
+
+test('terrain and crown differences in an existing kingdom prevent false symmetry', () => {
+  // The same occupied outline: two arms along the positive axes. Diagonal reflection only works
+  // when both their terrain and their crowns match.
+  for (const second of [14, 19]) {
+    const game = gameFrom({ size: 5, kingdoms: [{ placements: [{ id: 13, x: 1, y: 0, rot: 0 },
+      { id: second, x: 0, y: 1, rot: 1 }], discards: 0 }, { placements: [], discards: 0 }],
+      seen: [], left: 0, phase: 'place', line: [32, 40], own: [0, 1], idx: 0 });
+    const groups = game.moveGroups(game.legal());
+    assert.ok(groups.size > 4);
+    assert.ok([...groups.values()].every((g) => g.length === 1), `domino ${second} breaks the reflection`);
+  }
+});
 
 // Squares already around a placement: packing dominoes tightly fills kingdoms, so the bonuses get tested.
 const snug = (k, v) => footprint(v.x, v.y, v.rot).reduce((s, [x, y]) => s + [[1, 0], [0, 1], [-1, 0], [0, -1]].filter(([dx, dy]) => k.has(x + dx, y + dy)).length, 0);
