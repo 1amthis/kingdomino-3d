@@ -97,9 +97,29 @@ test('the analysis covers every legal move once, best first, with sound numbers'
         assert.ok(m.visits >= 8, 'every move is tried at least `min` times');
         assert.ok(m.win >= 0 && m.win <= 1 && m.value >= 0 && m.value <= 1, 'win rate and value are shares');
         assert.ok(Math.abs(m.ev) < 150, 'the lead is a point margin');
-        if (i) assert.ok(a.moves[i - 1].visits >= m.visits, 'ranked by visits');
+        if (i > 1) assert.ok(a.moves[i - 1].visits >= m.visits, 'alternatives ranked by visits');
       }
     }
+  }
+});
+
+test('Expert and coach prefer an earlier identical draft while retaining separate estimates', () => {
+  // A generic first-round pick: the actor has laid #12, and two identical crowned forest/field
+  // dominoes are free. Restrict the root to that pair; later simulated turns use the full legal set.
+  const table = { size: 5, middle: true, harmony: true, phase: 'pick', idx: 0, left: 40,
+    kingdoms: [{ placements: [{ id: 12, x: 1, y: 0, rot: 1 }], discards: 0 },
+      { placements: [], discards: 0 }, { placements: [], discards: 0 }],
+    line: [12, 17, 40], own: [0, 1, 2], nextLine: [24, 26, 33, 46], nextOwn: [-1, -1, -1, -1],
+    seen: [2, 12, 17, 40, 24, 26, 33, 46] };
+  for (const seed of [7, 23, 101, 313]) {
+    const game = gameFrom(table), legal = game.legal;
+    game.legal = (...args) => legal.call(game, ...args).filter((m) => m < 2);
+    assert.equal(new Search({ seed }).choose(game, { sims: 400, ms: 1e9 }).move, 0);
+    const a = new Search({ seed }).analyse(game, { sims: 400, ms: 1e9, min: 12 });
+    assert.equal(a.moves[0].move, 0, 'coach recommends the same initiative policy');
+    assert.deepEqual(new Set(a.moves.map((m) => m.move)), new Set([0, 1]), 'both drafts are still analysed');
+    assert.equal(a.moves.reduce((n, m) => n + m.visits, 0), a.sims, 'draft visits are independent, not pooled');
+    assert.ok(a.moves.every((m) => m.visits >= 12));
   }
 });
 

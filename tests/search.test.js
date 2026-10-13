@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DOMINOES, Kingdom, footprint, dominoById } from '../src/core/rules.js';
 import { Rng, mulberry32 } from '../src/core/rng.js';
-import { Board, PLACE, PICK, DONE, DISCARD } from '../src/core/search/engine.js';
+import { Board, INIT, PLACE, PICK, DONE, DISCARD } from '../src/core/search/engine.js';
 import { gameFrom, moveOut } from '../src/core/search/state.js';
 import { playGame } from '../scripts/headless.js';
 
@@ -12,6 +12,29 @@ import { playGame } from '../scripts/headless.js';
 function outcomeKey(domino, { x, y, rot }) {
   return footprint(x, y, rot).map(([cx, cy], i) => `${cx},${cy}:${domino.squares[i].terrain}${domino.squares[i].crowns}`).sort().join(' ');
 }
+
+test('identical draft preference respects crowns, availability and the snake opening', () => {
+  const game = gameFrom({ size: 5, kingdoms: [{ placements: [], discards: 0 }, { placements: [], discards: 0 }, { placements: [], discards: 0 }],
+    seen: [], left: 0, phase: 'pick', line: [12, 17, 40], own: [0, 1, 2], idx: 0,
+    nextLine: [24, 26, 33, 46], nextOwn: [-1, -1, -1, -1] });
+  assert.equal(game.preferEarlierDraft(1), 0, 'same forest crown and field: take the earlier copy');
+  assert.equal(game.preferEarlierDraft(2), 2, 'different terrain is not a duplicate');
+  game.nextOwn[0] = 2;
+  assert.equal(game.preferEarlierDraft(1), 1, 'a claimed copy cannot be taken');
+  game.nextOwn[0] = -1;
+  game.nextLine[0] = 18; // #19: crowned field + forest, unlike #26's crowned forest + field
+  assert.equal(game.preferEarlierDraft(1), 1, 'crowns must match on each terrain, not just in total');
+  game.nextLine[0] = 12; // #13: same terrains but no crown
+  assert.equal(game.preferEarlierDraft(1), 1, 'an extra crown remains a real choice');
+  game.phase = INIT; game.line = Int8Array.from([23, 25, 32, 45]); game.own.fill(-1);
+  assert.equal(game.preferEarlierDraft(1), 0, 'normal opening uses numbered turn order');
+  game.snake = true;
+  assert.equal(game.preferEarlierDraft(1), 1, 'snake opening orders kings, not domino numbers');
+  game.phase = PICK; game.nextLine[0] = 23;
+  assert.equal(game.preferEarlierDraft(1), 0, 'later drafts use numbered order even with snake enabled');
+  game.phase = PLACE;
+  assert.equal(game.preferEarlierDraft(1), 1, 'placement encodings are unaffected');
+});
 
 // An independent rules-engine snapshot of the whole kingdom after a move, up to rotation/reflection.
 function rotatedKingdomKey(kingdom) {
