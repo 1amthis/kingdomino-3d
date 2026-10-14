@@ -1,0 +1,74 @@
+{
+  "bootstrapReplicates": 10000,
+  "bootstrapSeed": 20261014,
+  "confidenceMethod": "95% percentile bootstrap, resampling whole dealSeed clusters within each mode",
+  "modes": {
+    "duel": {
+      "games": 400,
+      "deals": 200,
+      "simsPerSearch": 3000,
+      "wins": 205,
+      "ties": 0,
+      "losses": 195,
+      "matchScore": 0.5125,
+      "matchScoreCI95": [
+        0.4875,
+        0.5375
+      ],
+      "meanLead": 0.3075,
+      "meanLeadCI95": [
+        -0.6675,
+        1.27
+      ],
+      "meanScoreNew": 124.98,
+      "meanScoreOld": 124.6725,
+      "firstPlaceNew": 205,
+      "firstPlaceOld": 195,
+      "stats": {
+        "old": {
+          "calls": 19200,
+          "sims": 47936872,
+          "ms": 3808716.1995949973,
+          "limited": 10,
+          "msPerDecision": 198.37063539557278,
+          "msPerThousandSimulations": 79.45274776366296,
+          "maxDecisionMs": 1558.1137089999975
+        },
+        "new": {
+          "calls": 19200,
+          "sims": 47920040,
+          "ms": 3832327.2436370086,
+          "limited": 11,
+          "msPerDecision": 199.60037727276085,
+          "msPerThousandSimulations": 79.97337321999332,
+          "maxDecisionMs": 1539.2266360000067
+        }
+      },
+      "timingGames": 400,
+      "budgetLimitedDecisions": 21,
+      "relativeDecisionTimeChange": 0.006199213279404203,
+      "wallSeconds": 964.023349162,
+      "metadata": {
+        "type": "metadata",
+        "mode": "duel",
+        "rules": {
+          "players": 2,
+          "middleKingdom": true,
+          "harmony": true,
+          "mightyDuel": true
+        },
+        "deals": 200,
+        "seed": 9000001,
+        "sims": 3000,
+        "ms": 1500,
+        "threads": 8,
+        "node": "v24.19.0",
+        "oldRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+        "newRevision": "d82e50dd3715fe0c4eb6bba412dc80f0e6dc34e1",
+        "timestamp": "2026-10-14T06:01:39.608Z",
+        "searchSeed": "hashSeed(compare-experts, dealSeed, seat)",
+        "pairedBy": "dealSeed"
+      }
+    }
+  }
+}

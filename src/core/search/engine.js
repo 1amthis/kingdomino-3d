@@ -284,6 +284,23 @@ export class Game {
     return out;
   }
 
+  // A draft policy: keep the chosen domino's terrain and crowns, but take its earliest free copy.
+  // The slots still have separate search statistics because their initiative is different.
+  // The snake opening orders the first round by king rather than domino number, so skip it there.
+  preferEarlierDraft(move) {
+    if (this.phase === PLACE || this.phase === DONE || (this.phase === INIT && this.snake)) return move;
+    const line = this.phase === INIT ? this.line : this.nextLine;
+    const own = this.phase === INIT ? this.own : this.nextOwn, d = 4 * line[move];
+    for (let i = 0; i < move; i++) {
+      if (own[i] >= 0) continue;
+      const e = 4 * line[i];
+      const same = DOM[d] === DOM[e] && DOM[d + 1] === DOM[e + 1] && DOM[d + 2] === DOM[e + 2] && DOM[d + 3] === DOM[e + 3];
+      const reversed = DOM[d] === DOM[e + 2] && DOM[d + 1] === DOM[e + 3] && DOM[d + 2] === DOM[e] && DOM[d + 3] === DOM[e + 1];
+      if (same || reversed) return i;
+    }
+    return move;
+  }
+
   // Legal moves; the search can collapse symmetric placements before capping by the heuristic.
   // The default still lists every placement for callers comparing the engine with the rules.
   legal(cap = 0, buf = new Int32Array(1024), collapse = false) {

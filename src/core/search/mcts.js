@@ -54,7 +54,8 @@ export class Search {
     this.watch = { on: false, p: 0, d: 0, hit: null };
   }
 
-  // Searches until `sims` simulations or `ms` milliseconds, then plays the most visited move.
+  // Searches until `sims` simulations or `ms` milliseconds, then plays the most visited move,
+  // preferring an earlier free copy of the same drafted domino for initiative.
   choose(game, { sims = 2000, ms = 1500 } = {}) {
     const acts = game.legal(this.rootCap, BUF, true);
     const carry = this.carry;
@@ -70,6 +71,8 @@ export class Search {
       if (!k) continue;
       if (k.n > bn || (k.n === bn && k.w / k.n > bw)) { best = a; bn = k.n; bw = k.w / k.n; }
     }
+    const earlier = game.preferEarlierDraft(best);
+    if (acts.includes(earlier)) best = earlier;
     if (game.phase === PLACE && game.nextLine && root.kids.has(best)) {
       const after = game.clone();
       after.apply(best);
@@ -83,7 +86,9 @@ export class Search {
   // win rate and average final lead in points over the best opponent (ev). For a pick, `land` is the
   // spot where the picked domino did best. Symmetric placements share a branch and its statistics,
   // but every legal placement is reported, so the coach can grade any orientation identically.
-  // Moves come best first, ranked like choose() ranks them; visits count the shared branch's samples.
+  // The preferred move comes first, including choose()'s draft initiative preference; the rest are
+  // ranked by visits/value. Visits count a symmetric placement branch's shared samples. Draft slots
+  // always keep their own estimates, even when the dominoes match.
   analyse(game, { sims = 8000, ms = 2500, min = 24 } = {}) {
     const all = game.legal(0, BUF), player = game.player;
     const blank = (move) => ({ move, visits: 0, value: 0, win: 0, ev: 0, land: null });
@@ -107,6 +112,9 @@ export class Search {
       const stats = { visits: k.n, value: k.w / k.n, win: s.win / k.n, ev: s.margin / k.n, land: landing(s.land) };
       return groups.get(a).map((move) => ({ move, ...stats }));
     }).sort((p, q) => q.visits - p.visits || q.value - p.value);
+    const preferred = game.preferEarlierDraft(moves[0].move);
+    const at = moves.findIndex((m) => m.move === preferred);
+    if (at > 0) moves.unshift(moves.splice(at, 1)[0]);
     this.stats = null;
     return { player, sims: n, moves };
   }

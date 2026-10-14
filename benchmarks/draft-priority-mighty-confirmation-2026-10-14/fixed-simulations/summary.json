@@ -1,0 +1,101 @@
+{
+  "bootstrapReplicates": 10000,
+  "bootstrapSeed": 20261014,
+  "confidenceMethod": "95% percentile bootstrap, resampling whole dealSeed clusters within each mode",
+  "modes": {
+    "duel": {
+      "games": 400,
+      "deals": 200,
+      "simsPerSearch": 3000,
+      "wins": 204,
+      "ties": 0,
+      "losses": 196,
+      "matchScore": 0.51,
+      "matchScoreCI95": [
+        0.485,
+        0.535
+      ],
+      "meanLead": 0.4975,
+      "meanLeadCI95": [
+        -0.42,
+        1.42
+      ],
+      "meanScoreNew": 125.1875,
+      "meanScoreOld": 124.69,
+      "firstPlaceNew": 204,
+      "firstPlaceOld": 196,
+      "stats": {
+        "old": {
+          "calls": 17760,
+          "sims": 44322000,
+          "ms": 3486028.554819996,
+          "limited": 0,
+          "msPerDecision": 196.285391600225,
+          "msPerThousandSimulations": 78.65232965164017,
+          "maxDecisionMs": 1472.8738439999288
+        },
+        "new": {
+          "calls": 17760,
+          "sims": 44313000,
+          "ms": 3510187.5092090084,
+          "limited": 0,
+          "msPerDecision": 197.64569308609282,
+          "msPerThousandSimulations": 79.21349286234306,
+          "maxDecisionMs": 1465.8764229999797
+        }
+      },
+      "timingGames": 370,
+      "budgetLimitedDecisions": 0,
+      "relativeDecisionTimeChange": 0.006930222747489667,
+      "wallSeconds": 964.023349162,
+      "metadata": {
+        "type": "metadata",
+        "mode": "duel",
+        "rules": {
+          "players": 2,
+          "middleKingdom": true,
+          "harmony": true,
+          "mightyDuel": true
+        },
+        "deals": 200,
+        "seed": 9000001,
+        "sims": 3000,
+        "ms": 1000000000,
+        "threads": 8,
+        "node": "v24.19.0",
+        "oldRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+        "newRevision": "d82e50dd3715fe0c4eb6bba412dc80f0e6dc34e1",
+        "timestamp": "2026-10-14T06:01:39.608Z",
+        "searchSeed": "hashSeed(compare-experts, dealSeed, seat)",
+        "pairedBy": "dealSeed",
+        "sensitivity": {
+          "method": "Both/all seat assignments rerun for every deal with any capped decision; other searches already completed the full simulation budget",
+          "sourceFile": "benchmarks/draft-priority-mighty-confirmation-2026-10-14/duel.jsonl",
+          "sourceSHA256": "a3c39288e39c1d5c4802839e7ecf09f6117d32f7138fb2b3072495a55221c30c",
+          "originalTimeCapMs": 1500,
+          "rerunDeals": [
+            9000026,
+            9000038,
+            9000047,
+            9000065,
+            9000072,
+            9000073,
+            9000075,
+            9000076,
+            9000077,
+            9000079,
+            9000164,
+            9000185,
+            9000186,
+            9000190,
+            9000192
+          ],
+          "rerunGames": 30,
+          "rerunConcurrentDeals": 2,
+          "threadsPerRerunDeal": 2,
+          "timing": "Rerun games excluded; unaffected primary games retained for timing only"
+        }
+      }
+    }
+  }
+}

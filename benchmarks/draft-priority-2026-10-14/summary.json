@@ -1,0 +1,292 @@
+{
+  "bootstrapReplicates": 10000,
+  "bootstrapSeed": 20261014,
+  "confidenceMethod": "95% percentile bootstrap, resampling whole dealSeed clusters within each mode",
+  "modes": {
+    "standard": {
+      "games": 200,
+      "deals": 100,
+      "simsPerSearch": 3000,
+      "wins": 102,
+      "ties": 0,
+      "losses": 98,
+      "matchScore": 0.51,
+      "matchScoreCI95": [
+        0.485,
+        0.54
+      ],
+      "meanLead": 0.07,
+      "meanLeadCI95": [
+        -0.445,
+        0.545
+      ],
+      "meanScoreNew": 35.575,
+      "meanScoreOld": 35.505,
+      "firstPlaceNew": 102,
+      "firstPlaceOld": 98,
+      "stats": {
+        "old": {
+          "calls": 4800,
+          "sims": 11622000,
+          "ms": 292568.0280740002,
+          "limited": 0,
+          "msPerDecision": 60.95167251541671,
+          "msPerThousandSimulations": 25.17363862278439,
+          "maxDecisionMs": 345.819444
+        },
+        "new": {
+          "calls": 4800,
+          "sims": 11661000,
+          "ms": 295694.96637200017,
+          "limited": 0,
+          "msPerDecision": 61.6031179941667,
+          "msPerThousandSimulations": 25.35759938015609,
+          "maxDecisionMs": 283.9083559999999
+        }
+      },
+      "timingGames": 200,
+      "budgetLimitedDecisions": 0,
+      "relativeDecisionTimeChange": 0.010687901609020223,
+      "wallSeconds": 150.40564970900002,
+      "metadata": {
+        "type": "metadata",
+        "mode": "standard",
+        "rules": {
+          "players": 2,
+          "middleKingdom": false,
+          "harmony": false,
+          "mightyDuel": false
+        },
+        "deals": 100,
+        "seed": 5000001,
+        "sims": 3000,
+        "ms": 1500,
+        "threads": 4,
+        "node": "v24.19.0",
+        "oldRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+        "newRevision": "b288230cffb2c38efcbc2a9a392c2e90e5d4d9f7",
+        "timestamp": "2026-10-13T23:06:45.917Z",
+        "searchSeed": "hashSeed(compare-experts, dealSeed, seat)",
+        "pairedBy": "dealSeed"
+      }
+    },
+    "bonuses": {
+      "games": 200,
+      "deals": 100,
+      "simsPerSearch": 3000,
+      "wins": 102,
+      "ties": 0,
+      "losses": 98,
+      "matchScore": 0.51,
+      "matchScoreCI95": [
+        0.49,
+        0.53
+      ],
+      "meanLead": -0.1,
+      "meanLeadCI95": [
+        -0.49,
+        0.245
+      ],
+      "meanScoreNew": 46.63,
+      "meanScoreOld": 46.73,
+      "firstPlaceNew": 102,
+      "firstPlaceOld": 98,
+      "stats": {
+        "old": {
+          "calls": 4800,
+          "sims": 11703000,
+          "ms": 289652.1844820005,
+          "limited": 0,
+          "msPerDecision": 60.344205100416765,
+          "msPerThousandSimulations": 24.75025074613351,
+          "maxDecisionMs": 299.609764
+        },
+        "new": {
+          "calls": 4800,
+          "sims": 11700000,
+          "ms": 291220.58136300027,
+          "limited": 0,
+          "msPerDecision": 60.670954450625054,
+          "msPerThousandSimulations": 24.890647979743612,
+          "maxDecisionMs": 343.57314600000973
+        }
+      },
+      "timingGames": 200,
+      "budgetLimitedDecisions": 0,
+      "relativeDecisionTimeChange": 0.005414759373572942,
+      "wallSeconds": 148.594585786,
+      "metadata": {
+        "type": "metadata",
+        "mode": "bonuses",
+        "rules": {
+          "players": 2,
+          "middleKingdom": true,
+          "harmony": true,
+          "mightyDuel": false
+        },
+        "deals": 100,
+        "seed": 6000001,
+        "sims": 3000,
+        "ms": 1500,
+        "threads": 4,
+        "node": "v24.19.0",
+        "oldRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+        "newRevision": "b288230cffb2c38efcbc2a9a392c2e90e5d4d9f7",
+        "timestamp": "2026-10-13T23:06:45.893Z",
+        "searchSeed": "hashSeed(compare-experts, dealSeed, seat)",
+        "pairedBy": "dealSeed"
+      }
+    },
+    "duel": {
+      "games": 40,
+      "deals": 20,
+      "simsPerSearch": 3000,
+      "wins": 23,
+      "ties": 0,
+      "losses": 17,
+      "matchScore": 0.575,
+      "matchScoreCI95": [
+        0.5,
+        0.65
+      ],
+      "meanLead": 2.225,
+      "meanLeadCI95": [
+        0.25,
+        5.0
+      ],
+      "meanScoreNew": 122.225,
+      "meanScoreOld": 120,
+      "firstPlaceNew": 23,
+      "firstPlaceOld": 17,
+      "stats": {
+        "old": {
+          "calls": 1920,
+          "sims": 4797000,
+          "ms": 218289.47650699975,
+          "limited": 0,
+          "msPerDecision": 113.69243568072903,
+          "msPerThousandSimulations": 45.50541515676459,
+          "maxDecisionMs": 621.1775949999974
+        },
+        "new": {
+          "calls": 1920,
+          "sims": 4806000,
+          "ms": 218217.0398480004,
+          "limited": 0,
+          "msPerDecision": 113.65470825416688,
+          "msPerThousandSimulations": 45.405126893050436,
+          "maxDecisionMs": 573.0315089999999
+        }
+      },
+      "timingGames": 40,
+      "budgetLimitedDecisions": 0,
+      "relativeDecisionTimeChange": -0.0003318376137890766,
+      "wallSeconds": 223.119403753,
+      "metadata": {
+        "type": "metadata",
+        "mode": "duel",
+        "rules": {
+          "players": 2,
+          "middleKingdom": true,
+          "harmony": true,
+          "mightyDuel": true
+        },
+        "deals": 20,
+        "seed": 7000001,
+        "sims": 3000,
+        "ms": 1500,
+        "threads": 2,
+        "node": "v24.19.0",
+        "oldRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+        "newRevision": "b288230cffb2c38efcbc2a9a392c2e90e5d4d9f7",
+        "timestamp": "2026-10-13T23:09:54.731Z",
+        "searchSeed": "hashSeed(compare-experts, dealSeed, seat)",
+        "pairedBy": "dealSeed"
+      }
+    },
+    "three": {
+      "games": 120,
+      "deals": 20,
+      "simsPerSearch": 6000,
+      "wins": 61,
+      "ties": 0,
+      "losses": 59,
+      "matchScore": 0.5083333333333333,
+      "matchScoreCI95": [
+        0.48333333333333334,
+        0.5333333333333333
+      ],
+      "meanLead": 0.2916666666666667,
+      "meanLeadCI95": [
+        -0.525,
+        1.2666666666666666
+      ],
+      "meanScoreNew": 68.79166666666667,
+      "meanScoreOld": 68.5,
+      "firstPlaceNew": 46,
+      "firstPlaceOld": 47,
+      "stats": {
+        "old": {
+          "calls": 2880,
+          "sims": 16380000,
+          "ms": 699951.4000479997,
+          "limited": 0,
+          "msPerDecision": 243.03868057222212,
+          "msPerThousandSimulations": 42.73207570500609,
+          "maxDecisionMs": 877.8033529999957
+        },
+        "new": {
+          "calls": 2880,
+          "sims": 16392000,
+          "ms": 705398.6617190003,
+          "limited": 0,
+          "msPerDecision": 244.93009087465288,
+          "msPerThousandSimulations": 43.03310527812349,
+          "maxDecisionMs": 876.0127750000001
+        }
+      },
+      "timingGames": 120,
+      "budgetLimitedDecisions": 0,
+      "relativeDecisionTimeChange": 0.0077823427035463855,
+      "wallSeconds": 238.327237863,
+      "metadata": {
+        "type": "metadata",
+        "mode": "three",
+        "rules": {
+          "players": 3,
+          "middleKingdom": true,
+          "harmony": true,
+          "mightyDuel": false
+        },
+        "deals": 20,
+        "seed": 8000001,
+        "sims": 6000,
+        "ms": 1500,
+        "threads": 6,
+        "node": "v24.19.0",
+        "oldRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+        "newRevision": "b288230cffb2c38efcbc2a9a392c2e90e5d4d9f7",
+        "timestamp": "2026-10-13T23:09:54.721Z",
+        "searchSeed": "hashSeed(compare-experts, dealSeed, seat)",
+        "pairedBy": "dealSeed"
+      }
+    }
+  },
+  "combined5x5": {
+    "games": 400,
+    "deals": 200,
+    "wins": 204,
+    "ties": 0,
+    "losses": 196,
+    "meanLead": -0.015,
+    "meanLeadCI95": [
+      -0.33,
+      0.28
+    ],
+    "matchScore": 0.51,
+    "matchScoreCI95": [
+      0.4925,
+      0.5275000000000001
+    ]
+  }
+}

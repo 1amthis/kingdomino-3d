@@ -257,6 +257,10 @@ same search results and grade. For fair play the coach locks itself off whenever
 person is at the table, on the same screen or online. Once the game is over, fair play no longer stands in the way:
 the history's **review** grades the people's moves after the fact (see [History and stats](#history-and-stats)).
 
+When drafting, the Expert and coach prefer the earliest free copy of the chosen domino when its terrain and
+crowns match exactly, keeping initiative without changing the tile. Draft slots keep separate estimates because
+turn order changes their consequences. The snake opening is exempt: its first-round order follows the kings.
+
 - **Trainer**: once you move, a badge comes up on the screen, from **Best** through Excellent, Good, Inaccuracy and
   Mistake to **Blunder**, by the points of expected final lead the move gives up against the Expert's choice (0.3, 1,
   2.5, 5 and 9 points). After a poor move, the Expert's choice flashes blue on the table, and a poor placement's badge
