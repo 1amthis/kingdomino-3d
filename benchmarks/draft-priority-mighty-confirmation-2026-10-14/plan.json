@@ -1,0 +1,26 @@
+{
+  "purpose": "Independent confirmation of the apparent Mighty Duel advantage observed in the exploratory 20-deal draft-priority benchmark",
+  "mode": "duel",
+  "bonuses": [
+    "middleKingdom",
+    "harmony"
+  ],
+  "deals": 200,
+  "games": 400,
+  "firstDealSeed": 9000001,
+  "lastDealSeed": 9000200,
+  "seats": "both assignments per deal",
+  "simulationsPerDecision": 3000,
+  "timeCapMs": 1500,
+  "threads": 8,
+  "baselineRevision": "bec03c8f4e1dc9b834f139611bcfaf7fd7f414e7",
+  "candidateRevision": "d82e50dd3715fe0c4eb6bba412dc80f0e6dc34e1",
+  "primaryOutcome": "candidate pairwise match score (win=1, draw=0.5, loss=0), 95% percentile bootstrap interval resampling whole deal pairs",
+  "secondaryOutcomes": [
+    "mean point lead with paired interval",
+    "earlier-identical-copy policy audit",
+    "decision time and cap hits"
+  ],
+  "stoppingRule": "Run all 200 deals regardless of intermediate results; keep this confirmation batch separate from the exploratory sample",
+  "capSensitivityRule": "After the full primary run, identify every deal with any budget-limited decision in either seat or version. Rerun both seat assignments for each such deal at 3000 simulations with an effectively disabled time cap, regardless of outcomes. Keep the original normal-cap results and report the fixed-simulation sensitivity separately. Exclude rerun games from comparative timing."
+}

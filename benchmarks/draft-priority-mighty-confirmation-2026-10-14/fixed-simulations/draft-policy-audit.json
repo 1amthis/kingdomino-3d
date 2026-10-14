@@ -1,0 +1,15 @@
+{
+  "duel": {
+    "games": 400,
+    "old": {
+      "drafts": 9600,
+      "duplicateChoices": 357,
+      "laterCopies": 118
+    },
+    "new": {
+      "drafts": 9600,
+      "duplicateChoices": 353,
+      "laterCopies": 0
+    }
+  }
+}
