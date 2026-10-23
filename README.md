@@ -378,6 +378,8 @@ scripts/
   headless.js        core/table.js's flow with AI seats, for benchmarks and tests; records moves and replays them
   bench.js           Expert against a heuristic level on paired deals
   study.js           strategy studies with the Expert's search: opening picks, seats, how to lay dominoes
+  graph/             placement as graph problems: an exact solver, score bounds, the matching count of lost
+                     squares, and the runs of benchmarks/graph-study-2026-10-23
 tests/
   search.test.js     search engine vs rules engine; the Expert's moves stay legal in every setup
   coach.test.js      the analysis covers every move soundly; grades follow from it
